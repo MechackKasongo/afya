@@ -1,0 +1,69 @@
+@startuml CLASSES_SERVICE_BFF
+title "Diagramme de classes — afya-bff (agrégation)"
+skinparam classAttributeIconSize 0
+
+package "Controllers REST" {
+  class AuthBffController
+  class UserBffController
+  class PatientBffController
+  class AdmissionBffController
+  class EmergencyBffController
+  class StayBffController
+  class PatientClinicalBffController
+  class ConsultationBffController
+  class PrescriptionBffController
+  class DiseaseCatalogBffController
+  class HospitalServiceBffController
+  class AuditBffController
+  class StatsBffController
+}
+
+package "Clients HTTP" {
+  class IdentityClient {
+    + login(request) : TokenResponse
+    + listUsers(...) : Page
+  }
+  class PatientClient {
+    + search(...) : Page
+    + create(request) : PatientResponse
+  }
+  class CareEntryClient {
+    + createAdmission(request) : AdmissionResponse
+    + listEmergencies(...) : Page
+  }
+  class StayClient {
+    + openStay(request) : StayResponse
+    + getForm(admissionId) : HospitalizationFormResponse
+  }
+  class ClinicalRecordClient {
+    + getMedicalRecord(patientId) : MedicalRecordResponse
+    + consultationEvents(id) : List
+    + listSelectableDiseases(type) : List
+  }
+  class CatalogClient {
+    + listHospitalServices() : List
+    + occupancyStats() : CatalogOccupancyStatsResponse
+  }
+  class AuditClient {
+    + listEvents(...) : Page
+    + activityReport() : ActivityReportResponse
+  }
+}
+
+AuthBffController --> IdentityClient
+UserBffController --> IdentityClient
+PatientBffController --> PatientClient
+AdmissionBffController --> CareEntryClient
+EmergencyBffController --> CareEntryClient
+StayBffController --> StayClient
+PatientClinicalBffController --> ClinicalRecordClient
+ConsultationBffController --> ClinicalRecordClient
+PrescriptionBffController --> ClinicalRecordClient
+DiseaseCatalogBffController --> ClinicalRecordClient
+HospitalServiceBffController --> CatalogClient
+AuditBffController --> AuditClient
+StatsBffController --> AuditClient
+StatsBffController --> CareEntryClient
+StatsBffController --> ClinicalRecordClient
+
+@enduml

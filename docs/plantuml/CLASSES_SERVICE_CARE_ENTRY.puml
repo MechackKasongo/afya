@@ -1,0 +1,57 @@
+@startuml CLASSES_SERVICE_CARE_ENTRY
+title "Diagramme de classes — care-entry-service"
+skinparam classAttributeIconSize 0
+
+class AdmissionController {
+  - admissionService : AdmissionService
+  + create(request) : AdmissionResponse
+  + transfer(id, request) : AdmissionResponse
+  + discharge(id, request) : AdmissionResponse
+}
+class EmergencyController {
+  - emergencyVisitService : EmergencyVisitService
+  + create(request) : EmergencyResponse
+  + triage(id, request) : EmergencyResponse
+  + close(id) : EmergencyResponse
+}
+class AdmissionService {
+  - admissionRepository : AdmissionRepository
+  - patientServiceClient : PatientServiceClient
+  - catalogServiceClient : CatalogServiceClient
+  - stayServiceClient : StayServiceClient
+  + admit(request, authHeader) : AdmissionResponse
+  + transfer(...) : AdmissionResponse
+  + discharge(...) : AdmissionResponse
+}
+class EmergencyVisitService {
+  - emergencyVisitRepository : EmergencyVisitRepository
+  + create(...) : EmergencyResponse
+  + applyTriage(...) : EmergencyResponse
+}
+class PatientServiceClient <<HTTP>> {
+  + getPatient(patientId, authHeader) : PatientSummary
+}
+class CatalogServiceClient <<HTTP>> {
+  + getService(serviceId, authHeader) : ServiceSummary
+}
+class StayServiceClient <<HTTP>> {
+  + openStay(request, authHeader) : StaySummary
+}
+class Admission {
+  - patientId : Long
+  - hospitalServiceId : Long
+  - status : AdmissionStatus
+}
+class EmergencyVisit {
+  - patientId : Long
+  - status : String
+  - priority : String
+}
+
+AdmissionController --> AdmissionService --> Admission
+AdmissionService ..> PatientServiceClient
+AdmissionService ..> CatalogServiceClient
+AdmissionService ..> StayServiceClient
+EmergencyController --> EmergencyVisitService --> EmergencyVisit
+
+@enduml

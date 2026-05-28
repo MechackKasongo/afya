@@ -1,11 +1,12 @@
 @startuml CLASSES_PARTICIPANTES_ADMISSIONS
 title "Classes participantes — Gérer les admissions"
+
 skinparam classAttributeIconSize 0
 
-actor Receptionniste as Rec
+class Receptionniste <<actor>>
 
 class AdmissionsPage <<boundary>> {
-  - selectedPatientId : number
+  - selectedPatientId : Long
   - admissionForm : AdmissionCreateRequest
   --
   + searchPatient() : void
@@ -70,7 +71,11 @@ class Admission <<entity>> {
   - bedLabel : String
 }
 
-Rec --> AdmissionsPage --> AdmissionBffController --> AdmissionController --> AdmissionService
+Receptionniste --> AdmissionsPage
+AdmissionsPage --> AdmissionBffController
+AdmissionBffController --> AdmissionController
+AdmissionController --> AdmissionService
+
 AdmissionService --> Admission
 AdmissionService ..> PatientServiceClient
 AdmissionService ..> CatalogServiceClient

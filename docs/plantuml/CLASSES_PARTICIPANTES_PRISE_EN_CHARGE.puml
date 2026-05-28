@@ -1,18 +1,19 @@
 @startuml CLASSES_PARTICIPANTES_PRISE_EN_CHARGE
-title "Classes participantes — Prise en charge médicale (attributs et méthodes)"
+title "Classes participantes — Prise en charge médicale"
+
 skinparam classAttributeIconSize 0
 
-actor Médecin as Med
+class Medecin <<actor>>
 
 class ConsultationDetailView <<boundary>> {
-  - consultationId : number
-  - timeline : ConsultationEventResponse[]
-  - diagnosticDiseaseType : string
-  - diagnosticDiseaseName : string
+  - consultationId : Long
+  - timeline : List~ConsultationEventResponse~
+  - diagnosticDiseaseType : String
+  - diagnosticDiseaseName : String
   --
-  + loadData() : Promise~void~
-  + submitDiagnostic() : Promise~void~
-  + submitPrescription() : Promise~void~
+  + loadData() : void
+  + submitDiagnostic() : void
+  + submitPrescription() : void
   + toggleTimelineSort(column) : void
 }
 

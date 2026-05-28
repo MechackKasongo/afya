@@ -1,11 +1,12 @@
 @startuml CLASSES_PARTICIPANTES_SOINS
 title "Classes participantes — Enregistrer les soins effectués"
+
 skinparam classAttributeIconSize 0
 
-actor Infirmier as Nur
+class Infirmier <<actor>>
 
 class MedicalRecordDetailPage <<boundary>> {
-  - patientId : number
+  - patientId : Long
   - medicalRecord : MedicalRecordResponse
   - nursingForm : NursingCareRequest
   --
@@ -77,8 +78,11 @@ class PrescriptionLine <<entity>> {
   - status : String
 }
 
-Nur --> MedicalRecordDetailPage --> PatientClinicalBffController --> MedicalRecordController
+Infirmier --> MedicalRecordDetailPage
+MedicalRecordDetailPage --> PatientClinicalBffController
+PatientClinicalBffController --> MedicalRecordController
 MedicalRecordController --> ClinicalRecordService
+
 ClinicalRecordService --> MedicalRecord
 ClinicalRecordService --> NursingCareRecord
 ClinicalRecordService --> MedicationAdministration

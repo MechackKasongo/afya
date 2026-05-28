@@ -2,6 +2,23 @@
 
 Fichiers **`.puml`** prêts pour le mémoire (export PNG/PDF/SVG) ou la doc technique.
 
+## Diagrammes de classes par service (conception)
+
+Un fichier par microservice : **controllers**, **services**, **repositories**, **entités** (attributs + méthodes).
+
+| Service | Port | Fichier |
+|---------|------|---------|
+| identity-service | 8081 | [CLASSES_SERVICE_IDENTITY.puml](CLASSES_SERVICE_IDENTITY.puml) |
+| catalog-service | 8082 | [CLASSES_SERVICE_CATALOG.puml](CLASSES_SERVICE_CATALOG.puml) |
+| patient-service | 8083 | [CLASSES_SERVICE_PATIENT.puml](CLASSES_SERVICE_PATIENT.puml) |
+| care-entry-service | 8084 | [CLASSES_SERVICE_CARE_ENTRY.puml](CLASSES_SERVICE_CARE_ENTRY.puml) |
+| stay-service | 8085 | [CLASSES_SERVICE_STAY.puml](CLASSES_SERVICE_STAY.puml) |
+| clinical-record-service | 8086 | [CLASSES_SERVICE_CLINICAL.puml](CLASSES_SERVICE_CLINICAL.puml) |
+| audit-service | 8087 | [CLASSES_SERVICE_AUDIT.puml](CLASSES_SERVICE_AUDIT.puml) |
+| afya-bff | 8080 | [CLASSES_SERVICE_BFF.puml](CLASSES_SERVICE_BFF.puml) |
+
+Version Mermaid : [../MERMAID_CLASSES_PAR_SERVICE.md](../MERMAID_CLASSES_PAR_SERVICE.md).
+
 ## Modèle du domaine
 
 | Fichier | Contenu |

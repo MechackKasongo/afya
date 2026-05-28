@@ -1,8 +1,9 @@
 @startuml CLASSES_PARTICIPANTES_ACTIVITES
 title "Classes participantes — Gérer les activités du système"
+
 skinparam classAttributeIconSize 0
 
-actor Administrateur as Admin
+class Administrateur <<actor>>
 
 class ReportingPage <<boundary>> {
   - auditEvents : AuditEventResponse[]
@@ -55,8 +56,11 @@ class AuditEvent <<entity>> {
   - metadataJson : String
 }
 
-Admin --> ReportingPage --> AuditBffController
+Admin --> ReportingPage
+ReportingPage --> AuditBffController
 ReportingPage --> StatsBffController
-AuditBffController --> AuditEventController --> AuditEventService --> AuditEvent
+AuditBffController --> AuditEventController
+AuditEventController --> AuditEventService
+AuditEventService --> AuditEvent
 
 @enduml

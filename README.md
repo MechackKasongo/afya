@@ -11,6 +11,7 @@ Nouveau système d’information hospitalier orienté **services indépendants**
 | [docs/EXIGENCES_NON_FONCTIONNELLES.md](docs/EXIGENCES_NON_FONCTIONNELLES.md) | Sécurité, disponibilité, accessibilité |
 | [docs/DIAGRAMMES_UML.md](docs/DIAGRAMMES_UML.md) | Cas d’utilisation, composants, déploiement (Mermaid) |
 | [docs/MERMAID_MEMOIRE_AFYA.md](docs/MERMAID_MEMOIRE_AFYA.md) | Mémoire : domaine, classes participantes, activités (Mermaid) |
+| [docs/MERMAID_CLASSES_PAR_SERVICE.md](docs/MERMAID_CLASSES_PAR_SERVICE.md) | Diagrammes de classes par microservice (Mermaid) |
 | [docs/plantuml/](docs/plantuml/) | PlantUML : cas d’utilisation, composants, déploiement, **activités**, **conception**, domaine |
 
 ## Services (cible)

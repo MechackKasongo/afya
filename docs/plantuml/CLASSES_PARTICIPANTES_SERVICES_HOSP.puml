@@ -1,12 +1,13 @@
 @startuml CLASSES_PARTICIPANTES_SERVICES_HOSP
 title "Classes participantes — Gérer les services hospitaliers"
+
 skinparam classAttributeIconSize 0
 
-actor Administrateur as Admin
+class Administrateur <<actor>>
 
 class HospitalServicesPage <<boundary>> {
-  - departments : DepartmentResponse[]
-  - services : HospitalServiceResponse[]
+  - departments : List~DepartmentResponse~
+  - services : List~HospitalServiceResponse~
   --
   + loadCatalog() : void
   + saveService(form) : void
@@ -45,26 +46,29 @@ class Department <<entity>> {
   - id : Long
   - code : String
   - name : String
-  - active : boolean
+  - active : Boolean
 }
 
 class HospitalService <<entity>> {
   - id : Long
   - department : Department
   - name : String
-  - bedCapacity : int
-  - bedsPerRoom : int
-  - active : boolean
+  - bedCapacity : Integer
+  - bedsPerRoom : Integer
+  - active : Boolean
 }
 
 class Bed <<entity>> {
   - id : Long
   - label : String
-  - occupied : boolean
+  - occupied : Boolean
 }
 
-Admin --> HospitalServicesPage --> HospitalServiceBffController --> HospitalServiceController
+Administrateur --> HospitalServicesPage
+HospitalServicesPage --> HospitalServiceBffController
+HospitalServiceBffController --> HospitalServiceController
 HospitalServiceController --> HospitalServiceCatalogService
+
 HospitalServiceCatalogService --> HospitalService
 HospitalService --> Department
 HospitalServiceCatalogService --> Bed

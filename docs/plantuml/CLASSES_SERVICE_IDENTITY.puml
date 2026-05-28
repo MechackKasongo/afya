@@ -1,0 +1,71 @@
+@startuml CLASSES_SERVICE_IDENTITY
+title "Diagramme de classes — identity-service"
+skinparam classAttributeIconSize 0
+
+package "REST" {
+  class AuthController {
+    - authService : AuthService
+    --
+    + login(request) : TokenResponse
+    + refresh(request) : TokenResponse
+    + logout(auth, request, body) : void
+    + me(auth) : MeResponse
+  }
+  class UserController {
+    - userAdminService : UserAdminService
+  }
+}
+
+package "Application" {
+  class AuthService {
+    - appUserRepository : AppUserRepository
+    - refreshTokenRepository : RefreshTokenRepository
+    - jwtService : JwtService
+    --
+    + login(username, password) : TokenResponse
+    + refresh(refreshTokenRaw) : TokenResponse
+    + logout(...) : void
+    + me(username) : MeResponse
+  }
+  class UserAdminService {
+    + getById(id) : UserResponse
+    + list(...) : Page
+    + create(request) : UserResponse
+    + update(id, request) : UserResponse
+    + delete(id) : void
+  }
+  class JwtService {
+    + issueAccessToken(user) : String
+    + issueRefreshToken(user) : String
+    + parseRefreshToken(raw) : Claims
+  }
+}
+
+package "Persistance" {
+  class AppUserRepository <<interface>>
+  class RefreshTokenRepository <<interface>>
+  class RoleRepository <<interface>>
+  class AppUser {
+    - id : Long
+    - username : String
+    - passwordHash : String
+    - active : boolean
+  }
+  class Role {
+    - code : String
+    - label : String
+  }
+  class RefreshToken {
+    - tokenHash : String
+    - expiresAt : Instant
+  }
+}
+
+AuthController --> AuthService
+UserController --> UserAdminService
+AuthService --> AppUserRepository
+AuthService --> JwtService
+UserAdminService --> AppUserRepository
+AppUserRepository --> AppUser
+
+@enduml
