@@ -6,6 +6,9 @@ Les figures ci-dessous sont en **Mermaid** (syntaxe proche UML, rendu dans GitHu
 
 > **Classes par microservice** (8 diagrammes, attributs + méthodes) : [MERMAID_CLASSES_PAR_SERVICE.md](MERMAID_CLASSES_PAR_SERVICE.md) · [plantuml/CLASSES_SERVICE_*.puml](plantuml/README.md#diagrammes-de-classes-par-service-conception).
 
+> **Phase d'analyse (avant développement)** — attributs et méthodes en **français** ou **anglais**, noms métier :  
+> [MEMOIRE_UML_ANALYSE_FR.md](MEMOIRE_UML_ANALYSE_FR.md) · [MEMOIRE_UML_ANALYSE_EN.md](MEMOIRE_UML_ANALYSE_EN.md).
+
 > **Dictionnaire des données (section II.2.2)** : voir [DICTIONNAIRE_DES_DONNEES.md](./DICTIONNAIRE_DES_DONNEES.md) (Afya Platform + Afya Health System).
 
 ---
@@ -904,5 +907,7 @@ Vue synthèse : [CLASSES_PARTICIPANTES_AFYA.puml](plantuml/CLASSES_PARTICIPANTES
 | Séquences mémoire II.3.2 | Figures II.3–II.10 (texte) + §7.3–7.7 Mermaid + [plantuml/CONCEPTION_SEQUENCE_*.puml](plantuml/README.md) |
 | **Mémoire complet en Mermaid** | **[MERMAID_MEMOIRE_AFYA.md](MERMAID_MEMOIRE_AFYA.md)** |
 | **Classes par service** | **[MERMAID_CLASSES_PAR_SERVICE.md](MERMAID_CLASSES_PAR_SERVICE.md)** |
+| **Analyse pré-développement (FR)** | **[MEMOIRE_UML_ANALYSE_FR.md](MEMOIRE_UML_ANALYSE_FR.md)** |
+| **Analysis pre-development (EN)** | **[MEMOIRE_UML_ANALYSE_EN.md](MEMOIRE_UML_ANALYSE_EN.md)** |
 
 Pour exporter en **PNG/SVG** : coller les blocs `` ```mermaid `` dans [mermaid.live](https://mermaid.live) ou utiliser `mmdc` (CLI Mermaid) dans votre pipeline CI.

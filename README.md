@@ -12,6 +12,8 @@ Nouveau système d’information hospitalier orienté **services indépendants**
 | [docs/DIAGRAMMES_UML.md](docs/DIAGRAMMES_UML.md) | Cas d’utilisation, composants, déploiement (Mermaid) |
 | [docs/MERMAID_MEMOIRE_AFYA.md](docs/MERMAID_MEMOIRE_AFYA.md) | Mémoire : domaine, classes participantes, activités (Mermaid) |
 | [docs/MERMAID_CLASSES_PAR_SERVICE.md](docs/MERMAID_CLASSES_PAR_SERVICE.md) | Diagrammes de classes par microservice (Mermaid) |
+| [docs/MEMOIRE_UML_ANALYSE_FR.md](docs/MEMOIRE_UML_ANALYSE_FR.md) | Mémoire — UML phase analyse (FR, avant développement) |
+| [docs/MEMOIRE_UML_ANALYSE_EN.md](docs/MEMOIRE_UML_ANALYSE_EN.md) | Thesis — UML analysis phase (EN, before development) |
 | [docs/plantuml/](docs/plantuml/) | PlantUML : cas d’utilisation, composants, déploiement, **activités**, **conception**, domaine |
 
 ## Services (cible)
