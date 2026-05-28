@@ -1,0 +1,36 @@
+@startuml ACTIVITE_GERER_SERVICES_HOSP_AFYA
+title "Diagramme d'activité — Gérer les services hospitaliers (administrateur)"
+|Administrateur|
+start
+:Accéder Organisation / Services;
+|Front / BFF|
+:GET départements et services;
+|catalog-service|
+:Retourner catalogue;
+|Administrateur|
+if (Action ?) then (Ajouter service)
+  :Saisir nom, capacité lits, lits/chambre;
+  |Front / BFF|
+  :POST /api/v1/hospital-services;
+  |catalog-service|
+  if (Valide ?) then (oui)
+    :Créer HospitalService + générer lits;
+    :Audit HOSPITAL_SERVICE_CREATED;
+  else (non)
+    :Erreur validation;
+  endif
+elseif (Modifier) then
+  :Modifier capacité ou libellés;
+  |catalog-service|
+  :Mettre à jour + régénérer lits si besoin;
+elseif (Supprimer) then
+  if (Service encore utilisé ?) then (oui)
+    :Refuser suppression;
+  else (non)
+    :Supprimer ou désactiver;
+  endif
+else (Consulter lits)
+  :Afficher grille chambres/lits;
+endif
+stop
+@enduml

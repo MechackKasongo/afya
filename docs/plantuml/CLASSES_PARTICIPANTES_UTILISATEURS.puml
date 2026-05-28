@@ -1,0 +1,36 @@
+@startuml CLASSES_PARTICIPANTES_UTILISATEURS
+title "Classes participantes — Gérer les utilisateurs (CU 2)"
+skinparam ClassStereotypeFontSize 10
+
+actor Administrateur as Admin
+
+package "Frontière" {
+  class "UsersAdminPage\n<<boundary>>" as UsersUI
+  class "UserBffController\n<<boundary>>" as UserBFF
+  class "UserController\n<<boundary>>" as UserCtrl
+}
+
+package "Contrôle" {
+  class "UserAdminService\n<<control>>" as UserSvc
+}
+
+package "Entité" {
+  class "AppUser\n<<entity>>" as UserEnt
+  class "Role\n<<entity>>" as RoleEnt
+}
+
+Admin --> UsersUI : CRUD utilisateurs
+UsersUI --> UserBFF : GET/POST/PATCH/DELETE /api/v1/users
+UserBFF --> UserCtrl : requêtes REST
+UserCtrl --> UserSvc : create / update / deactivate / delete
+UserSvc --> UserEnt
+UserSvc --> RoleEnt : attribution rôles
+
+note bottom of UserSvc
+  Cas : ajout, modification, suppression (logique),
+  consultation liste/détail.
+  Validation → BadRequestException ;
+  utilisateur introuvable → NotFoundException.
+end note
+
+@enduml

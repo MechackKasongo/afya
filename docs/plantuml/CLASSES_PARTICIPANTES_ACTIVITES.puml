@@ -1,0 +1,38 @@
+@startuml CLASSES_PARTICIPANTES_ACTIVITES
+title "Classes participantes — Gérer les activités du système (CU 4)"
+skinparam ClassStereotypeFontSize 10
+
+actor Administrateur as Admin
+
+package "Frontière" {
+  class "ReportingPage\n<<boundary>>" as RepUI
+  class "AuditBffController\n<<boundary>>" as AuditBFF
+  class "StatsBffController\n<<boundary>>" as StatsBFF
+  class "AuditEventController\n<<boundary>>" as AuditCtrl
+  class "ActivityReportController\n<<boundary>>" as ReportCtrl
+}
+
+package "Contrôle" {
+  class "AuditEventService\n<<control>>" as AuditSvc
+  class "ActivityReportFallback\n<<control>>" as ReportSvc
+}
+
+package "Entité" {
+  class "AuditEvent\n<<entity>>" as AuditEnt
+}
+
+Admin --> RepUI : consulter journal / rapports
+RepUI --> AuditBFF : GET /api/v1/audit/events
+RepUI --> StatsBFF : GET /api/v1/reports/activity, /stats/volumes
+AuditBFF --> AuditCtrl : liste paginée + filtres
+StatsBFF --> ReportCtrl : agrégats activité
+AuditCtrl --> AuditSvc --> AuditEnt
+ReportCtrl --> AuditSvc
+
+note bottom of AuditEnt
+  Événements ingérés depuis tous les services
+  (LOGIN, ADMISSION_CREATED, PRESCRIPTION_CREATED, …).
+  Aucune activité → liste vide côté UI.
+end note
+
+@enduml

@@ -1,0 +1,40 @@
+@startuml CLASSES_PARTICIPANTES_SOINS
+title "Classes participantes — Enregistrer les soins effectués (CU 8)"
+skinparam ClassStereotypeFontSize 10
+
+actor "Infirmier(ère)" as Nur
+
+package "Frontière" {
+  class "MedicalRecordDetailPage\n<<boundary>>" as MrUI
+  class "PatientClinicalBffController\n<<boundary>>" as ClinBFF
+  class "MedicalRecordController\n<<boundary>>" as MrCtrl
+}
+
+package "Contrôle" {
+  class "ClinicalRecordService\n<<control>>" as ClinSvc
+}
+
+package "Entité" {
+  class "MedicalRecord\n<<entity>>" as MrEnt
+  class "NursingCareRecord\n<<entity>>" as CareEnt
+  class "MedicationAdministration\n<<entity>>" as MedAdmEnt
+  class "PrescriptionLine\n<<entity>>" as RxEnt
+}
+
+Nur --> MrUI : consulter soins / prescriptions
+MrUI --> ClinBFF : GET dossier + soins
+MrUI --> ClinBFF : POST nursing-care / medication-administrations
+ClinBFF --> MrCtrl --> ClinSvc
+ClinSvc --> MrEnt : findOrCreate
+ClinSvc --> CareEnt : enregistrer soin infirmier
+ClinSvc --> MedAdmEnt : marquer exécution prescription
+ClinSvc --> RxEnt : lier administration
+
+note bottom of ClinSvc
+  Patient ou dossier introuvable → 404 ;
+  validation soin incomplète → 400 ;
+  traçabilité audit NURSING_CARE_RECORDED /
+  MEDICATION_ADMINISTERED.
+end note
+
+@enduml

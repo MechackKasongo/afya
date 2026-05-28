@@ -1,0 +1,53 @@
+package com.afya.platform.careentry.integration;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClient;
+
+@Component
+public class StayServiceClient {
+
+    private static final Logger log = LoggerFactory.getLogger(StayServiceClient.class);
+
+    private final RestClient restClient;
+
+    public StayServiceClient(@Value("${app.services.stay-base-url:http://localhost:8085}") String baseUrl) {
+        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    }
+
+    public StayOpenResponse open(StayOpenRequest request, String authorizationHeader) {
+        return restClient.post()
+                .uri("/api/v1/stays")
+                .header("Authorization", authorizationHeader)
+                .body(request)
+                .retrieve()
+                .body(StayOpenResponse.class);
+    }
+
+    public StaySummary getByAdmissionId(Long admissionId, String authorizationHeader) {
+        try {
+            return restClient.get()
+                    .uri("/api/v1/stays/by-admission/{admissionId}", admissionId)
+                    .header("Authorization", authorizationHeader)
+                    .retrieve()
+                    .body(StaySummary.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            return null;
+        }
+    }
+
+    public void closeByAdmissionId(Long admissionId, String authorizationHeader) {
+        try {
+            restClient.post()
+                    .uri("/api/v1/stays/close-by-admission/{admissionId}", admissionId)
+                    .header("Authorization", authorizationHeader)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (HttpClientErrorException.NotFound e) {
+            log.debug("Aucun séjour à clôturer pour l'admission {}", admissionId);
+        }
+    }
+}

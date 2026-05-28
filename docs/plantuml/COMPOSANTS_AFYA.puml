@@ -1,0 +1,74 @@
+@startuml COMPOSANTS_AFYA
+title "Diagramme de composants — plateforme Afya (multi-services)"
+skinparam componentStyle rectangle
+skinparam ArrowColor #333333
+
+package "Poste client" {
+  component "Application web responsive" as Web << SPA >>
+}
+
+package "Couche exposition" {
+  component "API Gateway / BFF" as BFF
+}
+
+Web --> BFF : HTTPS REST\n/api/v1/
+
+package "Services métier" {
+  component "identity-service" as Identity
+  component "catalog-service" as Catalog
+  component "patient-service" as Patient
+  component "care-entry-service" as CareEntry
+  component "stay-service" as Stay
+  component "clinical-record-service" as Clinical
+  component "audit-service" as Audit
+}
+
+BFF --> Identity : JWT / CRUD utilisateurs (Admin)
+BFF --> Catalog : catalogue hospitalier
+BFF --> Patient : patients recherche
+BFF --> CareEntry : urgences admissions transferts
+BFF --> Stay : séjour fiche hospi
+BFF --> Clinical : dossier prescriptions soins fichiers
+
+CareEntry ..> Patient : IDs patient REST
+CareEntry ..> Catalog : IDs service REST
+CareEntry ..> Stay : séjour associé REST
+Clinical ..> Patient : patientId REST
+Clinical --> ObjStore : images PDF
+
+database "BD identity" as DB_Id
+database "BD catalog" as DB_Cat
+database "BD patient" as DB_Pat
+database "BD care-entry" as DB_CE
+database "BD stay" as DB_Stay
+database "BD clinical" as DB_Clinical
+database "BD audit" as DB_Audit
+storage "Stockage objet (MinIO S3)" as ObjStore
+
+Identity --> DB_Id
+Catalog --> DB_Cat
+Patient --> DB_Pat
+CareEntry --> DB_CE
+Stay --> DB_Stay
+Clinical --> DB_Clinical
+Audit --> DB_Audit
+
+Identity ..> Audit : événements
+Catalog ..> Audit : événements
+Patient ..> Audit : événements
+CareEntry ..> Audit : événements
+Stay ..> Audit : événements
+Clinical ..> Audit : événements
+
+note right of Audit
+  Consommation asynchrone
+  (file message broker ou HTTP)
+end note
+
+note bottom of CareEntry
+  **Variante 6 services :** fusion
+  care-entry + stay en
+  **encounter-stay-service**
+end note
+
+@enduml

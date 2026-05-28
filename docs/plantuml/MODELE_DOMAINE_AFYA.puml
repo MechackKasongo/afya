@@ -1,0 +1,190 @@
+@startuml MODELE_DOMAINE_AFYA
+title "Modèle du domaine conceptuel — plateforme Afya (contextes délimités)"
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+legend right
+  Chaque paquet = un **microservice** et sa base PostgreSQL.
+  Les liens inter-paquets passent par des **identifiants logiques**
+  (patientId, admissionId, hospitalServiceId) sans FK JPA inter-bases.
+endlegend
+
+package "identity-service" <<BoundedContext>> #E8F4FC {
+  class AppUser <<AggregateRoot>> {
+    + id : Long
+    username : string
+    email : string
+    fullName : string
+    passwordHash : string
+    active : boolean
+  }
+  class Role <<Entity>> {
+    + id : Long
+    code : string
+    label : string
+  }
+  class RefreshToken <<Entity>> {
+    + id : Long
+    tokenHash : string
+    expiresAt : instant
+    revoked : boolean
+  }
+  AppUser "*" -- "*" Role
+  AppUser "1" o-- "*" RefreshToken
+  note bottom of AppUser
+    Affectations services : user_hospital_services
+  end note
+}
+
+package "catalog-service" <<BoundedContext>> #E8FCF0 {
+  class Department <<AggregateRoot>> {
+    + id : Long
+    code : string
+    name : string
+  }
+  class HospitalService <<AggregateRoot>> {
+    + id : Long
+    name : string
+    bedCapacity : int
+    bedsPerRoom : int
+  }
+  class Bed <<Entity>> {
+    + id : Long
+    label : string
+    occupied : boolean
+  }
+  Department "1" *-- "*" HospitalService
+  HospitalService "1" o-- "*" Bed
+}
+
+package "patient-service" <<BoundedContext>> #FFF8E8 {
+  class Patient <<AggregateRoot>> {
+    + id : Long
+    dossierNumber : string
+    firstName : string
+    lastName : string
+    birthDate : date
+    sex : string
+  }
+}
+
+package "care-entry-service" <<BoundedContext>> #FCE8F8 {
+  class Admission <<AggregateRoot>> {
+    + id : Long
+    admittedAt : instant
+    status : enum
+    --
+    patientId : Long
+    hospitalServiceId : Long
+  }
+  class TransferRequest <<Entity>> {
+    + id : Long
+    requestedAt : instant
+    fromServiceId : Long
+    toServiceId : Long
+  }
+  class EmergencyVisit <<Entity>> {
+    + id : Long
+    status : enum
+    patientId : Long
+  }
+  Admission "1" o-- "*" TransferRequest
+}
+
+package "stay-service" <<BoundedContext>> #F0E8FC {
+  class Stay <<AggregateRoot>> {
+    + id : Long
+    roomLabel : string
+    bedLabel : string
+    --
+    patientId : Long
+    admissionId : Long
+  }
+  class HospitalizationForm <<Entity>> {
+    chiefComplaint : string
+    historyText : text
+    allergies : string
+  }
+  Stay "1" *-- "0..1" HospitalizationForm
+}
+
+package "clinical-record-service" <<BoundedContext>> #FCEEE8 {
+  class MedicalRecord <<AggregateRoot>> {
+    + id : Long
+    patientId : Long
+  }
+  class Consultation <<AggregateRoot>> {
+    + id : Long
+    doctorName : string
+    reason : string
+    --
+    patientId : Long
+    admissionId : Long
+  }
+  class ConsultationEvent <<Entity>> {
+    + id : Long
+    eventType : enum
+    content : text
+    diseaseType : string
+    diseaseName : string
+    createdAt : instant
+  }
+  class DiseaseCatalog <<Entity>> {
+    + id : Long
+    diseaseType : string
+    label : string
+    usageCount : int
+  }
+  class Diagnosis <<Entity>> {
+    code : string
+    label : string
+  }
+  class PrescriptionLine <<Entity>> {
+    drugName : string
+    dosage : string
+    frequency : string
+  }
+  class NursingCareRecord <<Entity>> {
+    careType : string
+    description : text
+    performedAt : instant
+  }
+  class MedicationAdministration <<Entity>> {
+    administeredAt : instant
+    doseGiven : string
+  }
+  class ClinicalNote <<Entity>>
+  class ClinicalDocument <<Entity>>
+
+  MedicalRecord "1" *-- "*" Diagnosis
+  MedicalRecord "1" *-- "*" PrescriptionLine
+  MedicalRecord "1" *-- "*" NursingCareRecord
+  MedicalRecord "1" *-- "*" MedicationAdministration
+  MedicalRecord "1" *-- "*" ClinicalNote
+  MedicalRecord "1" *-- "*" ClinicalDocument
+  Consultation "1" *-- "*" ConsultationEvent
+  PrescriptionLine "1" ..> "*" MedicationAdministration : exécution
+}
+
+package "audit-service" <<BoundedContext>> #EEEEEE {
+  class AuditEvent <<Entity>> {
+    + id : Long
+    occurredAt : instant
+    actorUsername : string
+    action : string
+    resourceType : string
+    resourceId : string
+    sourceService : string
+  }
+}
+
+Patient .. Admission : patientId >
+Patient .. Stay : patientId >
+Patient .. MedicalRecord : patientId >
+Patient .. Consultation : patientId >
+HospitalService .. Admission : hospitalServiceId >
+Admission .. Consultation : admissionId >
+Admission .. Stay : admissionId >
+
+@enduml

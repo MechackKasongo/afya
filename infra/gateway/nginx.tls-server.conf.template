@@ -1,0 +1,50 @@
+    # TLS (certificats auto-signés montés dans /etc/nginx/certs)
+    server {
+        listen 443 ssl;
+        server_name _;
+
+        ssl_certificate     ${TLS_CERT_PATH};
+        ssl_certificate_key ${TLS_KEY_PATH};
+        ssl_protocols       TLSv1.2 TLSv1.3;
+        ssl_prefer_server_ciphers off;
+
+        client_max_body_size 12m;
+
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options SAMEORIGIN always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+        location = /gateway/health {
+            default_type text/plain;
+            return 200 "ok\n";
+        }
+
+        location /api/ {
+            limit_req zone=afya_api burst=60 nodelay;
+            set $bff_backend "${BFF_HOST}:${BFF_PORT}";
+            proxy_pass http://$bff_backend/api/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header Authorization $http_authorization;
+            proxy_connect_timeout 10s;
+            proxy_read_timeout 120s;
+        }
+
+        location /actuator/ {
+            limit_req zone=afya_api burst=20 nodelay;
+            set $bff_backend "${BFF_HOST}:${BFF_PORT}";
+            proxy_pass http://$bff_backend/actuator/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+        }
+
+        location / {
+            default_type application/json;
+            return 404 '{"error":"Not Found","message":"Afya API Gateway — utilisez /api/v1/..."}';
+        }
+    }

@@ -1,0 +1,99 @@
+@startuml CONCEPTION_COUCHE_SERVICE_AFYA
+title "Diagramme de classes de conception — patron en couches (ex. care-entry-service)"
+skinparam classAttributeIconSize 0
+
+package "Présentation (REST)" {
+  class AdmissionController {
+    + create(request) : AdmissionResponse
+    + findById(id) : AdmissionResponse
+    + listByPatient(patientId, page, size) : PageAdmissionResponse
+    + transfer(id, request) : AdmissionResponse
+  }
+  class DischargeController {
+    + discharge(id, request) : AdmissionResponse
+  }
+}
+
+package "Application" {
+  class AdmissionOrchestrationService {
+    - admissionRepository : AdmissionRepository
+    - patientClient : PatientRestClient
+    - catalogClient : CatalogReadClient
+    - stayClient : StayRestClient
+    - auditPublisher : AuditEventPublisher
+    --
+    + admit(command) : Admission
+    + transfer(command) : Admission
+    + discharge(command) : Admission
+  }
+  class PatientRestClient {
+    + getById(patientId) : PatientSummary
+  }
+  class CatalogReadClient {
+    + getService(id) : HospitalServiceSummary
+  }
+  class StayRestClient {
+    + openStay(command) : StaySummary
+    + closeStay(stayId, command) : void
+  }
+  class AuditEventPublisher {
+    + publish(event) : void
+  }
+}
+
+package "Domaine / persistance" {
+  class AdmissionRepository <<interface>> {
+    + save(admission) : Admission
+    + findById(id) : OptionalAdmission
+    + findByPatientId(patientId, pageable) : PageAdmission
+  }
+  class AdmissionJpaRepository <<interface>> {
+  }
+  class Admission {
+    - id : Long
+    - patientId : UUID
+    - hospitalServiceId : UUID
+    - admittedAt : Instant
+    - status : AdmissionStatus
+  }
+  enum AdmissionStatus {
+    OUVERTE
+    TRANSFEREE
+    SORTIE
+    ANNULEE
+  }
+}
+
+package "DTO (records)" {
+  class AdmissionCreateRequest <<record>> {
+    patientId : UUID
+    hospitalServiceId : UUID
+    admittedAt : Instant
+  }
+  class AdmissionResponse <<record>> {
+    id : Long
+    patientId : UUID
+    status : String
+  }
+}
+
+AdmissionController --> AdmissionOrchestrationService
+DischargeController --> AdmissionOrchestrationService
+AdmissionOrchestrationService --> AdmissionRepository
+AdmissionOrchestrationService --> PatientRestClient
+AdmissionOrchestrationService --> CatalogReadClient
+AdmissionOrchestrationService --> StayRestClient
+AdmissionOrchestrationService --> AuditEventPublisher
+AdmissionRepository <|.. AdmissionJpaRepository
+AdmissionJpaRepository --> Admission
+Admission --> AdmissionStatus
+AdmissionController ..> AdmissionCreateRequest : @Valid
+AdmissionController ..> AdmissionResponse : retour
+
+note right of AdmissionOrchestrationService
+  **Conception** : une transaction locale
+  par service ; orchestration HTTP
+  vers patient, catalog, stay.
+end note
+
+@enduml

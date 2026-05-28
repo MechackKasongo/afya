@@ -1,0 +1,44 @@
+@startuml CLASSES_PARTICIPANTES_SERVICES_HOSP
+title "Classes participantes — Gérer les services hospitaliers (CU 3)"
+skinparam ClassStereotypeFontSize 10
+
+actor Administrateur as Admin
+
+package "Frontière" {
+  class "HospitalServicesPage\n<<boundary>>" as CatUI
+  class "HospitalServiceBffController\n<<boundary>>" as SvcBFF
+  class "DepartmentController\n<<boundary>>" as DeptCtrl
+  class "HospitalServiceController\n<<boundary>>" as HospCtrl
+  class "BedController\n<<boundary>>" as BedCtrl
+}
+
+package "Contrôle" {
+  class "DepartmentService\n<<control>>" as DeptSvc
+  class "HospitalServiceCatalogService\n<<control>>" as HospSvc
+  class "BedService\n<<control>>" as BedSvc
+}
+
+package "Entité" {
+  class "Department\n<<entity>>" as DeptEnt
+  class "HospitalService\n<<entity>>" as HospEnt
+  class "Bed\n<<entity>>" as BedEnt
+}
+
+Admin --> CatUI : gérer départements / services / lits
+CatUI --> SvcBFF : /api/v1/departments, /hospital-services, /beds
+SvcBFF --> DeptCtrl
+SvcBFF --> HospCtrl
+SvcBFF --> BedCtrl
+DeptCtrl --> DeptSvc --> DeptEnt
+HospCtrl --> HospSvc --> HospEnt
+BedCtrl --> BedSvc --> BedEnt
+HospEnt --> DeptEnt : department
+
+note right of HospSvc
+  Suppression refusée si service encore
+  référencé (admissions actives).
+  Génération automatique des lits
+  selon bedCapacity / bedsPerRoom.
+end note
+
+@enduml

@@ -1,0 +1,54 @@
+@startuml CLASSES_PARTICIPANTES_PRISE_EN_CHARGE
+title "Classes participantes — Prise en charge médicale (CU 7)"
+skinparam ClassStereotypeFontSize 10
+
+actor Médecin as Med
+
+package "Frontière" {
+  class "ConsultationDetailView\n<<boundary>>" as ConsUI
+  class "ConsultationBffController\n<<boundary>>" as ConsBFF
+  class "PrescriptionBffController\n<<boundary>>" as RxBFF
+  class "DiseaseCatalogBffController\n<<boundary>>" as CatBFF
+  class "ConsultationController\n<<boundary>>" as ConsCtrl
+  class "PrescriptionController\n<<boundary>>" as RxCtrl
+  class "DiseaseCatalogController\n<<boundary>>" as DisCtrl
+  class "MedicalRecordController\n<<boundary>>" as MrCtrl
+}
+
+package "Contrôle" {
+  class "ConsultationService\n<<control>>" as ConsSvc
+  class "DiseaseCatalogService\n<<control>>" as DisSvc
+  class "ClinicalRecordService\n<<control>>" as ClinSvc
+  class "PatientServiceClient\n<<boundary>>" as PatClient
+  class "CareEntryServiceClient\n<<boundary>>" as AdmClient
+}
+
+package "Entité" {
+  class "Consultation\n<<entity>>" as ConsEnt
+  class "ConsultationEvent\n<<entity>>" as EvEnt
+  class "DiseaseCatalog\n<<entity>>" as DisEnt
+  class "MedicalRecord\n<<entity>>" as MrEnt
+  class "PrescriptionLine\n<<entity>>" as RxEnt
+}
+
+Med --> ConsUI : consultation + chronologie
+ConsUI --> ConsBFF : consultations / events / diagnostics
+ConsUI --> CatBFF : GET disease-catalog
+ConsUI --> RxBFF : prescriptions (fiche consultation)
+ConsBFF --> ConsCtrl --> ConsSvc
+ConsSvc ..> PatClient
+ConsSvc ..> AdmClient
+ConsSvc --> ConsEnt
+ConsSvc --> EvEnt : observation / diagnostic / examen
+ConsSvc --> DisSvc --> DisEnt : catalogue (seuil 5 usages)
+CatBFF --> DisCtrl --> DisSvc
+RxBFF --> RxCtrl --> ClinSvc --> RxEnt
+ConsUI --> MrCtrl : dossier médical global (lecture)
+
+note right of ConsSvc
+  Diagnostic : diseaseType + diseaseName obligatoires.
+  Décision sortie → care-entry discharge ;
+  hospitalisation déjà liée à l'admission/séjour.
+end note
+
+@enduml

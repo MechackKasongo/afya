@@ -1,0 +1,26 @@
+# Image Spring Boot multi-modules Afya — build : MAVEN_MODULE=identity-service
+# Images Debian (pas Alpine) : évite les échecs apk/TLS dans certains réseaux.
+# syntax=docker/dockerfile:1
+
+FROM docker.io/library/eclipse-temurin:21-jdk AS build
+WORKDIR /workspace
+COPY . .
+ARG MAVEN_MODULE
+RUN chmod +x mvnw \
+    && ok=0 \
+    && for attempt in 1 2 3 4 5; do \
+         if ./mvnw -pl "${MAVEN_MODULE}" -am package -DskipTests -q; then ok=1; break; fi; \
+         echo "Maven tentative ${attempt}/5 échouée, nouvel essai dans 20s…"; \
+         sleep 20; \
+       done \
+    && test "${ok}" = 1 \
+    && JAR="$(ls "${MAVEN_MODULE}"/target/"${MAVEN_MODULE}"-*.jar | grep -v '.original' | head -1)" \
+    && cp "${JAR}" /tmp/app.jar
+
+FROM docker.io/library/eclipse-temurin:21-jre
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /tmp/app.jar app.jar
+ENTRYPOINT ["java", "-jar", "app.jar"]

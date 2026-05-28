@@ -1,0 +1,34 @@
+@startuml ACTIVITE_ADMISSION_PATIENT_AFYA
+title "Diagramme d'activité — Enregistrer l'admission d'un patient (réceptionniste)"
+|Réceptionniste|
+start
+:S'authentifier;
+:Rechercher ou enregistrer le patient;
+|patient-service|
+if (Patient trouvé ou créé ?) then (oui)
+  :Obtenir patientId;
+else (non)
+  :Afficher erreur;
+  stop
+endif
+|Réceptionniste|
+:Choisir le service hospitalier et la date d'admission;
+|care-entry-service|
+:Appeler catalog-service (service actif, capacité);
+if (Service disponible ?) then (oui)
+  :Créer Admission (statut OUVERTE);
+  :Publier événement audit ADMISSION_CREATED;
+  |stay-service|
+  :Créer ou lier un Stay (chambre / lit si renseigné);
+  :Publier événement audit STAY_OPENED;
+  |Réceptionniste|
+  :Confirmer l'admission à l'écran;
+  stop
+else (non)
+  :Réponse conflit ou erreur métier;
+  |Réceptionniste|
+  :Corriger le choix de service;
+  stop
+endif
+
+@enduml

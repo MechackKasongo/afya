@@ -1,0 +1,33 @@
+@startuml ACTIVITE_SORTIE_TRANSFERT_AFYA
+title "Diagramme d'activité — Décider transfert ou sortie du patient (médecin)"
+|Médecin|
+start
+:Consulter le dossier et le séjour en cours;
+|care-entry-service|
+:Charger l'admission active (patientId);
+if (Décision ?) then (sortie)
+  |Médecin|
+  :Saisir motif et date de sortie;
+  |care-entry-service|
+  :Clôturer Admission (statut SORTIE);
+  |stay-service|
+  :Clôturer Stay (checkOutAt);
+  :Publier événements audit;
+  stop
+elseif (transfert) then
+  |Médecin|
+  :Choisir le service destination;
+  |care-entry-service|
+  :Créer TransferRequest;
+  :Mettre à jour affectation (hospitalServiceId);
+  |stay-service|
+  if (Changement de lit requis ?) then (oui)
+    :Mettre à jour Stay;
+  endif
+  :Publier événements audit;
+  stop
+else (annuler)
+  stop
+endif
+
+@enduml

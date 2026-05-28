@@ -1,0 +1,42 @@
+@startuml CLASSES_PARTICIPANTES_AUTH
+title "Classes participantes — S'authentifier (CU 1)"
+skinparam ClassStereotypeFontSize 10
+
+actor "Administrateur\nMédecin\nRéceptionniste\nInfirmier" as User
+
+package "Frontière" {
+  class "LoginPage\n<<boundary>>" as LoginUI
+  class "AuthBffController\n<<boundary>>" as AuthBFF
+  class "AuthController\n<<boundary>>" as AuthCtrl
+}
+
+package "Contrôle" {
+  class "AuthService\n<<control>>" as AuthSvc
+  class "JwtService\n<<control>>" as JwtSvc
+}
+
+package "Entité" {
+  class "AppUser\n<<entity>>" as UserEnt
+  class "RefreshToken\n<<entity>>" as RefreshEnt
+  class "RevokedAccessJti\n<<entity>>" as RevokedEnt
+}
+
+User --> LoginUI : saisit identifiants
+LoginUI --> AuthBFF : POST /api/v1/auth/login
+AuthBFF --> AuthCtrl : LoginRequest
+AuthCtrl --> AuthSvc : authenticate()
+AuthSvc --> UserEnt : findByUsername + vérif mot de passe
+AuthSvc --> JwtSvc : issueAccessToken / issueRefreshToken
+AuthSvc --> RefreshEnt : persister session
+AuthSvc --> AuthCtrl : AuthResponse
+AuthCtrl --> AuthBFF : tokens + profil
+AuthBFF --> LoginUI : redirection espace de travail
+
+note right of AuthSvc
+  Scénarios alternatifs :
+  identifiants incorrects → 401 ;
+  compte désactivé → 403 ;
+  audit LOGIN_SUCCESS / LOGIN_FAILED
+end note
+
+@enduml

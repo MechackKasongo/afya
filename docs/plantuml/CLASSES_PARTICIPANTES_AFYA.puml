@@ -1,0 +1,134 @@
+@startuml CLASSES_PARTICIPANTES_AFYA
+title "Classes participantes (vue synthèse) — voir aussi un fichier par cas d'utilisation"
+skinparam ClassStereotypeFontSize 10
+
+legend right
+  **Diagrammes détaillés par CU (mémoire II.3)** :
+  CLASSES_PARTICIPANTES_AUTH.puml (1)
+  UTILISATEURS (2), SERVICES_HOSP (3), ACTIVITES (4)
+  PATIENT (5), ADMISSIONS (6)
+  PRISE_EN_CHARGE (7), SOINS (8)
+  --
+  **boundary** UI ou API REST ; **control** service ;
+  **entity** persistance locale du microservice.
+endlegend
+
+' --- Authentification (tous les acteurs)
+package "Cas : Authentification (identity-service)" #ECEFF1 {
+  class AuthRestResource <<boundary>> {
+    + login(request)
+    + refresh(token)
+    + logout()
+  }
+  class AuthApplicationService <<control>> {
+    + authenticate(username password)
+    + issueTokens(user)
+    + revoke(session)
+  }
+  class TokenIssuer <<control>> {
+    + signAccessJwt()
+    + validateClaims()
+  }
+  class AppUser <<entity>>
+  AuthRestResource --> AuthApplicationService
+  AuthApplicationService --> TokenIssuer
+  AuthApplicationService --> AppUser
+}
+
+' --- Administrateur
+package "Admin — utilisateurs et catalogue" #E3F2FD {
+  class UserAdminRestResource <<boundary>>
+  class UserAdminApplicationService <<control>>
+  UserAdminRestResource --> UserAdminApplicationService
+  UserAdminApplicationService --> AppUser
+
+  class CatalogAdminRestResource <<boundary>>
+  class CatalogAdminApplicationService <<control>>
+  class Department <<entity>>
+  class HospitalService <<entity>>
+  CatalogAdminRestResource --> CatalogAdminApplicationService
+  CatalogAdminApplicationService --> Department
+  CatalogAdminApplicationService --> HospitalService
+
+  class AuditPublisher <<control>>
+  UserAdminApplicationService ..> AuditPublisher
+  CatalogAdminApplicationService ..> AuditPublisher
+}
+
+package "Admin — consultation audit et rapports" #E8EAF6 {
+  class AuditQueryRestResource <<boundary>>
+  class ReportingApplicationService <<control>>
+  class AuditEvent <<entity>>
+  AuditQueryRestResource --> ReportingApplicationService
+  ReportingApplicationService --> AuditEvent
+}
+
+' --- Réceptionniste
+package "Réceptionniste — patient et admissions" #E8F5E9 {
+  class PatientRestResource <<boundary>>
+  class PatientApplicationService <<control>>
+  class Patient <<entity>>
+  PatientRestResource --> PatientApplicationService
+  PatientApplicationService --> Patient
+
+  class AdmissionRestResource <<boundary>>
+  class AdmissionOrchestrationService <<control>>
+  class Admission <<entity>>
+  class PatientRestClient <<boundary>>
+  class CatalogReadClient <<boundary>>
+  AdmissionRestResource --> AdmissionOrchestrationService
+  AdmissionOrchestrationService --> Admission
+  AdmissionOrchestrationService ..> PatientRestClient
+  AdmissionOrchestrationService ..> CatalogReadClient
+}
+
+package "Réceptionniste — transfert et séjour" #FCE4EC {
+  class TransferRestResource <<boundary>>
+  class TransferApplicationService <<control>>
+  TransferRestResource --> TransferApplicationService
+
+  class StayRestResource <<boundary>>
+  class StayApplicationService <<control>>
+  class Stay <<entity>>
+  StayRestResource --> StayApplicationService
+  StayApplicationService --> Stay
+}
+
+' --- Médecin
+package "Médecin — dossier clinique et parcours" #FFF3E0 {
+  class MedicalRecordRestResource <<boundary>>
+  class ClinicalApplicationService <<control>>
+  class MedicalRecord <<entity>>
+  class PrescriptionLine <<entity>>
+  class Diagnosis <<entity>>
+  MedicalRecordRestResource --> ClinicalApplicationService
+  ClinicalApplicationService --> MedicalRecord
+  ClinicalApplicationService --> PrescriptionLine
+  ClinicalApplicationService --> Diagnosis
+  ClinicalApplicationService ..> PatientRestClient : valider patient
+
+  class DischargeRestResource <<boundary>>
+  class CarePathApplicationService <<control>>
+  DischargeRestResource --> CarePathApplicationService
+  CarePathApplicationService ..> AdmissionOrchestrationService : sortie ou transfert
+}
+
+' --- Infirmier(ère)
+package "Infirmier(ère) — soins et exécution" #E0F7FA {
+  class NursingRestResource <<boundary>>
+  class NursingApplicationService <<control>>
+  class NursingCareRecord <<entity>>
+  class MedicationAdministration <<entity>>
+  NursingRestResource --> NursingApplicationService
+  NursingApplicationService --> NursingCareRecord
+  NursingApplicationService --> MedicationAdministration
+  NursingApplicationService ..> MedicalRecord
+}
+
+note bottom of PatientRestClient
+  **PatientRestClient** et **CatalogReadClient**
+  représentent des portes sortantes (anti-corruption layer)
+  vers les APIs patient-service et catalog-service.
+end note
+
+@enduml

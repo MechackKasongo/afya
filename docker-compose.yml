@@ -1,0 +1,148 @@
+services:
+  identity-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_identity
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    ports:
+      - "5433:5432"
+    volumes:
+      - identity_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_identity"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  catalog-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_catalog
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    ports:
+      - "5434:5432"
+    volumes:
+      - catalog_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_catalog"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  patient-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_patient
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    ports:
+      - "5435:5432"
+    volumes:
+      - patient_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_patient"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  care-entry-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_care_entry
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    ports:
+      - "5436:5432"
+    volumes:
+      - care_entry_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_care_entry"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  stay-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_stay
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    ports:
+      - "5437:5432"
+    volumes:
+      - stay_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_stay"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  clinical-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_clinical
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    ports:
+      - "5438:5432"
+    volumes:
+      - clinical_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_clinical"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: docker.io/minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  # API Gateway (phase E) — HTTP + HTTPS (certificats auto-signés : ./scripts/generate-tls-certs.sh).
+  api:
+    build:
+      context: ./infra/gateway
+    ports:
+      - "8090:80"
+      - "8443:443"
+    volumes:
+      - ./infra/gateway/certs:/etc/nginx/certs:ro,Z
+    environment:
+      BFF_UPSTREAM: http://host.docker.internal:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  audit-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_audit
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    ports:
+      - "5439:5432"
+    volumes:
+      - audit_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_audit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  minio_data:
+  identity_pg_data:
+  catalog_pg_data:
+  patient_pg_data:
+  care_entry_pg_data:
+  stay_pg_data:
+  clinical_pg_data:
+  audit_pg_data:

@@ -1,0 +1,43 @@
+@startuml ETAT_STAY_AFYA
+title "Diagramme d'états — cycle de vie Stay / séjour (stay-service)"
+skinparam state {
+  BackgroundColor #F3E5F5
+  BorderColor #6A1B9A
+}
+
+[*] --> PLANIFIE : réservation lit\n(optionnel)
+
+PLANIFIE --> EN_COURS : check-in\n(lien admission OUVERTE)
+
+[*] --> EN_COURS : ouverture directe\nà l'admission
+
+state EN_COURS
+state PLANIFIE
+state SUSPENDU
+state CLOTURE
+state ANNULE
+
+EN_COURS --> SUSPENDU : suspension temporaire\n(transfert externe, examen)
+SUSPENDU --> EN_COURS : reprise sur le service
+
+EN_COURS --> CLOTURE : check-out\n(sortie patient)
+SUSPENDU --> CLOTURE : clôture directe
+
+EN_COURS --> ANNULE : annulation du séjour\n(admission annulée)
+PLANIFIE --> ANNULE : annulation avant entrée
+
+CLOTURE --> [*]
+ANNULE --> [*]
+
+note right of EN_COURS
+  Lié à admissionId et patientId.
+  HospitalizationForm maintenue
+  pendant EN_COURS.
+end note
+
+note left of CLOTURE
+  Émis lorsque care-entry passe
+  Admission en SORTIE.
+end note
+
+@enduml

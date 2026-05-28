@@ -1,0 +1,81 @@
+@startuml CONCEPTION_CONSULTATION_AFYA
+title "Diagramme de classes de conception — consultation et diagnostic (clinical-record-service)"
+skinparam classAttributeIconSize 0
+
+package "Présentation (REST)" {
+  class ConsultationController {
+    + create(request) : ConsultationResponse
+    + list(patientId, admissionId) : Page
+    + getEvents(consultationId) : List
+    + addObservation(id, request) : ConsultationEventResponse
+    + addDiagnostic(id, request) : ConsultationEventResponse
+    + addExamOrder(id, request) : ConsultationEventResponse
+  }
+  class DiseaseCatalogController {
+    + listSelectable(diseaseType) : List
+  }
+}
+
+package "Application" {
+  class ConsultationService {
+    - consultationRepository
+    - consultationEventRepository
+    - diseaseCatalogService
+    - patientServiceClient
+    - careEntryServiceClient
+    + create(request) : ConsultationResponse
+    + addDiagnostic(id, request) : ConsultationEventResponse
+  }
+  class DiseaseCatalogService {
+    - diseaseCatalogRepository
+    + recordUsage(type, name) : void
+    + listSelectable(type) : List
+  }
+}
+
+package "Domaine / persistance" {
+  class ConsultationRepository <<interface>>
+  class ConsultationEventRepository <<interface>>
+  class DiseaseCatalogRepository <<interface>>
+  class Consultation {
+    - id : Long
+    - patientId : Long
+    - admissionId : Long
+    - doctorName : String
+  }
+  class ConsultationEvent {
+    - eventType : ConsultationEventType
+    - content : String
+    - diseaseType : String
+    - diseaseName : String
+  }
+  class DiseaseCatalog {
+    - diseaseType : String
+    - label : String
+    - usageCount : int
+  }
+}
+
+package "DTO" {
+  class EventCreateRequest <<record>>
+  class ConsultationEventResponse <<record>>
+  class DiseaseCatalogResponse <<record>>
+}
+
+ConsultationController --> ConsultationService
+ConsultationController --> DiseaseCatalogController
+DiseaseCatalogController --> DiseaseCatalogService
+ConsultationService --> ConsultationRepository
+ConsultationService --> ConsultationEventRepository
+ConsultationService --> DiseaseCatalogService
+DiseaseCatalogService --> DiseaseCatalogRepository
+ConsultationRepository --> Consultation
+ConsultationEventRepository --> ConsultationEvent
+DiseaseCatalogRepository --> DiseaseCatalog
+
+note right of DiseaseCatalogService
+  MIN_USAGE_FOR_SELECTION = 5
+  Normalisation du libellé maladie
+end note
+
+@enduml

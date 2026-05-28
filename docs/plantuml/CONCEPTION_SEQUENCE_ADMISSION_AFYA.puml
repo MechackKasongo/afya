@@ -1,0 +1,50 @@
+@startuml CONCEPTION_SEQUENCE_ADMISSION_AFYA
+title "Diagramme de séquence de conception — Enregistrer une admission"
+autonumber
+
+actor "Réceptionniste" as User
+participant "SPA Web" as Web
+participant "BFF" as BFF
+participant "AdmissionController" as Ctrl
+participant "AdmissionOrchestrationService" as Svc
+participant "PatientRestClient" as PatClient
+participant "patient-service" as PatSvc
+participant "CatalogReadClient" as CatClient
+participant "catalog-service" as CatSvc
+participant "AdmissionRepository" as Repo
+participant "StayRestClient" as StayClient
+participant "stay-service" as StaySvc
+participant "AuditEventPublisher" as Audit
+
+User -> Web : formulaire admission
+Web -> BFF : POST /admissions + JWT
+BFF -> Ctrl : POST /api/v1/admissions
+Ctrl -> Svc : admit(AdmissionCreateRequest)
+
+Svc -> PatClient : getById(patientId)
+PatClient -> PatSvc : GET /api/v1/patients/{id}
+PatSvc --> PatClient : 200 PatientSummary
+PatClient --> Svc : patient valide
+
+Svc -> CatClient : getService(hospitalServiceId)
+CatClient -> CatSvc : GET /api/v1/hospital-services/{id}
+CatSvc --> CatClient : 200 HospitalServiceSummary
+CatClient --> Svc : service actif
+
+Svc -> Repo : save(Admission)
+Repo --> Svc : Admission persistée
+
+Svc -> StayClient : openStay(stayCommand)
+StayClient -> StaySvc : POST /api/v1/stays
+StaySvc --> StayClient : 201 StayResponse
+StayClient --> Svc : stayId
+
+Svc -> Audit : publish(ADMISSION_CREATED)
+Audit --> Svc : ack async
+
+Svc --> Ctrl : AdmissionResponse
+Ctrl --> BFF : 201 Created
+BFF --> Web : JSON
+Web --> User : confirmation écran
+
+@enduml

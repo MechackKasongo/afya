@@ -1,0 +1,42 @@
+@startuml ETAT_ADMISSION_AFYA
+title "Diagramme d'états — cycle de vie Admission (care-entry-service)"
+skinparam state {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+
+[*] --> OUVERTE : créer admission\n(réceptionniste)
+
+state OUVERTE
+state TRANSFEREE
+state SORTIE
+state ANNULEE
+
+OUVERTE --> TRANSFEREE : demande de transfert\nvalidée (médecin / réception)
+TRANSFEREE --> OUVERTE : réaffectation interne\n(même statut métier possible)
+
+OUVERTE --> SORTIE : décision de sortie\n(médecin)
+TRANSFEREE --> SORTIE : sortie après transfert
+
+OUVERTE --> ANNULEE : annulation administrative\n(avant prise en charge effective)
+TRANSFEREE --> ANNULEE : annulation (cas exceptionnel)
+
+SORTIE --> [*]
+ANNULEE --> [*]
+
+note right of OUVERTE
+  Statut initial après POST /admissions.
+  Vérifications patient + service (catalog).
+end note
+
+note right of SORTIE
+  Déclenche la clôture du Stay
+  (checkOutAt) côté stay-service.
+end note
+
+note bottom of TRANSFEREE
+  hospitalServiceId mis à jour ;
+  TransferRequest historisé.
+end note
+
+@enduml

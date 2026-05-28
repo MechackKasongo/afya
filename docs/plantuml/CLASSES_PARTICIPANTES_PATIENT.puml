@@ -1,0 +1,41 @@
+@startuml CLASSES_PARTICIPANTES_PATIENT
+title "Classes participantes — Enregistrer un patient (CU 5)"
+skinparam ClassStereotypeFontSize 10
+
+actor Réceptionniste as Rec
+
+package "Frontière" {
+  class "PatientsPage\n<<boundary>>" as PatUI
+  class "PatientBffController\n<<boundary>>" as PatBFF
+  class "PatientController\n<<boundary>>" as PatCtrl
+}
+
+package "Contrôle" {
+  class "PatientRegistryService\n<<control>>" as PatSvc
+}
+
+package "Entité" {
+  class "Patient\n<<entity>>" as PatEnt
+  class "PatientDossierSequence\n<<entity>>" as SeqEnt
+}
+
+Rec --> PatUI : rechercher ou créer
+PatUI --> PatBFF : GET /api/v1/patients?search=…\nPOST /api/v1/patients
+PatBFF --> PatCtrl
+PatCtrl --> PatSvc
+
+alt Cas 1 : Recherche
+  PatSvc --> PatEnt : findByCriteria
+  PatEnt --> PatUI : liste patients
+else Cas 2 : Enregistrement
+  PatSvc --> SeqEnt : générer dossierNumber
+  PatSvc --> PatEnt : save(nouveau patient)
+  PatSvc --> PatUI : confirmation + n° dossier
+end
+
+note right of PatSvc
+  Patient non trouvé → liste vide ;
+  validation → erreur 400.
+end note
+
+@enduml

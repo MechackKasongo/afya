@@ -1,0 +1,55 @@
+@startuml CONCEPTION_SEQUENCE_CLINICAL_AFYA
+title "Diagramme de séquence de conception — Prescription et administration (médecin / infirmier)"
+autonumber
+
+actor "Médecin" as Med
+actor "Infirmier(ère)" as Nur
+participant "SPA Web" as Web
+participant "BFF" as BFF
+participant "MedicalRecordController" as MedCtrl
+participant "NursingController" as NurCtrl
+participant "ClinicalApplicationService" as ClinSvc
+participant "NursingApplicationService" as NurSvc
+participant "MedicalRecordRepository" as Repo
+participant "ObjectStorageClient" as Storage
+participant "AuditEventPublisher" as Audit
+
+== Prescription (médecin) ==
+Med -> Web : saisie prescription
+Web -> BFF : POST /prescriptions + JWT
+BFF -> MedCtrl : PrescriptionLineCreateRequest
+MedCtrl -> ClinSvc : addPrescription(patientId, request)
+ClinSvc -> Repo : findOrCreateMedicalRecord(patientId)
+Repo --> ClinSvc : MedicalRecord
+ClinSvc -> Repo : save(PrescriptionLine)
+ClinSvc -> Audit : publish(PRESCRIPTION_CREATED)
+ClinSvc --> MedCtrl : PrescriptionLineResponse
+MedCtrl --> Web : 201
+
+== Administration (infirmier) ==
+Nur -> Web : marquer exécution
+Web -> BFF : POST /medication-administrations
+BFF -> NurCtrl : MedicationAdministrationCreateRequest
+NurCtrl -> NurSvc : administer(request)
+NurSvc -> Repo : findPrescriptionLine(lineId)
+Repo --> NurSvc : PrescriptionLine
+alt ligne introuvable ou déjà exécutée
+  NurSvc --> NurCtrl : ConflictException
+else ok
+  NurSvc -> Repo : save(MedicationAdministration)
+  NurSvc -> Audit : publish(MEDICATION_ADMINISTERED)
+  NurSvc --> NurCtrl : MedicationAdministrationResponse
+  NurCtrl --> Web : 201
+end
+
+== Document clinique (option) ==
+Med -> Web : upload image / PDF
+Web -> BFF : POST multipart /documents
+BFF -> MedCtrl : fichier + métadonnées
+MedCtrl -> ClinSvc : attachDocument(patientId, file)
+ClinSvc -> Storage : putObject(key, bytes)
+Storage --> ClinSvc : objectStorageKey
+ClinSvc -> Repo : save(ClinicalDocument)
+ClinSvc --> MedCtrl : ClinicalDocumentResponse
+
+@enduml

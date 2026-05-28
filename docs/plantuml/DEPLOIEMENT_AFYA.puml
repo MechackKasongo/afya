@@ -1,0 +1,45 @@
+@startuml DEPLOIEMENT_AFYA
+title "Diagramme de déploiement — plateforme Afya (vue simplifiée)"
+skinparam node {
+  BackgroundColor #F5F5F5
+  BorderColor #333333
+}
+
+actor "Utilisateur" as User
+
+node "Poste utilisateur" as Workstation {
+  artifact "Navigateur web" as Browser
+}
+
+node "DMZ / edge" as Edge {
+  artifact "Reverse proxy TLS (Nginx Traefik)" as Proxy
+}
+
+node "Hôte d'exécution (ex. cluster Kubernetes ou VM)" as Host {
+  artifact "Conteneur API Gateway BFF" as BffPod
+  artifact "Conteneurs services métier\nidentity catalog patient care-entry stay clinical" as SvcPods
+  artifact "Conteneur audit-service" as AuditPod
+}
+
+node "Données et messagerie" as DataZone {
+  database "Bases de données\n(une par service ou schéma isolé)" as DBs
+  storage "Object store\nMinIO ou S3\n(clinical-record)" as ObjectStore
+  queue "Bus d'événements\n(optionnel : Kafka RabbitMQ)" as Bus
+}
+
+User --> Browser
+Browser --> Proxy : HTTPS
+Proxy --> BffPod : routage /api
+BffPod --> SvcPods : REST interne
+SvcPods --> DBs
+SvcPods --> ObjectStore
+SvcPods --> Bus : publication événements
+Bus ..> AuditPod : consommation
+AuditPod --> DBs : persistance audit
+
+note bottom of DataZone
+  Haute disponibilité : réplication BDD,
+  sauvegardes, health checks par conteneur.
+end note
+
+@enduml

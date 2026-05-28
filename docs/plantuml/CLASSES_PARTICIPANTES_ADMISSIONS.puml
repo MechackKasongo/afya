@@ -1,0 +1,41 @@
+@startuml CLASSES_PARTICIPANTES_ADMISSIONS
+title "Classes participantes — Gérer les admissions (CU 6)"
+skinparam ClassStereotypeFontSize 10
+
+actor Réceptionniste as Rec
+
+package "Frontière" {
+  class "AdmissionsPage\n<<boundary>>" as AdmUI
+  class "AdmissionBffController\n<<boundary>>" as AdmBFF
+  class "AdmissionController\n<<boundary>>" as AdmCtrl
+}
+
+package "Contrôle" {
+  class "AdmissionService\n<<control>>" as AdmSvc
+  class "PatientServiceClient\n<<boundary>>" as PatClient
+  class "CatalogServiceClient\n<<boundary>>" as CatClient
+  class "StayServiceClient\n<<boundary>>" as StayClient
+}
+
+package "Entité" {
+  class "Admission\n<<entity>>" as AdmEnt
+  class "TransferRequest\n<<entity>>" as TrfEnt
+}
+
+Rec --> AdmUI : admission / transfert / sortie
+AdmUI --> AdmBFF : POST /api/v1/admissions …
+AdmBFF --> AdmCtrl
+AdmCtrl --> AdmSvc
+AdmSvc ..> PatClient : valider patient
+AdmSvc ..> CatClient : valider service + lit
+AdmSvc --> AdmEnt : enregistrer admission
+AdmSvc ..> StayClient : ouvrir séjour (stay-service)
+AdmSvc --> TrfEnt : transfert éventuel
+
+note bottom of AdmSvc
+  Patient introuvable → proposition enregistrement ;
+  données invalides → 400 ;
+  ouverture séjour automatique à l'admission.
+end note
+
+@enduml

@@ -1,0 +1,27 @@
+# Réduit le contexte de build Spring (~Mo au lieu de centaines de Mo).
+.git
+.gitignore
+.idea
+.vscode
+.cursor
+**/*.iml
+**/*.log
+
+# Artefacts locaux (reconstruits dans l'image)
+**/target/
+
+# Front (build séparé via frontend/Dockerfile)
+frontend/node_modules
+frontend/dist
+
+# Docs, certificats locaux, données dev
+docs/
+infra/gateway/certs/*.crt
+infra/gateway/certs/*.key
+**/data/
+
+# Divers
+.env
+.env.*
+*.md
+agent-transcripts/

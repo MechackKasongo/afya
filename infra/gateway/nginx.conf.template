@@ -1,0 +1,71 @@
+# Afya API Gateway — routage vers le BFF uniquement (pas de logique métier).
+# Variables injectées au démarrage : BFF_UPSTREAM (ex. http://host.docker.internal:8080)
+
+worker_processes auto;
+error_log /var/log/nginx/error.log warn;
+pid /tmp/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+    sendfile      on;
+    keepalive_timeout 65;
+
+    # Résolution DNS à la requête (évite 502 après recréation du conteneur bff sous Podman/Docker).
+    resolver ${RESOLVER_NS} valid=10s ipv6=off;
+
+    # ~30 req/s par IP, burst 60 (dev / petite prod)
+    limit_req_zone $binary_remote_addr zone=afya_api:10m rate=30r/s;
+    limit_req_status 429;
+
+    server {
+        listen 80;
+        server_name _;
+
+        client_max_body_size 12m;
+
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options SAMEORIGIN always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+        location = /gateway/health {
+            default_type text/plain;
+            return 200 "ok\n";
+        }
+
+        location /api/ {
+            limit_req zone=afya_api burst=60 nodelay;
+
+            set $bff_backend "${BFF_HOST}:${BFF_PORT}";
+            proxy_pass http://$bff_backend/api/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Authorization $http_authorization;
+            proxy_connect_timeout 10s;
+            proxy_read_timeout 120s;
+        }
+
+        location /actuator/ {
+            limit_req zone=afya_api burst=20 nodelay;
+            set $bff_backend "${BFF_HOST}:${BFF_PORT}";
+            proxy_pass http://$bff_backend/actuator/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location / {
+            default_type application/json;
+            return 404 '{"error":"Not Found","message":"Afya API Gateway — utilisez /api/v1/..."}';
+        }
+    }
+
+    # Bloc server 443 (TLS) : nginx.tls-server.conf.template + fermeture http dans docker-entrypoint.sh
