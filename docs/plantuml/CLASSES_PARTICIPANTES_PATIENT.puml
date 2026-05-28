@@ -1,41 +1,68 @@
 @startuml CLASSES_PARTICIPANTES_PATIENT
-title "Classes participantes — Enregistrer un patient (CU 5)"
-skinparam ClassStereotypeFontSize 10
+title "Classes participantes — Enregistrer un patient"
+skinparam classAttributeIconSize 0
 
-actor Réceptionniste as Rec
+actor Receptionniste as Rec
 
-package "Frontière" {
-  class "PatientsPage\n<<boundary>>" as PatUI
-  class "PatientBffController\n<<boundary>>" as PatBFF
-  class "PatientController\n<<boundary>>" as PatCtrl
+class PatientsPage <<boundary>> {
+  - searchQuery : string
+  - patients : PatientResponse[]
+  - createForm : PatientCreateRequest
+  --
+  + search() : void
+  + submitCreate() : void
+  + openDetail(id) : void
 }
 
-package "Contrôle" {
-  class "PatientRegistryService\n<<control>>" as PatSvc
+class PatientBffController <<boundary>> {
+  - patientClient : PatientClient
+  --
+  + search(query, page, size) : Page~PatientResponse~
+  + getById(id) : PatientResponse
+  + create(request) : PatientResponse
+  + update(id, request) : PatientResponse
 }
 
-package "Entité" {
-  class "Patient\n<<entity>>" as PatEnt
-  class "PatientDossierSequence\n<<entity>>" as SeqEnt
+class PatientController <<boundary>> {
+  - patientRegistryService : PatientRegistryService
+  --
+  + create(request) : PatientResponse
+  + getById(id) : PatientResponse
+  + search(query, page, size, sortBy, sortDir) : Page~PatientResponse~
+  + update(id, request) : PatientResponse
 }
 
-Rec --> PatUI : rechercher ou créer
-PatUI --> PatBFF : GET /api/v1/patients?search=…\nPOST /api/v1/patients
-PatBFF --> PatCtrl
-PatCtrl --> PatSvc
+class PatientRegistryService <<control>> {
+  - patientRepository : PatientRepository
+  - dossierSequenceRepository : PatientDossierSequenceRepository
+  - auditEventPublisher : AuditEventPublisher
+  --
+  + create(request) : PatientResponse
+  + getById(id) : PatientResponse
+  + search(...) : Page~PatientResponse~
+  + update(id, request) : PatientResponse
+  - generateDossierNumber() : String
+}
 
-alt Cas 1 : Recherche
-  PatSvc --> PatEnt : findByCriteria
-  PatEnt --> PatUI : liste patients
-else Cas 2 : Enregistrement
-  PatSvc --> SeqEnt : générer dossierNumber
-  PatSvc --> PatEnt : save(nouveau patient)
-  PatSvc --> PatUI : confirmation + n° dossier
-end
+class Patient <<entity>> {
+  - id : Long
+  - firstName : String
+  - lastName : String
+  - dossierNumber : String
+  - birthDate : LocalDate
+  - sex : String
+  - phone : String
+  - email : String
+  - createdAt : Instant
+}
 
-note right of PatSvc
-  Patient non trouvé → liste vide ;
-  validation → erreur 400.
-end note
+class PatientDossierSequence <<entity>> {
+  - year : int
+  - lastValue : long
+}
+
+Rec --> PatientsPage --> PatientBffController --> PatientController --> PatientRegistryService
+PatientRegistryService --> Patient
+PatientRegistryService --> PatientDossierSequence
 
 @enduml

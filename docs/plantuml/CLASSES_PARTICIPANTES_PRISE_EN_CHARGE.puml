@@ -1,54 +1,134 @@
 @startuml CLASSES_PARTICIPANTES_PRISE_EN_CHARGE
-title "Classes participantes — Prise en charge médicale (CU 7)"
-skinparam ClassStereotypeFontSize 10
+title "Classes participantes — Prise en charge médicale (attributs et méthodes)"
+skinparam classAttributeIconSize 0
 
 actor Médecin as Med
 
-package "Frontière" {
-  class "ConsultationDetailView\n<<boundary>>" as ConsUI
-  class "ConsultationBffController\n<<boundary>>" as ConsBFF
-  class "PrescriptionBffController\n<<boundary>>" as RxBFF
-  class "DiseaseCatalogBffController\n<<boundary>>" as CatBFF
-  class "ConsultationController\n<<boundary>>" as ConsCtrl
-  class "PrescriptionController\n<<boundary>>" as RxCtrl
-  class "DiseaseCatalogController\n<<boundary>>" as DisCtrl
-  class "MedicalRecordController\n<<boundary>>" as MrCtrl
+class ConsultationDetailView <<boundary>> {
+  - consultationId : number
+  - timeline : ConsultationEventResponse[]
+  - diagnosticDiseaseType : string
+  - diagnosticDiseaseName : string
+  --
+  + loadData() : Promise~void~
+  + submitDiagnostic() : Promise~void~
+  + submitPrescription() : Promise~void~
+  + toggleTimelineSort(column) : void
 }
 
-package "Contrôle" {
-  class "ConsultationService\n<<control>>" as ConsSvc
-  class "DiseaseCatalogService\n<<control>>" as DisSvc
-  class "ClinicalRecordService\n<<control>>" as ClinSvc
-  class "PatientServiceClient\n<<boundary>>" as PatClient
-  class "CareEntryServiceClient\n<<boundary>>" as AdmClient
+class ConsultationBffController <<boundary>> {
+  - clinicalRecordClient : ClinicalRecordClient
+  --
+  + list(patientId, admissionId, page) : Page~ConsultationResponse~
+  + getById(id) : ConsultationResponse
+  + create(request) : ConsultationResponse
+  + consultationEvents(id) : List~ConsultationEventResponse~
+  + addDiagnostic(id, request) : ConsultationEventResponse
 }
 
-package "Entité" {
-  class "Consultation\n<<entity>>" as ConsEnt
-  class "ConsultationEvent\n<<entity>>" as EvEnt
-  class "DiseaseCatalog\n<<entity>>" as DisEnt
-  class "MedicalRecord\n<<entity>>" as MrEnt
-  class "PrescriptionLine\n<<entity>>" as RxEnt
+class DiseaseCatalogBffController <<boundary>> {
+  - clinicalRecordClient : ClinicalRecordClient
+  --
+  + listSelectable(diseaseType) : List~DiseaseCatalogResponse~
 }
 
-Med --> ConsUI : consultation + chronologie
-ConsUI --> ConsBFF : consultations / events / diagnostics
-ConsUI --> CatBFF : GET disease-catalog
-ConsUI --> RxBFF : prescriptions (fiche consultation)
-ConsBFF --> ConsCtrl --> ConsSvc
-ConsSvc ..> PatClient
-ConsSvc ..> AdmClient
-ConsSvc --> ConsEnt
-ConsSvc --> EvEnt : observation / diagnostic / examen
-ConsSvc --> DisSvc --> DisEnt : catalogue (seuil 5 usages)
-CatBFF --> DisCtrl --> DisSvc
-RxBFF --> RxCtrl --> ClinSvc --> RxEnt
-ConsUI --> MrCtrl : dossier médical global (lecture)
+class PrescriptionBffController <<boundary>> {
+  - clinicalRecordClient : ClinicalRecordClient
+  --
+  + create(patientId, request) : PrescriptionResponse
+}
 
-note right of ConsSvc
-  Diagnostic : diseaseType + diseaseName obligatoires.
-  Décision sortie → care-entry discharge ;
-  hospitalisation déjà liée à l'admission/séjour.
-end note
+class ConsultationController <<boundary>> {
+  - consultationService : ConsultationService
+  --
+  + list(...) : Page~ConsultationResponse~
+  + getById(consultationId) : ConsultationResponse
+  + consultationEvents(consultationId) : List
+  + create(request) : ConsultationResponse
+  + addObservation(id, request) : ConsultationEventResponse
+  + addDiagnostic(id, request) : ConsultationEventResponse
+  + addExamOrder(id, request) : ConsultationEventResponse
+}
+
+class ConsultationService <<control>> {
+  - consultationRepository : ConsultationRepository
+  - consultationEventRepository : ConsultationEventRepository
+  - medicalRecordRepository : MedicalRecordRepository
+  - patientServiceClient : PatientServiceClient
+  - careEntryServiceClient : CareEntryServiceClient
+  - diseaseCatalogService : DiseaseCatalogService
+  - auditEventPublisher : AuditEventPublisher
+  --
+  + list(...) : Page~ConsultationResponse~
+  + getById(consultationId) : ConsultationResponse
+  + create(request, username, authHeader) : ConsultationResponse
+  + consultationEvents(consultationId) : List
+  + patientTimeline(patientId) : List
+  + addObservation(id, request, username) : ConsultationEventResponse
+  + addDiagnostic(id, request, username) : ConsultationEventResponse
+  + addExamOrder(id, request, username) : ConsultationEventResponse
+}
+
+class DiseaseCatalogService <<control>> {
+  - diseaseCatalogRepository : DiseaseCatalogRepository
+  --
+  + listSelectable(diseaseType) : List~DiseaseCatalogResponse~
+  + recordUsage(diseaseType, diseaseName) : void
+  + {static} normalizeLabel(label) : String
+}
+
+class Consultation <<entity>> {
+  - id : Long
+  - patientId : Long
+  - admissionId : Long
+  - doctorName : String
+  - reason : String
+  - consultationDateTime : Instant
+  --
+  + getId() : Long
+  + getPatientId() : Long
+}
+
+class ConsultationEvent <<entity>> {
+  - id : Long
+  - consultation : Consultation
+  - patientId : Long
+  - eventType : ConsultationEventType
+  - content : String
+  - diseaseType : String
+  - diseaseName : String
+  - createdAt : Instant
+}
+
+class DiseaseCatalog <<entity>> {
+  - id : Long
+  - diseaseType : String
+  - label : String
+  - labelNormalized : String
+  - usageCount : int
+  - firstUsedAt : Instant
+  - lastUsedAt : Instant
+  --
+  + isSelectable() : boolean
+}
+
+class PrescriptionLine <<entity>> {
+  - id : Long
+  - drugName : String
+  - dosage : String
+  - frequency : String
+  - status : String
+}
+
+Med --> ConsultationDetailView
+ConsultationDetailView --> ConsultationBffController
+ConsultationDetailView --> DiseaseCatalogBffController
+ConsultationDetailView --> PrescriptionBffController
+ConsultationBffController --> ConsultationController
+ConsultationController --> ConsultationService
+ConsultationService --> Consultation
+ConsultationService --> ConsultationEvent
+ConsultationService --> DiseaseCatalogService
+DiseaseCatalogService --> DiseaseCatalog
 
 @enduml

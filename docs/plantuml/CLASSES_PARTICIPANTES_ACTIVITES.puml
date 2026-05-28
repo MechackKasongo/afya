@@ -1,38 +1,62 @@
 @startuml CLASSES_PARTICIPANTES_ACTIVITES
-title "Classes participantes — Gérer les activités du système (CU 4)"
-skinparam ClassStereotypeFontSize 10
+title "Classes participantes — Gérer les activités du système"
+skinparam classAttributeIconSize 0
 
 actor Administrateur as Admin
 
-package "Frontière" {
-  class "ReportingPage\n<<boundary>>" as RepUI
-  class "AuditBffController\n<<boundary>>" as AuditBFF
-  class "StatsBffController\n<<boundary>>" as StatsBFF
-  class "AuditEventController\n<<boundary>>" as AuditCtrl
-  class "ActivityReportController\n<<boundary>>" as ReportCtrl
+class ReportingPage <<boundary>> {
+  - auditEvents : AuditEventResponse[]
+  - filters : { date, action, actor }
+  - reportOverview : PlatformReportOverviewResponse
+  --
+  + loadAudit(page) : void
+  + applyFilters() : void
+  + loadReportOverview() : void
 }
 
-package "Contrôle" {
-  class "AuditEventService\n<<control>>" as AuditSvc
-  class "ActivityReportFallback\n<<control>>" as ReportSvc
+class AuditBffController <<boundary>> {
+  - auditClient : AuditClient
+  --
+  + listEvents(page, size, filters) : Page~AuditEventResponse~
 }
 
-package "Entité" {
-  class "AuditEvent\n<<entity>>" as AuditEnt
+class StatsBffController <<boundary>> {
+  - auditClient : AuditClient
+  - careEntryClient : CareEntryClient
+  --
+  + activityReport() : ActivityReportResponse
+  + volumes() : PlatformReportOverviewResponse
 }
 
-Admin --> RepUI : consulter journal / rapports
-RepUI --> AuditBFF : GET /api/v1/audit/events
-RepUI --> StatsBFF : GET /api/v1/reports/activity, /stats/volumes
-AuditBFF --> AuditCtrl : liste paginée + filtres
-StatsBFF --> ReportCtrl : agrégats activité
-AuditCtrl --> AuditSvc --> AuditEnt
-ReportCtrl --> AuditSvc
+class AuditEventController <<boundary>> {
+  - auditEventService : AuditEventService
+  --
+  + list(page, size, actor, action, from, to) : Page~AuditEventResponse~
+  + ingest(request) : AuditEventResponse
+}
 
-note bottom of AuditEnt
-  Événements ingérés depuis tous les services
-  (LOGIN, ADMISSION_CREATED, PRESCRIPTION_CREATED, …).
-  Aucune activité → liste vide côté UI.
-end note
+class AuditEventService <<control>> {
+  - auditEventRepository : AuditEventRepository
+  --
+  + list(...) : Page~AuditEventResponse~
+  + ingest(request) : AuditEventResponse
+  + buildActivityReport() : ActivityReportResponse
+}
+
+class AuditEvent <<entity>> {
+  - id : Long
+  - eventId : UUID
+  - occurredAt : Instant
+  - actorUsername : String
+  - action : String
+  - resourceType : String
+  - resourceId : String
+  - sourceService : String
+  - metadataJson : String
+}
+
+Admin --> ReportingPage --> AuditBffController
+ReportingPage --> StatsBffController
+AuditBffController --> AuditEventController --> AuditEventService --> AuditEvent
 
 @enduml

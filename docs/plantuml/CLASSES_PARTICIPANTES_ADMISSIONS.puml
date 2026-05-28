@@ -1,41 +1,79 @@
 @startuml CLASSES_PARTICIPANTES_ADMISSIONS
-title "Classes participantes — Gérer les admissions (CU 6)"
-skinparam ClassStereotypeFontSize 10
+title "Classes participantes — Gérer les admissions"
+skinparam classAttributeIconSize 0
 
-actor Réceptionniste as Rec
+actor Receptionniste as Rec
 
-package "Frontière" {
-  class "AdmissionsPage\n<<boundary>>" as AdmUI
-  class "AdmissionBffController\n<<boundary>>" as AdmBFF
-  class "AdmissionController\n<<boundary>>" as AdmCtrl
+class AdmissionsPage <<boundary>> {
+  - selectedPatientId : number
+  - admissionForm : AdmissionCreateRequest
+  --
+  + searchPatient() : void
+  + submitAdmission() : void
+  + submitTransfer(id) : void
+  + submitDischarge(id) : void
 }
 
-package "Contrôle" {
-  class "AdmissionService\n<<control>>" as AdmSvc
-  class "PatientServiceClient\n<<boundary>>" as PatClient
-  class "CatalogServiceClient\n<<boundary>>" as CatClient
-  class "StayServiceClient\n<<boundary>>" as StayClient
+class AdmissionBffController <<boundary>> {
+  - careEntryClient : CareEntryClient
+  --
+  + create(request) : AdmissionResponse
+  + getById(id) : AdmissionResponse
+  + list(...) : Page~AdmissionResponse~
+  + transfer(id, request) : AdmissionResponse
+  + discharge(id, request) : AdmissionResponse
 }
 
-package "Entité" {
-  class "Admission\n<<entity>>" as AdmEnt
-  class "TransferRequest\n<<entity>>" as TrfEnt
+class AdmissionController <<boundary>> {
+  - admissionService : AdmissionService
+  --
+  + create(request) : AdmissionResponse
+  + getById(id) : AdmissionResponse
+  + list(...) : Page~AdmissionResponse~
+  + transfer(id, request) : AdmissionResponse
+  + discharge(id, request) : AdmissionResponse
+  + cancel(id) : AdmissionResponse
 }
 
-Rec --> AdmUI : admission / transfert / sortie
-AdmUI --> AdmBFF : POST /api/v1/admissions …
-AdmBFF --> AdmCtrl
-AdmCtrl --> AdmSvc
-AdmSvc ..> PatClient : valider patient
-AdmSvc ..> CatClient : valider service + lit
-AdmSvc --> AdmEnt : enregistrer admission
-AdmSvc ..> StayClient : ouvrir séjour (stay-service)
-AdmSvc --> TrfEnt : transfert éventuel
+class AdmissionService <<control>> {
+  - admissionRepository : AdmissionRepository
+  - patientServiceClient : PatientServiceClient
+  - catalogServiceClient : CatalogServiceClient
+  - stayServiceClient : StayServiceClient
+  --
+  + admit(request, authHeader) : AdmissionResponse
+  + transfer(id, request, authHeader) : AdmissionResponse
+  + discharge(id, request, authHeader) : AdmissionResponse
+}
 
-note bottom of AdmSvc
-  Patient introuvable → proposition enregistrement ;
-  données invalides → 400 ;
-  ouverture séjour automatique à l'admission.
-end note
+class PatientServiceClient <<boundary>> {
+  + getPatient(patientId, authHeader) : PatientSummary
+}
+
+class CatalogServiceClient <<boundary>> {
+  + getService(serviceId, authHeader) : ServiceSummary
+  + suggestBed(serviceName, authHeader) : BedSuggestion
+}
+
+class StayServiceClient <<boundary>> {
+  + openStay(request, authHeader) : StaySummary
+}
+
+class Admission <<entity>> {
+  - id : Long
+  - patientId : Long
+  - hospitalServiceId : Long
+  - admittedAt : Instant
+  - dischargedAt : Instant
+  - status : AdmissionStatus
+  - roomLabel : String
+  - bedLabel : String
+}
+
+Rec --> AdmissionsPage --> AdmissionBffController --> AdmissionController --> AdmissionService
+AdmissionService --> Admission
+AdmissionService ..> PatientServiceClient
+AdmissionService ..> CatalogServiceClient
+AdmissionService ..> StayServiceClient
 
 @enduml

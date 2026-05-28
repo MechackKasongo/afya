@@ -797,28 +797,47 @@ Voir aussi [MERMAID_MEMOIRE_AFYA.md § Conception](MERMAID_MEMOIRE_AFYA.md#7-dia
 
 ### 7.8 Patron consultation — `clinical-record-service`
 
+Diagramme complet (attributs + méthodes) : [MERMAID_MEMOIRE_AFYA.md §7.6](MERMAID_MEMOIRE_AFYA.md#76-classes--consultation-et-catalogue-conception) et [plantuml/CONCEPTION_CONSULTATION_AFYA.puml](plantuml/CONCEPTION_CONSULTATION_AFYA.puml).
+
 ```mermaid
 classDiagram
   direction TB
   class ConsultationController {
-    +create()
-    +addDiagnostic()
-    +consultationEvents()
+    -consultationService ConsultationService
+    +list(...) Page
+    +getById(id) ConsultationResponse
+    +consultationEvents(id) List
+    +create(request) ConsultationResponse
+    +addDiagnostic(id,request) ConsultationEventResponse
   }
   class DiseaseCatalogController {
-    +listSelectable(diseaseType)
+    -diseaseCatalogService DiseaseCatalogService
+    +listSelectable(diseaseType) List
   }
   class ConsultationService {
-    +addDiagnostic()
-    +addObservation()
+    -consultationRepository ConsultationRepository
+    -diseaseCatalogService DiseaseCatalogService
+    +addDiagnostic(id,request,username) ConsultationEventResponse
+    +create(request,username,authHeader) ConsultationResponse
   }
   class DiseaseCatalogService {
-    +recordUsage()
-    +listSelectable()
+    +recordUsage(type,name) void
+    +listSelectable(type) List
   }
-  class Consultation
-  class ConsultationEvent
-  class DiseaseCatalog
+  class Consultation {
+    -id Long
+    -patientId Long
+    -admissionId Long
+  }
+  class ConsultationEvent {
+    -diseaseType String
+    -diseaseName String
+    -content String
+  }
+  class DiseaseCatalog {
+    -usageCount int
+    +isSelectable() boolean
+  }
   ConsultationController --> ConsultationService
   DiseaseCatalogController --> DiseaseCatalogService
   ConsultationService --> DiseaseCatalogService
@@ -846,7 +865,7 @@ classDiagram
 
 ### 8.0 Mermaid (8 cas d'utilisation)
 
-Diagrammes `classDiagram` avec stéréotypes **boundary / control / entity** : [MERMAID_MEMOIRE_AFYA.md § Classes participantes](MERMAID_MEMOIRE_AFYA.md#5-classes-participantes-mermaid).
+Diagrammes `classDiagram` avec **attributs et méthodes** par classe : [MERMAID_MEMOIRE_AFYA.md §5](MERMAID_MEMOIRE_AFYA.md#5-classes-participantes-mermaid).
 
 ### 8.1 PlantUML
 

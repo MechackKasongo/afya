@@ -1,40 +1,87 @@
 @startuml CLASSES_PARTICIPANTES_SOINS
-title "Classes participantes — Enregistrer les soins effectués (CU 8)"
-skinparam ClassStereotypeFontSize 10
+title "Classes participantes — Enregistrer les soins effectués"
+skinparam classAttributeIconSize 0
 
-actor "Infirmier(ère)" as Nur
+actor Infirmier as Nur
 
-package "Frontière" {
-  class "MedicalRecordDetailPage\n<<boundary>>" as MrUI
-  class "PatientClinicalBffController\n<<boundary>>" as ClinBFF
-  class "MedicalRecordController\n<<boundary>>" as MrCtrl
+class MedicalRecordDetailPage <<boundary>> {
+  - patientId : number
+  - medicalRecord : MedicalRecordResponse
+  - nursingForm : NursingCareRequest
+  --
+  + loadMedicalRecord() : void
+  + submitNursingCare() : void
+  + submitMedicationAdmin(lineId) : void
 }
 
-package "Contrôle" {
-  class "ClinicalRecordService\n<<control>>" as ClinSvc
+class PatientClinicalBffController <<boundary>> {
+  - clinicalRecordClient : ClinicalRecordClient
+  --
+  + getMedicalRecord(patientId) : MedicalRecordResponse
+  + addNursingCare(patientId, request) : NursingCareResponse
+  + administerMedication(patientId, request) : MedicationAdministrationResponse
 }
 
-package "Entité" {
-  class "MedicalRecord\n<<entity>>" as MrEnt
-  class "NursingCareRecord\n<<entity>>" as CareEnt
-  class "MedicationAdministration\n<<entity>>" as MedAdmEnt
-  class "PrescriptionLine\n<<entity>>" as RxEnt
+class MedicalRecordController <<boundary>> {
+  - clinicalRecordService : ClinicalRecordService
+  --
+  + getMedicalRecord(patientId, activeOnly) : MedicalRecordResponse
+  + addNursingCare(patientId, request) : NursingCareResponse
+  + addMedicationAdministration(patientId, request) : MedicationAdministrationResponse
+  + addPrescription(patientId, request) : PrescriptionResponse
 }
 
-Nur --> MrUI : consulter soins / prescriptions
-MrUI --> ClinBFF : GET dossier + soins
-MrUI --> ClinBFF : POST nursing-care / medication-administrations
-ClinBFF --> MrCtrl --> ClinSvc
-ClinSvc --> MrEnt : findOrCreate
-ClinSvc --> CareEnt : enregistrer soin infirmier
-ClinSvc --> MedAdmEnt : marquer exécution prescription
-ClinSvc --> RxEnt : lier administration
+class ClinicalRecordService <<control>> {
+  - medicalRecordRepository : MedicalRecordRepository
+  - nursingCareRecordRepository : NursingCareRecordRepository
+  - medicationAdministrationRepository : MedicationAdministrationRepository
+  - prescriptionLineRepository : PrescriptionLineRepository
+  --
+  + getMedicalRecord(patientId, authHeader, activeOnly) : MedicalRecordResponse
+  + addNursingCare(patientId, request, username, authHeader) : NursingCareResponse
+  + addMedicationAdministration(...) : MedicationAdministrationResponse
+  + addPrescription(...) : PrescriptionResponse
+  - findOrCreateRecord(patientId) : MedicalRecord
+}
 
-note bottom of ClinSvc
-  Patient ou dossier introuvable → 404 ;
-  validation soin incomplète → 400 ;
-  traçabilité audit NURSING_CARE_RECORDED /
-  MEDICATION_ADMINISTERED.
-end note
+class MedicalRecord <<entity>> {
+  - id : Long
+  - patientId : Long
+  - allergies : String
+  - antecedents : String
+  - openedAt : Instant
+}
+
+class NursingCareRecord <<entity>> {
+  - id : Long
+  - medicalRecord : MedicalRecord
+  - careType : String
+  - description : String
+  - performedAt : Instant
+  - nurseUsername : String
+}
+
+class MedicationAdministration <<entity>> {
+  - id : Long
+  - prescriptionLine : PrescriptionLine
+  - administeredAt : Instant
+  - doseGiven : String
+  - nurseUsername : String
+}
+
+class PrescriptionLine <<entity>> {
+  - id : Long
+  - drugName : String
+  - dosage : String
+  - frequency : String
+  - status : String
+}
+
+Nur --> MedicalRecordDetailPage --> PatientClinicalBffController --> MedicalRecordController
+MedicalRecordController --> ClinicalRecordService
+ClinicalRecordService --> MedicalRecord
+ClinicalRecordService --> NursingCareRecord
+ClinicalRecordService --> MedicationAdministration
+ClinicalRecordService --> PrescriptionLine
 
 @enduml

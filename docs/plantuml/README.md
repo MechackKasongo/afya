@@ -10,6 +10,8 @@ Fichiers **`.puml`** prêts pour le mémoire (export PNG/PDF/SVG) ou la doc tech
 
 ## Classes participantes (analyse — 8 cas d'utilisation)
 
+Chaque fichier inclut **attributs** et **méthodes** des classes boundary / control / entity.
+
 | CU | Fichier |
 |----|---------|
 | S'authentifier | [CLASSES_PARTICIPANTES_AUTH.puml](CLASSES_PARTICIPANTES_AUTH.puml) |

@@ -14,66 +14,100 @@ Rendu : GitHub, GitLab, VS Code / Cursor (extension Mermaid), ou [mermaid.live](
 
 ## 4. Modèle du domaine (Mermaid)
 
-Vue **conceptuelle** par contexte délimité (équivalent [MODELE_DOMAINE_AFYA.puml](plantuml/MODELE_DOMAINE_AFYA.puml)).
+Vue **conceptuelle** avec **attributs** principaux (équivalent [MODELE_DOMAINE_AFYA.puml](plantuml/MODELE_DOMAINE_AFYA.puml)).
 
 ```mermaid
-flowchart TB
-  subgraph identity["identity-service"]
-    AppUser
-    Role
-    RefreshToken
-    AppUser --- Role
-    AppUser --- RefreshToken
-  end
+classDiagram
+  direction TB
 
-  subgraph catalog["catalog-service"]
-    Department
-    HospitalService
-    Bed
-    Department --> HospitalService
-    HospitalService --> Bed
-  end
+  class Patient {
+    +id Long
+    +dossierNumber String
+    +firstName String
+    +lastName String
+    +birthDate LocalDate
+  }
 
-  subgraph patient["patient-service"]
-    Patient
-  end
+  class AppUser {
+    +id Long
+    +username String
+    +fullName String
+    +active boolean
+  }
 
-  subgraph care["care-entry-service"]
-    Admission
-    TransferRequest
-    EmergencyVisit
-    Admission --> TransferRequest
-  end
+  class HospitalService {
+    +id Long
+    +name String
+    +bedCapacity int
+  }
 
-  subgraph stay["stay-service"]
-    Stay
-    HospitalizationForm
-    Stay --> HospitalizationForm
-  end
+  class Admission {
+    +id Long
+    +patientId Long
+    +hospitalServiceId Long
+    +status String
+    +admittedAt Instant
+  }
 
-  subgraph clinical["clinical-record-service"]
-    MedicalRecord
-    Consultation
-    ConsultationEvent
-    DiseaseCatalog
-    PrescriptionLine
-    NursingCareRecord
-    MedicalRecord --> PrescriptionLine
-    MedicalRecord --> NursingCareRecord
-    Consultation --> ConsultationEvent
-  end
+  class Stay {
+    +id Long
+    +patientId Long
+    +admissionId Long
+    +roomLabel String
+    +bedLabel String
+  }
 
-  subgraph audit["audit-service"]
-    AuditEvent
-  end
+  class MedicalRecord {
+    +id Long
+    +patientId Long
+  }
 
-  Patient -.->|patientId| Admission
-  Patient -.->|patientId| Stay
-  Patient -.->|patientId| MedicalRecord
-  Patient -.->|patientId| Consultation
-  HospitalService -.->|hospitalServiceId| Admission
-  Admission -.->|admissionId| Stay
-  Admission -.->|admissionId| Consultation
+  class Consultation {
+    +id Long
+    +patientId Long
+    +admissionId Long
+    +doctorName String
+  }
+
+  class ConsultationEvent {
+    +id Long
+    +eventType String
+    +content String
+    +diseaseType String
+    +diseaseName String
+  }
+
+  class DiseaseCatalog {
+    +id Long
+    +diseaseType String
+    +label String
+    +usageCount int
+  }
+
+  class PrescriptionLine {
+    +id Long
+    +drugName String
+    +dosage String
+    +frequency String
+  }
+
+  class AuditEvent {
+    +id Long
+    +action String
+    +actorUsername String
+    +resourceType String
+  }
+
+  Patient "1" --> "0..*" Admission : patientId
+  Patient "1" --> "0..*" Stay : patientId
+  Patient "1" --> "0..1" MedicalRecord : patientId
+  Patient "1" --> "0..*" Consultation : patientId
+  HospitalService "1" --> "0..*" Admission : hospitalServiceId
+  Admission "1" --> "0..1" Stay : admissionId
+  Admission "1" --> "0..*" Consultation : admissionId
+  Consultation "1" *-- "0..*" ConsultationEvent
+  MedicalRecord "1" *-- "0..*" PrescriptionLine
+  DiseaseCatalog ..> ConsultationEvent : catalogue
 ```
 
 MCD détaillé (tables) : [DIAGRAMMES_UML.md §5](DIAGRAMMES_UML.md#5-modèle-du-domaine-mcd--erdiagram).
@@ -82,78 +116,147 @@ MCD détaillé (tables) : [DIAGRAMMES_UML.md §5](DIAGRAMMES_UML.md#5-modèle-du
 
 ## 5. Classes participantes (Mermaid)
 
-Stéréotypes : **boundary** = UI / API ; **control** = service applicatif ; **entity** = persistance JPA.
+Chaque classe liste ses **attributs** (`-`) et **méthodes** (`+`). Stéréotypes : `<<boundary>>`, `<<control>>`, `<<entity>>`.  
+Équivalent PlantUML détaillé : [plantuml/CLASSES_PARTICIPANTES_*.puml](plantuml/README.md).
 
 ### 5.1 CU 1 — S'authentifier
 
 ```mermaid
 classDiagram
-  direction LR
+  direction TB
   class Utilisateur {
     <<actor>>
   }
   class LoginPage {
     <<boundary>>
+    -credentials username password
+    +handleSubmit() void
+    +redirectAfterLogin() void
   }
   class AuthBffController {
     <<boundary>>
+    -identityClient IdentityClient
+    +login(request) TokenResponse
+    +refresh(request) TokenResponse
+    +logout(request) void
+    +me() MeResponse
   }
   class AuthController {
     <<boundary>>
+    -authService AuthService
+    +login(request) TokenResponse
+    +refresh(request) TokenResponse
+    +logout(auth, request, body) void
+    +me(auth) MeResponse
   }
   class AuthService {
     <<control>>
+    -appUserRepository AppUserRepository
+    -refreshTokenRepository RefreshTokenRepository
+    -jwtService JwtService
+    -passwordEncoder PasswordEncoder
+    +login(username, password) TokenResponse
+    +refresh(refreshTokenRaw) TokenResponse
+    +logout(username, request, refresh, revokeAll) void
+    +me(username) MeResponse
+    -issueTokens(user) TokenResponse
   }
   class JwtService {
     <<control>>
+    +issueAccessToken(user) String
+    +issueRefreshToken(user) String
+    +parseRefreshToken(raw) Claims
   }
   class AppUser {
     <<entity>>
+    -id Long
+    -username String
+    -email String
+    -fullName String
+    -passwordHash String
+    -active boolean
+    +getId() Long
+    +getUsername() String
+    +isActive() boolean
   }
   class RefreshToken {
     <<entity>>
+    -id Long
+    -tokenHash String
+    -expiresAt Instant
+    -revoked boolean
   }
 
-  Utilisateur --> LoginPage : saisit identifiants
-  LoginPage --> AuthBffController : POST /auth/login
+  Utilisateur --> LoginPage
+  LoginPage --> AuthBffController
   AuthBffController --> AuthController
   AuthController --> AuthService
-  AuthService --> AppUser : vérifie compte
-  AuthService --> JwtService : émet JWT
-  AuthService --> RefreshToken : session
+  AuthService --> AppUser
+  AuthService --> JwtService
+  AuthService --> RefreshToken
 ```
 
 ### 5.2 CU 2 — Gérer les utilisateurs
 
 ```mermaid
 classDiagram
-  direction LR
-  class Administrateur {
-    <<actor>>
-  }
+  direction TB
+  class Administrateur { <<actor>> }
   class UsersAdminPage {
     <<boundary>>
+    -users UserResponse[]
+    -form UserCreateRequest
+    +loadUsers() void
+    +submitCreate() void
+    +submitUpdate(id) void
+    +confirmDelete(id) void
   }
   class UserBffController {
     <<boundary>>
+    -identityClient IdentityClient
+    +list(page,size,search) Page
+    +get(id) UserResponse
+    +create(request) UserResponse
+    +update(id,request) UserResponse
+    +delete(id) void
   }
   class UserController {
     <<boundary>>
+    -userAdminService UserAdminService
+    +list(...) Page
+    +listRoles() List
+    +create(request) UserResponse
+    +update(id,request) UserResponse
+    +updateStatus(id,request) UserResponse
+    +delete(id) void
+    +get(id) UserResponse
   }
   class UserAdminService {
     <<control>>
+    -appUserRepository AppUserRepository
+    -roleRepository RoleRepository
+    +getById(id) UserResponse
+    +list(...) Page
+    +create(request) UserResponse
+    +update(id,request) UserResponse
+    +updateStatus(id,active) UserResponse
+    +delete(id) void
   }
   class AppUser {
     <<entity>>
+    -id Long
+    -username String
+    -fullName String
+    -passwordHash String
+    -active boolean
   }
   class Role {
     <<entity>>
+    -id Long
+    -code String
+    -label String
   }
-
-  Administrateur --> UsersAdminPage
-  UsersAdminPage --> UserBffController : CRUD /users
-  UserBffController --> UserController
-  UserController --> UserAdminService
+  Administrateur --> UsersAdminPage --> UserBffController --> UserController --> UserAdminService
   UserAdminService --> AppUser
   UserAdminService --> Role
 ```
@@ -162,157 +265,222 @@ classDiagram
 
 ```mermaid
 classDiagram
-  direction LR
-  class Administrateur {
-    <<actor>>
-  }
+  direction TB
+  class Administrateur { <<actor>> }
   class HospitalServicesPage {
     <<boundary>>
+    +loadCatalog() void
+    +saveService(form) void
+    +generateBeds(serviceId) void
   }
   class HospitalServiceBffController {
     <<boundary>>
-  }
-  class DepartmentController {
-    <<boundary>>
+    +listDepartments() List
+    +listServices() List
+    +createService(request) HospitalServiceResponse
+    +updateService(id,request) HospitalServiceResponse
   }
   class HospitalServiceController {
     <<boundary>>
-  }
-  class DepartmentService {
-    <<control>>
+    -hospitalServiceCatalogService HospitalServiceCatalogService
+    +list(activeOnly) List
+    +getById(id) HospitalServiceResponse
+    +create(request) HospitalServiceResponse
+    +update(id,request) HospitalServiceResponse
   }
   class HospitalServiceCatalogService {
     <<control>>
+    +create(request) HospitalServiceResponse
+    +update(id,request) HospitalServiceResponse
+    +delete(id) void
   }
   class Department {
     <<entity>>
+    -id Long
+    -code String
+    -name String
   }
   class HospitalService {
     <<entity>>
+    -id Long
+    -name String
+    -bedCapacity int
+    -bedsPerRoom int
   }
   class Bed {
     <<entity>>
+    -id Long
+    -label String
+    -occupied boolean
   }
-
-  Administrateur --> HospitalServicesPage
-  HospitalServicesPage --> HospitalServiceBffController
-  HospitalServiceBffController --> DepartmentController
-  HospitalServiceBffController --> HospitalServiceController
-  DepartmentController --> DepartmentService --> Department
+  Administrateur --> HospitalServicesPage --> HospitalServiceBffController --> HospitalServiceController
   HospitalServiceController --> HospitalServiceCatalogService
   HospitalServiceCatalogService --> HospitalService
-  HospitalServiceCatalogService --> Bed
   HospitalService --> Department
+  HospitalServiceCatalogService --> Bed
 ```
 
 ### 5.4 CU 4 — Gérer les activités du système
 
 ```mermaid
 classDiagram
-  direction LR
-  class Administrateur {
-    <<actor>>
-  }
+  direction TB
+  class Administrateur { <<actor>> }
   class ReportingPage {
     <<boundary>>
+    -auditEvents AuditEventResponse[]
+    -filters object
+    +loadAudit(page) void
+    +applyFilters() void
+    +loadReportOverview() void
   }
   class AuditBffController {
     <<boundary>>
+    +listEvents(page,size,filters) Page
   }
   class StatsBffController {
     <<boundary>>
+    +activityReport() ActivityReportResponse
+    +volumes() PlatformReportOverviewResponse
   }
   class AuditEventController {
     <<boundary>>
+    -auditEventService AuditEventService
+    +list(page,size,actor,action,from,to) Page
+    +ingest(request) AuditEventResponse
   }
   class AuditEventService {
     <<control>>
+    +list(...) Page
+    +ingest(request) AuditEventResponse
+    +buildActivityReport() ActivityReportResponse
   }
   class AuditEvent {
     <<entity>>
+    -id Long
+    -occurredAt Instant
+    -actorUsername String
+    -action String
+    -resourceType String
+    -resourceId String
+    -sourceService String
   }
-
   Administrateur --> ReportingPage
-  ReportingPage --> AuditBffController : GET /audit/events
-  ReportingPage --> StatsBffController : rapports / volumes
-  AuditBffController --> AuditEventController
-  AuditEventController --> AuditEventService
-  AuditEventService --> AuditEvent
+  ReportingPage --> AuditBffController
+  ReportingPage --> StatsBffController
+  AuditBffController --> AuditEventController --> AuditEventService --> AuditEvent
 ```
 
 ### 5.5 CU 5 — Enregistrer un patient
 
 ```mermaid
 classDiagram
-  direction LR
-  class Receptionniste {
-    <<actor>>
-  }
+  direction TB
+  class Receptionniste { <<actor>> }
   class PatientsPage {
     <<boundary>>
+    -searchQuery string
+    -createForm PatientCreateRequest
+    +search() void
+    +submitCreate() void
   }
   class PatientBffController {
     <<boundary>>
+    +search(query,page,size) Page
+    +getById(id) PatientResponse
+    +create(request) PatientResponse
+    +update(id,request) PatientResponse
   }
   class PatientController {
     <<boundary>>
+    -patientRegistryService PatientRegistryService
+    +create(request) PatientResponse
+    +getById(id) PatientResponse
+    +search(query,page,size,sortBy,sortDir) Page
+    +update(id,request) PatientResponse
   }
   class PatientRegistryService {
     <<control>>
+    +create(request) PatientResponse
+    +getById(id) PatientResponse
+    +search(...) Page
+    -generateDossierNumber() String
   }
   class Patient {
     <<entity>>
+    -id Long
+    -dossierNumber String
+    -firstName String
+    -lastName String
+    -birthDate LocalDate
+    -sex String
   }
   class PatientDossierSequence {
     <<entity>>
+    -year int
+    -lastValue long
   }
-
-  Receptionniste --> PatientsPage
-  PatientsPage --> PatientBffController : search / create
-  PatientBffController --> PatientController
+  Receptionniste --> PatientsPage --> PatientBffController --> PatientController
   PatientController --> PatientRegistryService
   PatientRegistryService --> Patient
-  PatientRegistryService --> PatientDossierSequence : n° dossier
+  PatientRegistryService --> PatientDossierSequence
 ```
 
 ### 5.6 CU 6 — Gérer les admissions
 
 ```mermaid
 classDiagram
-  direction LR
-  class Receptionniste {
-    <<actor>>
-  }
+  direction TB
+  class Receptionniste { <<actor>> }
   class AdmissionsPage {
     <<boundary>>
+    +searchPatient() void
+    +submitAdmission() void
+    +submitTransfer(id) void
+    +submitDischarge(id) void
   }
   class AdmissionBffController {
     <<boundary>>
+    +create(request) AdmissionResponse
+    +transfer(id,request) AdmissionResponse
+    +discharge(id,request) AdmissionResponse
   }
   class AdmissionController {
     <<boundary>>
+    -admissionService AdmissionService
+    +create(request) AdmissionResponse
+    +getById(id) AdmissionResponse
+    +transfer(id,request) AdmissionResponse
+    +discharge(id,request) AdmissionResponse
   }
   class AdmissionService {
     <<control>>
+    +admit(request,authHeader) AdmissionResponse
+    +transfer(id,request,authHeader) AdmissionResponse
+    +discharge(id,request,authHeader) AdmissionResponse
   }
   class PatientServiceClient {
     <<boundary>>
+    +getPatient(patientId,authHeader) PatientSummary
   }
   class CatalogServiceClient {
     <<boundary>>
+    +getService(serviceId,authHeader) ServiceSummary
   }
   class StayServiceClient {
     <<boundary>>
+    +openStay(request,authHeader) StaySummary
   }
   class Admission {
     <<entity>>
+    -id Long
+    -patientId Long
+    -hospitalServiceId Long
+    -status AdmissionStatus
+    -admittedAt Instant
   }
-
-  Receptionniste --> AdmissionsPage
-  AdmissionsPage --> AdmissionBffController
-  AdmissionBffController --> AdmissionController
-  AdmissionController --> AdmissionService
-  AdmissionService --> Admission
+  Receptionniste --> AdmissionsPage --> AdmissionBffController --> AdmissionController
+  AdmissionController --> AdmissionService --> Admission
   AdmissionService ..> PatientServiceClient
   AdmissionService ..> CatalogServiceClient
   AdmissionService ..> StayServiceClient
@@ -323,94 +491,141 @@ classDiagram
 ```mermaid
 classDiagram
   direction TB
-  class Medecin {
-    <<actor>>
-  }
+  class Medecin { <<actor>> }
   class ConsultationDetailView {
     <<boundary>>
+    -timeline ConsultationEventResponse[]
+    -diagnosticDiseaseType string
+    -diagnosticDiseaseName string
+    +loadData() Promise
+    +submitDiagnostic() Promise
+    +submitPrescription() Promise
   }
   class ConsultationBffController {
     <<boundary>>
+    +list(...) Page
+    +consultationEvents(id) List
+    +addDiagnostic(id,request) ConsultationEventResponse
   }
   class DiseaseCatalogBffController {
     <<boundary>>
+    +listSelectable(diseaseType) List
   }
   class PrescriptionBffController {
     <<boundary>>
+    +create(patientId,request) PrescriptionResponse
   }
   class ConsultationController {
     <<boundary>>
+    -consultationService ConsultationService
+    +getById(id) ConsultationResponse
+    +consultationEvents(id) List
+    +addDiagnostic(id,request) ConsultationEventResponse
+    +addObservation(id,request) ConsultationEventResponse
   }
   class ConsultationService {
     <<control>>
+    +addDiagnostic(id,request,username) ConsultationEventResponse
+    +consultationEvents(consultationId) List
+    +create(request,username,authHeader) ConsultationResponse
   }
   class DiseaseCatalogService {
     <<control>>
-  }
-  class ClinicalRecordService {
-    <<control>>
+    +listSelectable(diseaseType) List
+    +recordUsage(diseaseType,diseaseName) void
   }
   class Consultation {
     <<entity>>
+    -id Long
+    -patientId Long
+    -admissionId Long
+    -doctorName String
   }
   class ConsultationEvent {
     <<entity>>
+    -eventType ConsultationEventType
+    -content String
+    -diseaseType String
+    -diseaseName String
   }
   class DiseaseCatalog {
     <<entity>>
+    -diseaseType String
+    -label String
+    -usageCount int
+    +isSelectable() boolean
   }
   class PrescriptionLine {
     <<entity>>
+    -drugName String
+    -dosage String
+    -frequency String
   }
-
   Medecin --> ConsultationDetailView
   ConsultationDetailView --> ConsultationBffController
   ConsultationDetailView --> DiseaseCatalogBffController
   ConsultationDetailView --> PrescriptionBffController
-  ConsultationBffController --> ConsultationController
-  ConsultationController --> ConsultationService
+  ConsultationBffController --> ConsultationController --> ConsultationService
   ConsultationService --> Consultation
   ConsultationService --> ConsultationEvent
-  ConsultationService --> DiseaseCatalogService
-  DiseaseCatalogService --> DiseaseCatalog
-  PrescriptionBffController --> ClinicalRecordService
-  ClinicalRecordService --> PrescriptionLine
+  ConsultationService --> DiseaseCatalogService --> DiseaseCatalog
 ```
 
 ### 5.8 CU 8 — Enregistrer les soins
 
 ```mermaid
 classDiagram
-  direction LR
-  class Infirmier {
-    <<actor>>
-  }
+  direction TB
+  class Infirmier { <<actor>> }
   class MedicalRecordDetailPage {
     <<boundary>>
+    -medicalRecord MedicalRecordResponse
+    +loadMedicalRecord() void
+    +submitNursingCare() void
+    +submitMedicationAdmin(lineId) void
   }
   class PatientClinicalBffController {
     <<boundary>>
+    +getMedicalRecord(patientId) MedicalRecordResponse
+    +addNursingCare(patientId,request) NursingCareResponse
+    +administerMedication(patientId,request) MedicationAdministrationResponse
   }
   class MedicalRecordController {
     <<boundary>>
+    -clinicalRecordService ClinicalRecordService
+    +getMedicalRecord(patientId,activeOnly) MedicalRecordResponse
+    +addNursingCare(patientId,request) NursingCareResponse
+    +addMedicationAdministration(patientId,request) MedicationAdministrationResponse
   }
   class ClinicalRecordService {
     <<control>>
+    +getMedicalRecord(patientId,authHeader,activeOnly) MedicalRecordResponse
+    +addNursingCare(patientId,request,username,authHeader) NursingCareResponse
+    +addMedicationAdministration(...) MedicationAdministrationResponse
+    -findOrCreateRecord(patientId) MedicalRecord
   }
   class MedicalRecord {
     <<entity>>
+    -id Long
+    -patientId Long
+    -allergies String
+    -antecedents String
   }
   class NursingCareRecord {
     <<entity>>
+    -careType String
+    -description String
+    -performedAt Instant
+    -nurseUsername String
   }
   class MedicationAdministration {
     <<entity>>
+    -administeredAt Instant
+    -doseGiven String
+    -nurseUsername String
   }
-
-  Infirmier --> MedicalRecordDetailPage
-  MedicalRecordDetailPage --> PatientClinicalBffController
-  PatientClinicalBffController --> MedicalRecordController
-  MedicalRecordController --> ClinicalRecordService
+  Infirmier --> MedicalRecordDetailPage --> PatientClinicalBffController
+  PatientClinicalBffController --> MedicalRecordController --> ClinicalRecordService
   ClinicalRecordService --> MedicalRecord
   ClinicalRecordService --> NursingCareRecord
   ClinicalRecordService --> MedicationAdministration
@@ -617,9 +832,64 @@ Voir [DIAGRAMMES_UML.md §7.7](DIAGRAMMES_UML.md#77-séquence--prise-en-charge-m
 
 Voir [DIAGRAMMES_UML.md §7.5](DIAGRAMMES_UML.md#75-séquence--prescription-et-administration).
 
-### 7.6 Classes — consultation et catalogue
+### 7.6 Classes — consultation et catalogue (conception)
 
-Voir [DIAGRAMMES_UML.md §7.8](DIAGRAMMES_UML.md#78-patron-consultation--clinical-record-service).
+```mermaid
+classDiagram
+  direction TB
+  class ConsultationController {
+    -consultationService ConsultationService
+    +list(patientId,admissionId,page) Page
+    +getById(consultationId) ConsultationResponse
+    +consultationEvents(consultationId) List
+    +create(request) ConsultationResponse
+    +addDiagnostic(id,request) ConsultationEventResponse
+    +addObservation(id,request) ConsultationEventResponse
+  }
+  class DiseaseCatalogController {
+    -diseaseCatalogService DiseaseCatalogService
+    +listSelectable(diseaseType) List
+  }
+  class ConsultationService {
+    -consultationRepository ConsultationRepository
+    -consultationEventRepository ConsultationEventRepository
+    -diseaseCatalogService DiseaseCatalogService
+    +create(request,username,authHeader) ConsultationResponse
+    +addDiagnostic(id,request,username) ConsultationEventResponse
+    +consultationEvents(consultationId) List
+  }
+  class DiseaseCatalogService {
+    -diseaseCatalogRepository DiseaseCatalogRepository
+    +recordUsage(diseaseType,diseaseName) void
+    +listSelectable(diseaseType) List
+  }
+  class Consultation {
+    -id Long
+    -patientId Long
+    -admissionId Long
+    -doctorName String
+  }
+  class ConsultationEvent {
+    -eventType ConsultationEventType
+    -content String
+    -diseaseType String
+    -diseaseName String
+  }
+  class DiseaseCatalog {
+    -diseaseType String
+    -label String
+    -usageCount int
+    +isSelectable() boolean
+  }
+  ConsultationController --> ConsultationService
+  DiseaseCatalogController --> DiseaseCatalogService
+  ConsultationService --> DiseaseCatalogService
+  ConsultationService --> Consultation
+  ConsultationService --> ConsultationEvent
+  DiseaseCatalogService --> DiseaseCatalog
+```
+
+Voir aussi [DIAGRAMMES_UML.md §7.8](DIAGRAMMES_UML.md#78-patron-consultation--clinical-record-service).
 
 ### 7.7 États — Admission
 
