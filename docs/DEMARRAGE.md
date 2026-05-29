@@ -1,4 +1,4 @@
-7# Démarrage — Afya Platform (multi-services)
+# Démarrage — Afya Platform (multi-services)
 
 ## Prérequis
 
@@ -14,6 +14,74 @@ podman compose up -d
 ```
 
 PostgreSQL écoute sur **localhost:5433** (base `afya_identity`, user/mot de passe `afya`).
+
+Voir [§ 1.1](#11-visualiser-les-bases-postgresql-interface-graphique) pour explorer toutes les bases avec un outil graphique.
+
+### 1.1 Visualiser les bases PostgreSQL (interface graphique)
+
+Après `podman compose up -d`, **chaque microservice** a sa propre base PostgreSQL (fichier `docker-compose.yml`). Connexion depuis l’hôte :
+
+| Microservice | Base de données | Port (hôte) | Utilisateur | Mot de passe |
+|--------------|-----------------|-------------|-------------|--------------|
+| identity-service | `afya_identity` | **5433** | `afya` | `afya` |
+| catalog-service | `afya_catalog` | **5434** | `afya` | `afya` |
+| patient-service | `afya_patient` | **5435** | `afya` | `afya` |
+| care-entry-service | `afya_care_entry` | **5436** | `afya` | `afya` |
+| stay-service | `afya_stay` | **5437** | `afya` | `afya` |
+| clinical-record-service | `afya_clinical` | **5438** | `afya` | `afya` |
+| audit-service | `afya_audit` | **5439** | `afya` | `afya` |
+
+Hôte : **`127.0.0.1`**. Vérifier que les conteneurs tournent :
+
+```bash
+podman compose ps
+```
+
+Les **tables** apparaissent après le premier démarrage du microservice correspondant (migrations **Flyway**). Historique des migrations : table `flyway_schema_history`.
+
+#### Outils recommandés (Fedora)
+
+| Outil | Installation | Usage |
+|-------|--------------|--------|
+| **DBeaver** (recommandé) | `sudo dnf install dbeaver` ou [dbeaver.io](https://dbeaver.io/) | Connexion PostgreSQL → explorer tables, données, **diagramme ER** (clic droit sur la base → Diagramme ER) |
+| **pgAdmin 4** | `sudo dnf install pgadmin4` ou [pgadmin.org](https://www.pgadmin.org/download/) | Register Server → onglet Connection (host, port, database, user) |
+| **DataGrip / IntelliJ** | Plugin Database intégré | Data Source → PostgreSQL, Test Connection |
+| **Cursor / VS Code** | Extension « Database Client » ou « PostgreSQL » | Nouvelle connexion avec les paramètres ci-dessus |
+
+Créer **une connexion par port** (5433–5439), ou un dossier « Afya » regroupant les 7 bases.
+
+#### Exemple DBeaver / pgAdmin
+
+- **Host** : `127.0.0.1`
+- **Port** : `5438` (ex. dossier clinique)
+- **Database** : `afya_clinical`
+- **Username** : `afya`
+- **Password** : `afya`
+
+Bases les plus utiles pour inspection visuelle :
+
+- **`afya_clinical`** (5438) — consultations, événements, catalogue maladies, prescriptions, dossier médical
+- **`afya_identity`** (5433) — utilisateurs, rôles, sessions
+- **`afya_care_entry`** (5436) — admissions, urgences
+
+#### Test en ligne de commande
+
+```bash
+psql -h 127.0.0.1 -p 5438 -U afya -d afya_clinical
+# mot de passe : afya
+\dt
+\q
+```
+
+Si `psql` n’est pas installé : `sudo dnf install postgresql`.
+
+#### Dépannage
+
+| Symptôme | Action |
+|----------|--------|
+| Connexion refusée | `podman compose up -d` puis `podman compose ps` |
+| Base vide (aucune table) | Démarrer le microservice une fois : `./mvnw -pl clinical-record-service spring-boot:run` |
+| Mauvais port | Voir les mappings `543x:5432` dans `docker-compose.yml` à la racine du projet |
 
 ## 2. Lancer les services
 

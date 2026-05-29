@@ -1,0 +1,290 @@
+@startuml DIAGRAMME_PERSISTANCE_AFYA
+title "Diagramme de persistance — modèle des données (analyse, français)"
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+legend right
+  **Couche persistance uniquement** (entités / tables).
+  Phase analyse — avant développement.
+  --
+  **Relations** :
+  *-- composition (tout–partie, cycle de vie lié)
+  -- association (FK, multiplicité 1 / 0..* / 0..1)
+  ..> dépendance (référence logique inter-microservices)
+  Voir RELATIONS_UML_DIAGRAMMES.md
+endlegend
+
+package "Identité et sécurité" #E8F4FC {
+
+  class UtilisateurCompte <<entité>> {
+    - identifiant : Entier {PK}
+    - nomUtilisateur : Texte {UK}
+    - nomComplet : Texte
+    - courriel : Texte
+    - motDePasseHaché : Texte
+    - actif : Booléen
+    - dateCreation : DateHeure
+  }
+
+  class Role <<entité>> {
+    - identifiant : Entier {PK}
+    - code : Texte {UK}
+    - libelle : Texte
+  }
+
+  class UtilisateurRole <<entité>> {
+    - identifiantUtilisateur : Entier {FK}
+    - identifiantRole : Entier {FK}
+  }
+
+  class SessionUtilisateur <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantUtilisateur : Entier {FK}
+    - jetonHaché : Texte
+    - dateExpiration : DateHeure
+    - revoque : Booléen
+  }
+
+  UtilisateurCompte "1" -- "0..*" UtilisateurRole
+  Role "1" -- "0..*" UtilisateurRole
+  UtilisateurCompte "1" -- "0..*" SessionUtilisateur
+}
+
+package "Catalogue hospitalier" #E8FCF0 {
+
+  class Departement <<entité>> {
+    - identifiant : Entier {PK}
+    - code : Texte {UK}
+    - nom : Texte
+    - actif : Booléen
+  }
+
+  class ServiceHospitalier <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantDepartement : Entier {FK}
+    - nom : Texte
+    - description : Texte
+    - capaciteLits : Entier
+    - litsParChambre : Entier
+    - actif : Booléen
+  }
+
+  class Lit <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantService : Entier {FK}
+    - libelle : Texte
+    - occupe : Booléen
+    - dateLiberation : DateHeure
+  }
+
+  Departement "1" *-- "0..*" ServiceHospitalier
+  ServiceHospitalier "1" *-- "0..*" Lit
+}
+
+package "Patient" #FFF8E8 {
+
+  class Patient <<entité>> {
+    - identifiant : Entier {PK}
+    - numeroDossier : Texte {UK}
+    - nom : Texte
+    - prenom : Texte
+    - dateNaissance : Date
+    - sexe : Texte
+    - telephone : Texte
+    - courriel : Texte
+    - dateCreation : DateHeure
+    - dateDeces : DateHeure
+  }
+
+  class SequenceNumeroDossier <<entité>> {
+    - annee : Entier {PK}
+    - dernierNumero : Entier
+  }
+}
+
+package "Parcours patient (admissions)" #FCE8F8 {
+
+  class Admission <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantPatient : Entier {ref}
+    - identifiantService : Entier {ref}
+    - motif : Texte
+    - typeAdmission : Texte
+    - dateAdmission : DateHeure
+    - dateSortie : DateHeure
+    - statut : Texte
+    - chambre : Texte
+    - lit : Texte
+  }
+
+  class DemandeTransfert <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantAdmission : Entier {FK}
+    - identifiantServiceOrigine : Entier {ref}
+    - identifiantServiceDestination : Entier {ref}
+    - dateDemande : DateHeure
+  }
+
+  class VisiteUrgence <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantPatient : Entier {ref}
+    - dateArrivee : DateHeure
+    - priorite : Texte
+    - niveauTriage : Texte
+    - statut : Texte
+  }
+
+  Admission "1" -- "0..*" DemandeTransfert
+}
+
+package "Séjour et hospitalisation" #F0E8FC {
+
+  class Sejour <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantAdmission : Entier {ref, UK}
+    - identifiantPatient : Entier {ref}
+    - chambre : Texte
+    - lit : Texte
+    - dateEntree : DateHeure
+    - dateSortie : DateHeure
+    - statut : Texte
+  }
+
+  class FormulaireHospitalisation <<entité>> {
+    - identifiantSejour : Entier {PK, FK}
+    - motifConsultation : Texte
+    - anamnese : Texte
+    - allergies : Texte
+    - dateMiseAJour : DateHeure
+  }
+
+  Sejour "1" *-- "0..1" FormulaireHospitalisation
+}
+
+package "Dossier clinique" #FCEEE8 {
+
+  class DossierMedical <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantPatient : Entier {ref, UK}
+    - allergies : Texte
+    - antecedents : Texte
+    - dateOuverture : DateHeure
+  }
+
+  class Consultation <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantPatient : Entier {ref}
+    - identifiantAdmission : Entier {ref}
+    - nomMedecin : Texte
+    - motif : Texte
+    - dateConsultation : DateHeure
+  }
+
+  class EvenementConsultation <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantConsultation : Entier {FK}
+    - typeEvenement : Texte
+    - contenu : Texte
+    - typeMaladie : Texte
+    - nomMaladie : Texte
+    - dateCreation : DateHeure
+  }
+
+  class CatalogueMaladie <<entité>> {
+    - identifiant : Entier {PK}
+    - typeMaladie : Texte
+    - libelle : Texte
+    - libelleNormalise : Texte
+    - nombreUtilisations : Entier
+  }
+
+  class Diagnostic <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantDossier : Entier {FK}
+    - codeCIM : Texte
+    - libelle : Texte
+    - dateEnregistrement : DateHeure
+  }
+
+  class NoteClinique <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantDossier : Entier {FK}
+    - auteur : Texte
+    - contenu : Texte
+    - dateRedaction : DateHeure
+  }
+
+  class Prescription <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantDossier : Entier {FK}
+    - medicament : Texte
+    - posologie : Texte
+    - frequence : Texte
+    - dateDebut : Date
+    - dateFin : Date
+    - statut : Texte
+  }
+
+  class SoinInfirmier <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantDossier : Entier {FK}
+    - typeSoin : Texte
+    - description : Texte
+    - dateRealisation : DateHeure
+    - infirmier : Texte
+  }
+
+  class AdministrationMedicament <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantPrescription : Entier {FK}
+    - doseAdministree : Texte
+    - dateAdministration : DateHeure
+    - infirmier : Texte
+  }
+
+  class DocumentClinique <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantDossier : Entier {FK}
+    - titre : Texte
+    - typeContenu : Texte
+    - cleStockage : Texte
+    - dateDepot : DateHeure
+  }
+
+  DossierMedical "1" *-- "0..*" Diagnostic
+  DossierMedical "1" *-- "0..*" NoteClinique
+  DossierMedical "1" *-- "0..*" Prescription
+  DossierMedical "1" *-- "0..*" SoinInfirmier
+  DossierMedical "1" *-- "0..*" DocumentClinique
+  Consultation "1" *-- "0..*" EvenementConsultation
+  Prescription "1" -- "0..*" AdministrationMedicament
+}
+
+package "Audit et traçabilité" #EEEEEE {
+
+  class JournalActivite <<entité>> {
+    - identifiant : Entier {PK}
+    - identifiantEvenement : UUID {UK}
+    - dateEvenement : DateHeure
+    - acteur : Texte
+    - action : Texte
+    - typeRessource : Texte
+    - identifiantRessource : Texte
+    - serviceSource : Texte
+    - metadonnees : Texte
+  }
+}
+
+' --- Liens logiques inter-contextes (références par identifiant) ---
+
+Patient ..> Admission : identifiantPatient
+Patient ..> VisiteUrgence : identifiantPatient
+Patient ..> DossierMedical : identifiantPatient
+Patient ..> Consultation : identifiantPatient
+Patient ..> Sejour : identifiantPatient
+
+ServiceHospitalier ..> Admission : identifiantService
+Admission ..> Sejour : identifiantAdmission
+Admission ..> Consultation : identifiantAdmission
+
+@enduml

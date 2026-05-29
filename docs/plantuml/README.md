@@ -42,6 +42,8 @@ Chaque fichier inclut **attributs** et **méthodes** des classes boundary / cont
 
 Synthèse : [CLASSES_PARTICIPANTES_AFYA.puml](CLASSES_PARTICIPANTES_AFYA.puml)
 
+**Analyse mémoire (français)** : [class_participantes_et_activite/CLASSES_PARTICIPANTES_ANALYSE_FR.puml](class_participantes_et_activite/CLASSES_PARTICIPANTES_ANALYSE_FR.puml) · [DIAGRAMME_PERSISTANCE_AFYA.puml](class_participantes_et_activite/DIAGRAMME_PERSISTANCE_AFYA.puml)
+
 ## Diagrammes d'activité
 
 | CU | Fichier |
