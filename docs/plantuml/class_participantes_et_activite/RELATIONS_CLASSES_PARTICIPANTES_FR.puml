@@ -1,0 +1,164 @@
+@startuml RELATIONS_CLASSES_PARTICIPANTES_FR
+title "Relations — classes participantes (analyse, français, 8 CU)"
+skinparam classAttributeIconSize 0
+hide empty members
+hide circle
+
+legend right
+  **Association** : -->
+  Acteur → <<frontière>> → <<contrôle>> → <<entité>>
+  --
+  Inventaire : RELATIONS_CLASSES_PARTICIPANTES_AFYA.md
+endlegend
+
+' ========== CU 1 ==========
+title "CU 1 — S'authentifier"
+
+actor Utilisateur
+class InterfaceConnexion <<frontière>>
+class ControleurAuthentification <<contrôle>>
+class ServiceAuthentification <<contrôle>>
+class UtilisateurCompte <<entité>>
+class SessionUtilisateur <<entité>>
+
+Utilisateur --> InterfaceConnexion
+InterfaceConnexion --> ControleurAuthentification
+ControleurAuthentification --> ServiceAuthentification
+ServiceAuthentification --> UtilisateurCompte
+ControleurAuthentification --> SessionUtilisateur
+
+newpage
+
+' ========== CU 2 ==========
+title "CU 2 — Gérer les utilisateurs"
+
+actor Administrateur
+class InterfaceGestionUtilisateurs <<frontière>>
+class ControleurUtilisateurs <<contrôle>>
+class ServiceGestionUtilisateurs <<contrôle>>
+class UtilisateurCompte <<entité>>
+class Role <<entité>>
+
+Administrateur --> InterfaceGestionUtilisateurs
+InterfaceGestionUtilisateurs --> ControleurUtilisateurs
+ControleurUtilisateurs --> ServiceGestionUtilisateurs
+ServiceGestionUtilisateurs --> UtilisateurCompte
+UtilisateurCompte --> Role
+
+newpage
+
+' ========== CU 3 ==========
+title "CU 3 — Gérer les services hospitaliers"
+
+actor Administrateur
+class InterfaceServicesHospitaliers <<frontière>>
+class ControleurServicesHospitaliers <<contrôle>>
+class ServiceCatalogueHospitalier <<contrôle>>
+class ServiceHospitalier <<entité>>
+class Lit <<entité>>
+
+Administrateur --> InterfaceServicesHospitaliers
+InterfaceServicesHospitaliers --> ControleurServicesHospitaliers
+ControleurServicesHospitaliers --> ServiceCatalogueHospitalier
+ServiceCatalogueHospitalier --> ServiceHospitalier
+ServiceHospitalier --> Lit
+
+newpage
+
+' ========== CU 4 ==========
+title "CU 4 — Gérer les activités du système"
+
+actor Administrateur
+class InterfaceSupervision <<frontière>>
+class ControleurJournalActivite <<contrôle>>
+class ServiceTraçabilite <<contrôle>>
+class JournalActivite <<entité>>
+
+Administrateur --> InterfaceSupervision
+InterfaceSupervision --> ControleurJournalActivite
+ControleurJournalActivite --> ServiceTraçabilite
+ServiceTraçabilite --> JournalActivite
+
+newpage
+
+' ========== CU 5 ==========
+title "CU 5 — Enregistrer un patient"
+
+actor Receptionniste
+class InterfacePatients <<frontière>>
+class ControleurPatients <<contrôle>>
+class ServicePatients <<contrôle>>
+class Patient <<entité>>
+
+Receptionniste --> InterfacePatients
+InterfacePatients --> ControleurPatients
+ControleurPatients --> ServicePatients
+ServicePatients --> Patient
+
+newpage
+
+' ========== CU 6 ==========
+title "CU 6 — Gérer les admissions"
+
+actor Receptionniste
+class InterfaceAdmissions <<frontière>>
+class ControleurAdmissions <<contrôle>>
+class ServiceAdmissions <<contrôle>>
+class Admission <<entité>>
+class Sejour <<entité>>
+
+Receptionniste --> InterfaceAdmissions
+InterfaceAdmissions --> ControleurAdmissions
+ControleurAdmissions --> ServiceAdmissions
+ServiceAdmissions --> Admission
+ServiceAdmissions --> Sejour
+
+newpage
+
+' ========== CU 7 ==========
+title "CU 7 — Prise en charge médicale"
+
+actor Medecin
+class InterfaceDossierMedical <<frontière>>
+class ControleurPriseEnCharge <<contrôle>>
+class ServiceClinique <<contrôle>>
+class DossierMedical <<entité>>
+class Consultation <<entité>>
+class EvenementConsultation <<entité>>
+class Diagnostic <<entité>>
+class Prescription <<entité>>
+class CatalogueMaladie <<entité>>
+
+Medecin --> InterfaceDossierMedical
+InterfaceDossierMedical --> ControleurPriseEnCharge
+ControleurPriseEnCharge --> ServiceClinique
+ControleurPriseEnCharge --> DossierMedical
+ControleurPriseEnCharge --> Consultation
+Consultation --> EvenementConsultation
+DossierMedical --> Diagnostic
+DossierMedical --> Prescription
+ServiceClinique --> CatalogueMaladie
+
+newpage
+
+' ========== CU 8 ==========
+title "CU 8 — Enregistrer les soins effectués"
+
+actor Infirmier
+class InterfaceSoins <<frontière>>
+class ControleurSoins <<contrôle>>
+class ServiceSoins <<contrôle>>
+class DossierMedical <<entité>>
+class SoinInfirmier <<entité>>
+class Prescription <<entité>>
+class AdministrationMedicament <<entité>>
+
+Infirmier --> InterfaceSoins
+InterfaceSoins --> ControleurSoins
+ControleurSoins --> ServiceSoins
+ServiceSoins --> SoinInfirmier
+ServiceSoins --> AdministrationMedicament
+DossierMedical --> SoinInfirmier
+Prescription --> AdministrationMedicament
+
+@enduml

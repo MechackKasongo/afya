@@ -2,6 +2,8 @@
 
 Guide des **types de relations** utilisés dans les diagrammes du dossier [class_participantes_et_activite/](.) et dans la documentation mémoire.
 
+**Inventaire exhaustif (toutes les relations listées)** : [TOUTES_LES_RELATIONS_UML_AFYA.md](TOUTES_LES_RELATIONS_UML_AFYA.md).
+
 ---
 
 ## 1. Symboles UML (rappel)

@@ -9,7 +9,7 @@ Version anglaise : [MEMOIRE_UML_ANALYSE_EN.md](MEMOIRE_UML_ANALYSE_EN.md).
 
 PlantUML (export PNG/PDF) : [plantuml/class_participantes_et_activite/](plantuml/class_participantes_et_activite/README.md) — fichiers `CLASSES_PARTICIPANTES_*_FR.puml` (un par CU), `CLASSES_PARTICIPANTES_ANALYSE_FR.puml` (regroupé), `DIAGRAMME_PERSISTANCE_AFYA.puml`.
 
-Relations UML (association, composition, dépendance) : [plantuml/class_participantes_et_activite/RELATIONS_UML_DIAGRAMMES.md](plantuml/class_participantes_et_activite/RELATIONS_UML_DIAGRAMMES.md).
+Relations UML : [RELATIONS_CLASSES_PARTICIPANTES_AFYA.md](plantuml/class_participantes_et_activite/RELATIONS_CLASSES_PARTICIPANTES_AFYA.md) (classes participantes, 8 CU) · [TOUTES_LES_RELATIONS_UML_AFYA.md](plantuml/class_participantes_et_activite/TOUTES_LES_RELATIONS_UML_AFYA.md) (inventaire global).
 
 ---
 

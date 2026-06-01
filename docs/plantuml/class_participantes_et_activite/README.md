@@ -9,7 +9,12 @@ Diagrammes **phase d'analyse** (avant développement), alignés sur le § II.3.2
 | [CLASSES_PARTICIPANTES_ANALYSE_FR.puml](CLASSES_PARTICIPANTES_ANALYSE_FR.puml) | **8 diagrammes** regroupés en un fichier multi-pages (export PDF) |
 | Fichiers `CLASSES_PARTICIPANTES_*_FR.puml` | **Un diagramme par CU**, en **français** (phase analyse) — voir tableau ci-dessous |
 | [DIAGRAMME_PERSISTANCE_AFYA.puml](DIAGRAMME_PERSISTANCE_AFYA.puml) | **Diagramme de persistance seul** — entités, attributs, associations (sans interface ni contrôleur) |
-| [RELATIONS_UML_DIAGRAMMES.md](RELATIONS_UML_DIAGRAMMES.md) | **Guide des relations UML** — association, dépendance, composition, multiplicités |
+| [RELATIONS_UML_DIAGRAMMES.md](RELATIONS_UML_DIAGRAMMES.md) | **Guide des relations UML** — types, symboles, bonnes pratiques |
+| [RELATIONS_CLASSES_PARTICIPANTES_AFYA.md](RELATIONS_CLASSES_PARTICIPANTES_AFYA.md) | **Toutes les relations — classes participantes** (8 CU, FR + impl.) |
+| [RELATIONS_CLASSES_PARTICIPANTES_FR.puml](RELATIONS_CLASSES_PARTICIPANTES_FR.puml) | Diagramme relations seules — analyse FR (8 pages) |
+| [RELATIONS_CLASSES_PARTICIPANTES_IMPL.puml](RELATIONS_CLASSES_PARTICIPANTES_IMPL.puml) | Diagramme relations seules — implémentation (8 pages) |
+| [TOUTES_LES_RELATIONS_UML_AFYA.md](TOUTES_LES_RELATIONS_UML_AFYA.md) | Inventaire global (persistance + participantes + CU) |
+| [RELATIONS_PERSISTANCE_AFYA.puml](RELATIONS_PERSISTANCE_AFYA.puml) | Diagramme relations seules — persistance |
 
 ## Relations UML utilisées
 
