@@ -1,0 +1,53 @@
+@startuml CLASSES_PARTICIPANTES_SERVICES_HOSP_FR
+title "CU 3 — Gérer les services hospitaliers — classes participantes (analyse, français)"
+skinparam classAttributeIconSize 0
+
+legend right
+  **Phase analyse** (avant développement).
+  <<frontière>> <<contrôle>> <<entité>>
+endlegend
+
+actor Administrateur as A3
+
+class InterfaceServicesHospitaliers <<frontière>> {
+  + afficherCatalogue() : void
+  + saisirNouveauService() : void
+  + modifierService(identifiant : Entier) : void
+  + confirmerSuppression(identifiant : Entier) : void
+  + consulterLits(identifiantService : Entier) : void
+}
+
+class ControleurServicesHospitaliers <<contrôle>> {
+  + listerServices() : ListeServices
+  + consulterService(identifiant : Entier) : ServiceHospitalier
+  + ajouterService(donnees : FormulaireService) : ServiceHospitalier
+  + modifierService(identifiant : Entier, donnees : FormulaireService) : ServiceHospitalier
+  + supprimerService(identifiant : Entier) : void
+}
+
+class ServiceCatalogueHospitalier <<contrôle>> {
+  + validerCapacite(capacite : Entier) : Booléen
+  + genererLits(service : ServiceHospitalier) : ListeLit
+  + verifierUtilisationAvantSuppression(identifiant : Entier) : Booléen
+}
+
+class ServiceHospitalier <<entité>> {
+  - identifiant : Entier
+  - nom : Texte
+  - description : Texte
+  - responsable : Texte
+  - capaciteLits : Entier
+}
+
+class Lit <<entité>> {
+  - libelle : Texte
+  - occupe : Booléen
+}
+
+A3 --> InterfaceServicesHospitaliers
+InterfaceServicesHospitaliers --> ControleurServicesHospitaliers
+ControleurServicesHospitaliers --> ServiceCatalogueHospitalier
+ServiceCatalogueHospitalier --> ServiceHospitalier
+ServiceHospitalier --> Lit
+
+@enduml

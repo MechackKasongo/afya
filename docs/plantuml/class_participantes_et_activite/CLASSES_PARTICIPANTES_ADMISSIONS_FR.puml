@@ -1,0 +1,54 @@
+@startuml CLASSES_PARTICIPANTES_ADMISSIONS_FR
+title "CU 6 — Gérer les admissions — classes participantes (analyse, français)"
+skinparam classAttributeIconSize 0
+
+legend right
+  **Phase analyse** (avant développement).
+  <<frontière>> <<contrôle>> <<entité>>
+endlegend
+
+actor Receptionniste as R6
+
+class InterfaceAdmissions <<frontière>> {
+  + rechercherPatient() : void
+  + saisirDonneesAdmission() : void
+  + confirmerAdmission() : void
+  + afficherConfirmation() : void
+}
+
+class ControleurAdmissions <<contrôle>> {
+  + creerAdmission(donnees : FormulaireAdmission) : Admission
+  + consulterAdmission(identifiant : Entier) : Admission
+  + transfererPatient(identifiant : Entier, nouveauService : Entier) : Admission
+  + enregistrerSortie(identifiant : Entier, recommandations : Texte) : Admission
+}
+
+class ServiceAdmissions <<contrôle>> {
+  + verifierPatientExiste(identifiantPatient : Entier) : Booléen
+  + verifierServiceDisponible(identifiantService : Entier) : Booléen
+  + affecterLit(admission : Admission) : void
+  + ouvrirSejour(admission : Admission) : Sejour
+}
+
+class Admission <<entité>> {
+  - identifiant : Entier
+  - motif : Texte
+  - typeAdmission : Texte
+  - dateAdmission : DateHeure
+  - statut : Texte
+}
+
+class Sejour <<entité>> {
+  - chambre : Texte
+  - lit : Texte
+  - dateEntree : DateHeure
+  - dateSortie : DateHeure
+}
+
+R6 --> InterfaceAdmissions
+InterfaceAdmissions --> ControleurAdmissions
+ControleurAdmissions --> ServiceAdmissions
+ServiceAdmissions --> Admission
+ServiceAdmissions --> Sejour
+
+@enduml

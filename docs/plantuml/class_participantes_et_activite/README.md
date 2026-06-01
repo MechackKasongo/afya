@@ -6,7 +6,8 @@ Diagrammes **phase d'analyse** (avant développement), alignés sur le § II.3.2
 
 | Fichier | Contenu |
 |---------|---------|
-| [CLASSES_PARTICIPANTES_ANALYSE_FR.puml](CLASSES_PARTICIPANTES_ANALYSE_FR.puml) | **8 diagrammes de classes participantes** en un seul fichier (frontière / contrôle / entité, attributs et méthodes en **français**) — une page par CU |
+| [CLASSES_PARTICIPANTES_ANALYSE_FR.puml](CLASSES_PARTICIPANTES_ANALYSE_FR.puml) | **8 diagrammes** regroupés en un fichier multi-pages (export PDF) |
+| Fichiers `CLASSES_PARTICIPANTES_*_FR.puml` | **Un diagramme par CU**, en **français** (phase analyse) — voir tableau ci-dessous |
 | [DIAGRAMME_PERSISTANCE_AFYA.puml](DIAGRAMME_PERSISTANCE_AFYA.puml) | **Diagramme de persistance seul** — entités, attributs, associations (sans interface ni contrôleur) |
 | [RELATIONS_UML_DIAGRAMMES.md](RELATIONS_UML_DIAGRAMMES.md) | **Guide des relations UML** — association, dépendance, composition, multiplicités |
 
@@ -21,6 +22,21 @@ Diagrammes **phase d'analyse** (avant développement), alignés sur le § II.3.2
 | Implémentation | **Dépendance** (clients HTTP externes) | `..> PatientServiceClient` |
 
 Détail complet : [RELATIONS_UML_DIAGRAMMES.md](RELATIONS_UML_DIAGRAMMES.md).
+
+## Classes participantes — analyse (français, un fichier par CU)
+
+| CU | Fichier |
+|----|---------|
+| 1 — S'authentifier | [CLASSES_PARTICIPANTES_AUTHENTIFICATION_FR.puml](CLASSES_PARTICIPANTES_AUTHENTIFICATION_FR.puml) |
+| 2 — Gérer les utilisateurs | [CLASSES_PARTICIPANTES_UTILISATEURS_FR.puml](CLASSES_PARTICIPANTES_UTILISATEURS_FR.puml) |
+| 3 — Gérer les services hospitaliers | [CLASSES_PARTICIPANTES_SERVICES_HOSP_FR.puml](CLASSES_PARTICIPANTES_SERVICES_HOSP_FR.puml) |
+| 4 — Gérer les activités du système | [CLASSES_PARTICIPANTES_ACTIVITES_FR.puml](CLASSES_PARTICIPANTES_ACTIVITES_FR.puml) |
+| 5 — Enregistrer un patient | [CLASSES_PARTICIPANTES_PATIENT_FR.puml](CLASSES_PARTICIPANTES_PATIENT_FR.puml) |
+| 6 — Gérer les admissions | [CLASSES_PARTICIPANTES_ADMISSIONS_FR.puml](CLASSES_PARTICIPANTES_ADMISSIONS_FR.puml) |
+| 7 — Prise en charge médicale | [CLASSES_PARTICIPANTES_PRISE_EN_CHARGE_FR.puml](CLASSES_PARTICIPANTES_PRISE_EN_CHARGE_FR.puml) |
+| 8 — Enregistrer les soins | [CLASSES_PARTICIPANTES_SOINS_FR.puml](CLASSES_PARTICIPANTES_SOINS_FR.puml) |
+
+Stéréotypes : `<<frontière>>`, `<<contrôle>>`, `<<entité>>`. Les fichiers sans suffixe `_FR` restent en **anglais** (implémentation Java/BFF).
 
 ## Diagrammes d'activité (par CU)
 
@@ -44,6 +60,13 @@ Fichiers individuels par CU (`CLASSES_PARTICIPANTES_*.puml`) : noms Java / BFF a
 ## Export PNG / PDF
 
 ```bash
+# Un CU en français
+plantuml docs/plantuml/class_participantes_et_activite/CLASSES_PARTICIPANTES_AUTHENTIFICATION_FR.puml
+
+# Tous les CU français
+plantuml docs/plantuml/class_participantes_et_activite/CLASSES_PARTICIPANTES_*_FR.puml
+
+# Regroupé multi-pages (PDF)
 plantuml docs/plantuml/class_participantes_et_activite/CLASSES_PARTICIPANTES_ANALYSE_FR.puml
 plantuml docs/plantuml/class_participantes_et_activite/DIAGRAMME_PERSISTANCE_AFYA.puml
 ```

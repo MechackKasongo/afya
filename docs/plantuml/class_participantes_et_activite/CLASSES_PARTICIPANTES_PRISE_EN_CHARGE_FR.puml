@@ -1,0 +1,85 @@
+@startuml CLASSES_PARTICIPANTES_PRISE_EN_CHARGE_FR
+title "CU 7 — Prise en charge médicale — classes participantes (analyse, français)"
+skinparam classAttributeIconSize 0
+
+legend right
+  **Phase analyse** (avant développement).
+  <<frontière>> <<contrôle>> <<entité>>
+endlegend
+
+actor Medecin as M7
+
+class InterfaceDossierMedical <<frontière>> {
+  + rechercherPatient() : void
+  + afficherDossier() : void
+  + saisirDiagnostic() : void
+  + saisirPrescription() : void
+  + choisirDecision(sortieOuHospitalisation : Texte) : void
+}
+
+class ControleurPriseEnCharge <<contrôle>> {
+  + consulterDossier(identifiantPatient : Entier) : DossierMedical
+  + enregistrerDiagnostic(donnees : FormulaireDiagnostic) : Diagnostic
+  + enregistrerPrescription(donnees : FormulairePrescription) : Prescription
+  + deciderSortie(identifiantAdmission : Entier, recommandations : Texte) : void
+  + deciderPoursuiteHospitalisation(donnees : FormulaireSejour) : Sejour
+}
+
+class ServiceClinique <<contrôle>> {
+  + validerDiagnostic(donnees : FormulaireDiagnostic) : ResultatValidation
+  + proposerMaladiesFrequentes(typeMaladie : Texte) : ListeTexte
+  + mettreAJourCatalogueMaladie(type : Texte, nom : Texte) : void
+}
+
+class DossierMedical <<entité>> {
+  - identifiant : Entier
+  - antecedents : Texte
+  - allergies : Texte
+  - dateOuverture : DateHeure
+}
+
+class Consultation <<entité>> {
+  - identifiant : Entier
+  - motif : Texte
+  - dateConsultation : DateHeure
+  - nomMedecin : Texte
+}
+
+class EvenementConsultation <<entité>> {
+  - typeEvenement : Texte
+  - typeMaladie : Texte
+  - nomMaladie : Texte
+  - details : Texte
+  - dateCreation : DateHeure
+}
+
+class Diagnostic <<entité>> {
+  - codeCIM : Texte
+  - libelle : Texte
+  - dateEnregistrement : DateHeure
+}
+
+class Prescription <<entité>> {
+  - medicament : Texte
+  - posologie : Texte
+  - frequence : Texte
+  - statut : Texte
+}
+
+class CatalogueMaladie <<entité>> {
+  - typeMaladie : Texte
+  - libelle : Texte
+  - nombreUtilisations : Entier
+}
+
+M7 --> InterfaceDossierMedical
+InterfaceDossierMedical --> ControleurPriseEnCharge
+ControleurPriseEnCharge --> ServiceClinique
+ControleurPriseEnCharge --> DossierMedical
+ControleurPriseEnCharge --> Consultation
+Consultation --> EvenementConsultation
+DossierMedical --> Diagnostic
+DossierMedical --> Prescription
+ServiceClinique --> CatalogueMaladie
+
+@enduml

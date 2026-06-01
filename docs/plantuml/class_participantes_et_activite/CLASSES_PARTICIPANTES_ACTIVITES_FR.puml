@@ -1,0 +1,50 @@
+@startuml CLASSES_PARTICIPANTES_ACTIVITES_FR
+title "CU 4 — Gérer les activités du système — classes participantes (analyse, français)"
+skinparam classAttributeIconSize 0
+
+legend right
+  **Phase analyse** (avant développement).
+  <<frontière>> <<contrôle>> <<entité>>
+endlegend
+
+actor Administrateur as A4
+
+class InterfaceSupervision <<frontière>> {
+  - filtreDate : Date
+  - filtreAction : Texte
+  - filtreActeur : Texte
+  --
+  + afficherJournal() : void
+  + appliquerFiltres() : void
+  + afficherDetailEvenement(identifiant : Entier) : void
+  + afficherRapportActivite() : void
+}
+
+class ControleurJournalActivite <<contrôle>> {
+  + consulterEvenements(criteres : CriteresRecherche) : ListeEvenements
+  + consulterRapportStatistiques(periode : Periode) : RapportActivite
+}
+
+class ServiceTraçabilite <<contrôle>> {
+  + enregistrerEvenement(evenement : EvenementTrace) : void
+  + filtrerEvenements(criteres : CriteresRecherche) : ListeEvenements
+  + agregerStatistiques(periode : Periode) : RapportActivite
+}
+
+class JournalActivite <<entité>> {
+  - identifiant : Entier
+  - dateEvenement : DateHeure
+  - acteur : Texte
+  - action : Texte
+  - typeRessource : Texte
+  - identifiantRessource : Texte
+  --
+  + decrire() : Texte
+}
+
+A4 --> InterfaceSupervision
+InterfaceSupervision --> ControleurJournalActivite
+ControleurJournalActivite --> ServiceTraçabilite
+ServiceTraçabilite --> JournalActivite
+
+@enduml

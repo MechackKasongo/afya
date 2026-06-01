@@ -7,7 +7,7 @@ Les noms sont **métier** (français), sans référence aux microservices Java n
 
 Version anglaise : [MEMOIRE_UML_ANALYSE_EN.md](MEMOIRE_UML_ANALYSE_EN.md).
 
-PlantUML (export PNG/PDF) : [plantuml/class_participantes_et_activite/](plantuml/class_participantes_et_activite/README.md) — `CLASSES_PARTICIPANTES_ANALYSE_FR.puml`, `DIAGRAMME_PERSISTANCE_AFYA.puml`.
+PlantUML (export PNG/PDF) : [plantuml/class_participantes_et_activite/](plantuml/class_participantes_et_activite/README.md) — fichiers `CLASSES_PARTICIPANTES_*_FR.puml` (un par CU), `CLASSES_PARTICIPANTES_ANALYSE_FR.puml` (regroupé), `DIAGRAMME_PERSISTANCE_AFYA.puml`.
 
 Relations UML (association, composition, dépendance) : [plantuml/class_participantes_et_activite/RELATIONS_UML_DIAGRAMMES.md](plantuml/class_participantes_et_activite/RELATIONS_UML_DIAGRAMMES.md).
 

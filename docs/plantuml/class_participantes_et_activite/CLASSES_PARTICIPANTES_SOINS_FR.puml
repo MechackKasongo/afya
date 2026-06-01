@@ -1,0 +1,60 @@
+@startuml CLASSES_PARTICIPANTES_SOINS_FR
+title "CU 8 — Enregistrer les soins effectués — classes participantes (analyse, français)"
+skinparam classAttributeIconSize 0
+
+legend right
+  **Phase analyse** (avant développement).
+  <<frontière>> <<contrôle>> <<entité>>
+endlegend
+
+actor Infirmier as I8
+
+class InterfaceSoins <<frontière>> {
+  + rechercherPatient() : void
+  + afficherSoinsExistants() : void
+  + saisirNouveauSoin() : void
+  + marquerAdministrationMedicament() : void
+  + confirmerEnregistrement() : void
+}
+
+class ControleurSoins <<contrôle>> {
+  + consulterSoins(identifiantPatient : Entier) : ListeSoins
+  + enregistrerSoin(donnees : FormulaireSoin) : SoinInfirmier
+  + enregistrerAdministration(identifiantPrescription : Entier, dose : Texte) : AdministrationMedicament
+}
+
+class ServiceSoins <<contrôle>> {
+  + validerSoin(donnees : FormulaireSoin) : ResultatValidation
+  + verifierPrescriptionActive(identifiant : Entier) : Booléen
+}
+
+class DossierMedical <<entité>> {
+  - identifiant : Entier
+}
+
+class SoinInfirmier <<entité>> {
+  - typeSoin : Texte
+  - description : Texte
+  - dateRealisation : DateHeure
+  - infirmier : Texte
+}
+
+class Prescription <<entité>> {
+  - medicament : Texte
+  - statut : Texte
+}
+
+class AdministrationMedicament <<entité>> {
+  - doseAdministree : Texte
+  - dateAdministration : DateHeure
+}
+
+I8 --> InterfaceSoins
+InterfaceSoins --> ControleurSoins
+ControleurSoins --> ServiceSoins
+ServiceSoins --> SoinInfirmier
+ServiceSoins --> AdministrationMedicament
+DossierMedical --> SoinInfirmier
+Prescription --> AdministrationMedicament
+
+@enduml

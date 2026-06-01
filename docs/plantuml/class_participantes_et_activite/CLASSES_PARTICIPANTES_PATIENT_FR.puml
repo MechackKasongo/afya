@@ -1,0 +1,50 @@
+@startuml CLASSES_PARTICIPANTES_PATIENT_FR
+title "CU 5 — Enregistrer un patient — classes participantes (analyse, français)"
+skinparam classAttributeIconSize 0
+
+legend right
+  **Phase analyse** (avant développement).
+  <<frontière>> <<contrôle>> <<entité>>
+endlegend
+
+actor Receptionniste as R5
+
+class InterfacePatients <<frontière>> {
+  - termeRecherche : Texte
+  - formulairePatient : FormulairePatient
+  --
+  + lancerRecherche() : void
+  + afficherResultats() : void
+  + afficherFormulaireEnregistrement() : void
+  + afficherMessageSucces(numeroDossier : Texte) : void
+}
+
+class ControleurPatients <<contrôle>> {
+  + rechercherPatient(critere : Texte) : ListePatients
+  + consulterPatient(identifiant : Entier) : Patient
+  + enregistrerPatient(donnees : FormulairePatient) : Patient
+}
+
+class ServicePatients <<contrôle>> {
+  + validerIdentite(donnees : FormulairePatient) : ResultatValidation
+  + genererNumeroDossier() : Texte
+  + enregistrer(donnees : FormulairePatient) : Patient
+}
+
+class Patient <<entité>> {
+  - identifiant : Entier
+  - numeroDossier : Texte
+  - nom : Texte
+  - prenom : Texte
+  - dateNaissance : Date
+  - telephone : Texte
+  --
+  + obtenirNomComplet() : Texte
+}
+
+R5 --> InterfacePatients
+InterfacePatients --> ControleurPatients
+ControleurPatients --> ServicePatients
+ServicePatients --> Patient
+
+@enduml

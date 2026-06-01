@@ -1,0 +1,58 @@
+@startuml CLASSES_PARTICIPANTES_UTILISATEURS_FR
+title "CU 2 — Gérer les utilisateurs — classes participantes (analyse, français)"
+skinparam classAttributeIconSize 0
+
+legend right
+  **Phase analyse** (avant développement).
+  <<frontière>> <<contrôle>> <<entité>>
+endlegend
+
+actor Administrateur as A2
+
+class InterfaceGestionUtilisateurs <<frontière>> {
+  - filtreRecherche : Texte
+  - formulaireUtilisateur : FormulaireUtilisateur
+  --
+  + afficherListe() : void
+  + afficherFormulaireCreation() : void
+  + afficherFormulaireModification(identifiant : Entier) : void
+  + confirmerSuppression(identifiant : Entier) : void
+}
+
+class ControleurUtilisateurs <<contrôle>> {
+  + listerUtilisateurs(page : Entier, taille : Entier) : ListeUtilisateurs
+  + consulterUtilisateur(identifiant : Entier) : UtilisateurCompte
+  + creerUtilisateur(donnees : FormulaireUtilisateur) : UtilisateurCompte
+  + modifierUtilisateur(identifiant : Entier, donnees : FormulaireUtilisateur) : UtilisateurCompte
+  + supprimerUtilisateur(identifiant : Entier) : void
+  + activerDesactiver(identifiant : Entier, actif : Booléen) : void
+}
+
+class ServiceGestionUtilisateurs <<contrôle>> {
+  + validerDonnees(donnees : FormulaireUtilisateur) : ResultatValidation
+  + attribuerRoles(utilisateur : UtilisateurCompte, codesRoles : ListeTexte) : void
+  + genererMotDePasseTemporaire() : Texte
+}
+
+class UtilisateurCompte <<entité>> {
+  - identifiant : Entier
+  - nomUtilisateur : Texte
+  - motDePasseHaché : Texte
+  - actif : Booléen
+  --
+  + verifierMotDePasse(motDePasse : Texte) : Booléen
+  + estActif() : Booléen
+}
+
+class Role <<entité>> {
+  - code : Texte
+  - libelle : Texte
+}
+
+A2 --> InterfaceGestionUtilisateurs
+InterfaceGestionUtilisateurs --> ControleurUtilisateurs
+ControleurUtilisateurs --> ServiceGestionUtilisateurs
+ServiceGestionUtilisateurs --> UtilisateurCompte
+UtilisateurCompte --> Role
+
+@enduml

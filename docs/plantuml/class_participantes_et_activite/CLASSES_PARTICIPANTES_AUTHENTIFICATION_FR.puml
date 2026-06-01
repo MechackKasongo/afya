@@ -1,0 +1,65 @@
+@startuml CLASSES_PARTICIPANTES_AUTHENTIFICATION_FR
+title "CU 1 — S'authentifier — classes participantes (analyse, français)"
+skinparam classAttributeIconSize 0
+
+legend right
+  **Phase analyse** (avant développement).
+  <<frontière>> interface utilisateur
+  <<contrôle>> logique métier
+  <<entité>> données persistées
+endlegend
+
+actor Utilisateur as U1
+
+class InterfaceConnexion <<frontière>> {
+  - identifiantSaisi : Texte
+  - motDePasseSaisi : Texte
+  --
+  + afficherFormulaire() : void
+  + soumettreConnexion() : void
+  + afficherErreur(message : Texte) : void
+  + redirigerEspaceTravail() : void
+}
+
+class ControleurAuthentification <<contrôle>> {
+  - sessionCourante : SessionUtilisateur
+  --
+  + traiterConnexion(identifiant : Texte, motDePasse : Texte) : JetonAcces
+  + traiterDeconnexion() : void
+  + verifierSession() : Booléen
+  + obtenirProfilUtilisateur() : ProfilUtilisateur
+}
+
+class ServiceAuthentification <<contrôle>> {
+  - registreUtilisateurs : RegistreUtilisateur
+  --
+  + authentifier(identifiant : Texte, motDePasse : Texte) : UtilisateurCompte
+  + genererJeton(utilisateur : UtilisateurCompte) : JetonAcces
+  + invaliderJeton(jeton : JetonAcces) : void
+  + enregistrerEchecConnexion(identifiant : Texte) : void
+}
+
+class UtilisateurCompte <<entité>> {
+  - identifiant : Entier
+  - nomUtilisateur : Texte
+  - motDePasseHaché : Texte
+  - actif : Booléen
+  --
+  + verifierMotDePasse(motDePasse : Texte) : Booléen
+  + estActif() : Booléen
+}
+
+class SessionUtilisateur <<entité>> {
+  - dateExpiration : DateHeure
+  - jetonAcces : Texte
+  --
+  + estExpiree() : Booléen
+}
+
+U1 --> InterfaceConnexion
+InterfaceConnexion --> ControleurAuthentification
+ControleurAuthentification --> ServiceAuthentification
+ServiceAuthentification --> UtilisateurCompte
+ControleurAuthentification --> SessionUtilisateur
+
+@enduml
