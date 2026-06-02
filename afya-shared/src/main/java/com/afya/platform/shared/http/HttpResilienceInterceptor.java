@@ -1,5 +1,7 @@
 package com.afya.platform.shared.http;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Metrics;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpRequestExecution;
@@ -52,8 +54,10 @@ public class HttpResilienceInterceptor implements ClientHttpRequestInterceptor {
                 ClientHttpResponse response = execution.execute(request, body);
                 HttpStatusCode status = response.getStatusCode();
                 if (status.is5xxServerError()) {
-                    registerFailure(state);
+                    incrementCounter("downstream_5xx_total", key);
+                    registerFailure(state, key);
                     if (retryableMethod && attempt < maxAttempts) {
+                        incrementCounter("retry_total", key);
                         response.close();
                         pause();
                         continue;
@@ -63,11 +67,13 @@ public class HttpResilienceInterceptor implements ClientHttpRequestInterceptor {
                 registerSuccess(state);
                 return response;
             } catch (IOException io) {
-                registerFailure(state);
+                incrementCounter("downstream_io_failure_total", key);
+                registerFailure(state, key);
                 lastIo = io;
                 if (!retryableMethod || attempt >= maxAttempts) {
                     throw io;
                 }
+                incrementCounter("retry_total", key);
                 pause();
             }
         }
@@ -82,6 +88,7 @@ public class HttpResilienceInterceptor implements ClientHttpRequestInterceptor {
         Instant now = Instant.now();
         Instant openedUntil = state.openUntil;
         if (openedUntil != null && now.isBefore(openedUntil)) {
+            incrementCounter("circuit_reject_total", key);
             throw new ResourceAccessException("Circuit ouvert pour " + key + " jusqu'à " + openedUntil);
         }
         if (openedUntil != null && !now.isBefore(openedUntil)) {
@@ -90,10 +97,12 @@ public class HttpResilienceInterceptor implements ClientHttpRequestInterceptor {
         }
     }
 
-    private void registerFailure(CircuitState state) {
+    private void registerFailure(CircuitState state, String key) {
         int failures = state.failures.incrementAndGet();
-        if (failures >= failureThreshold) {
+        Instant openedUntil = state.openUntil;
+        if (failures >= failureThreshold && openedUntil == null) {
             state.openUntil = Instant.now().plus(openDuration);
+            incrementCounter("circuit_open_total", key);
         }
     }
 
@@ -117,6 +126,13 @@ public class HttpResilienceInterceptor implements ClientHttpRequestInterceptor {
     private String hostKey(URI uri) {
         int port = uri.getPort() >= 0 ? uri.getPort() : ("https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80);
         return uri.getScheme() + "://" + uri.getHost() + ":" + port;
+    }
+
+    private void incrementCounter(String metricSuffix, String target) {
+        Counter.builder("afya.http.resilience." + metricSuffix)
+                .tag("target", target)
+                .register(Metrics.globalRegistry)
+                .increment();
     }
 
     private static final class CircuitState {
