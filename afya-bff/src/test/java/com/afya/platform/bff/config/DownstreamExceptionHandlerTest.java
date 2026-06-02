@@ -19,6 +19,7 @@ class DownstreamExceptionHandlerTest {
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
     assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().traceId()).isNotBlank();
     assertThat(response.getBody().message())
         .contains("Service indisponible")
         .contains("microservice");
