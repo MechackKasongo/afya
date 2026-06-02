@@ -91,6 +91,8 @@ Si `psql` n’est pas installé : `sudo dnf install postgresql`.
 ./mvnw -pl identity-service spring-boot:run
 ```
 
+Observabilité résilience (Actuator metrics, Prometheus, alertes) : voir [OBSERVABILITE_RESILIENCE.md](OBSERVABILITE_RESILIENCE.md).
+
 **catalog-service** (port 8082) :
 
 ```bash
