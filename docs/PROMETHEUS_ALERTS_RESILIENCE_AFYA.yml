@@ -1,0 +1,52 @@
+groups:
+  - name: afya-resilience-http
+    rules:
+      - alert: AfyaDownstreamIoFailuresHigh
+        expr: sum(rate(afya_http_resilience_downstream_io_failure_total[5m])) by (target) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Instabilité réseau vers {{ $labels.target }}"
+          description: "Le taux d'échecs I/O downstream est élevé (> 0.1/s sur 5m). Vérifier disponibilité du service cible et du réseau."
+
+      - alert: AfyaDownstream5xxHigh
+        expr: sum(rate(afya_http_resilience_downstream_5xx_total[5m])) by (target) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Erreurs 5xx downstream élevées vers {{ $labels.target }}"
+          description: "Le service aval retourne trop de 5xx (> 0.05/s sur 10m). Vérifier logs applicatifs du service cible."
+
+      - alert: AfyaCircuitOpenedRecently
+        expr: sum(increase(afya_http_resilience_circuit_open_total[10m])) by (target) > 0
+        for: 0m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Circuit ouvert vers {{ $labels.target }}"
+          description: "Le circuit breaker s'est ouvert au moins une fois dans les 10 dernières minutes."
+
+      - alert: AfyaCircuitRejectsPersistent
+        expr: sum(rate(afya_http_resilience_circuit_reject_total[5m])) by (target) > 0
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Requêtes rejetées (circuit ouvert) vers {{ $labels.target }}"
+          description: "Le circuit reste ouvert et rejette les requêtes depuis plus de 5 minutes."
+
+      - alert: AfyaRetryRateAbnormal
+        expr: sum(rate(afya_http_resilience_retry_total[5m])) by (target) > 1
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Taux de retry anormal vers {{ $labels.target }}"
+          description: "Les retries dépassent 1/s sur 10 minutes. Risque de dégradation ou saturation aval."

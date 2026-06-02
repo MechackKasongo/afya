@@ -63,6 +63,8 @@ class AdmissionServiceAuditTest {
                 .thenReturn(new PatientSummary(1L, "Jean", "Mukendi", "DOS-1"));
         when(catalogServiceClient.getHospitalService(eq(2L), any()))
                 .thenReturn(new HospitalServiceSummary(2L, "Médecine", 10, true));
+        when(catalogServiceClient.resolveBedAssignment(eq(2L), isNull(), isNull(), any()))
+                .thenReturn(new CatalogServiceClient.BedAssignment("A1", "A1-01"));
         when(admissionRepository.existsByPatientIdAndStatusIn(eq(1L), any())).thenReturn(false);
         when(admissionWriter.persist(any(Admission.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

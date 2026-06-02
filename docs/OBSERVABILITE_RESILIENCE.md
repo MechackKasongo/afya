@@ -141,3 +141,6 @@ sum(rate(afya_http_resilience_circuit_reject_total[5m])) by (target)
 - Résilience HTTP : `afya-shared/src/main/java/com/afya/platform/shared/http/HttpResilienceInterceptor.java`
 - Correlation ID : `afya-shared/src/main/java/com/afya/platform/shared/web/CorrelationIdFilter.java`
 - Gestion erreurs globale : `afya-shared/src/main/java/com/afya/platform/shared/web/GlobalExceptionHandler.java`
+- Dashboard Grafana (JSON) : [GRAFANA_DASHBOARD_RESILIENCE_AFYA.json](GRAFANA_DASHBOARD_RESILIENCE_AFYA.json)
+- Alertes Prometheus : [PROMETHEUS_ALERTS_RESILIENCE_AFYA.yml](PROMETHEUS_ALERTS_RESILIENCE_AFYA.yml)
+- Runbook incident : [RUNBOOK_RESILIENCE_AFYA.md](RUNBOOK_RESILIENCE_AFYA.md)
