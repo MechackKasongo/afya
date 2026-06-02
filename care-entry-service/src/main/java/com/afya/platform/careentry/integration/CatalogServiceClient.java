@@ -23,9 +23,21 @@ public class CatalogServiceClient {
     public CatalogServiceClient(
             @Value("${app.services.catalog-base-url}") String baseUrl,
             @Value("${app.http.client.connect-timeout:2s}") Duration connectTimeout,
-            @Value("${app.http.client.read-timeout:10s}") Duration readTimeout
+            @Value("${app.http.client.read-timeout:10s}") Duration readTimeout,
+            @Value("${app.http.client.retry.max-attempts:2}") int retryMaxAttempts,
+            @Value("${app.http.client.retry.delay:250ms}") Duration retryDelay,
+            @Value("${app.http.client.circuit.failure-threshold:5}") int circuitFailureThreshold,
+            @Value("${app.http.client.circuit.open-duration:30s}") Duration circuitOpenDuration
     ) {
-        this.restClient = RestClients.create(baseUrl, connectTimeout, readTimeout);
+        this.restClient = RestClients.create(
+                baseUrl,
+                connectTimeout,
+                readTimeout,
+                retryMaxAttempts,
+                retryDelay,
+                circuitFailureThreshold,
+                circuitOpenDuration
+        );
     }
 
     public HospitalServiceSummary getHospitalService(Long serviceId, String authorizationHeader) {
