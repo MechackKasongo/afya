@@ -8,10 +8,22 @@ package "Poste client" {
 }
 
 package "Couche exposition" {
+  component "API Gateway (Nginx)\nTLS rate-limit" as Gateway << gateway >>
   component "API Gateway / BFF" as BFF
 }
 
-Web --> BFF : HTTPS REST\n/api/v1/
+Web --> Gateway : HTTPS
+Gateway --> BFF : /api/v1/\n/actuator/
+
+package "Transversal (afya-shared)" as Shared {
+  component "CorrelationIdFilter\nX-Correlation-Id + MDC" as CorrId
+  component "HttpResilienceInterceptor\ntimeout retry circuit-breaker" as Resilience
+  component "ProductionSecretsValidator\nDownstreamUrlsValidator" as Validators
+}
+
+BFF ..> CorrId : filtre requête
+BFF ..> Resilience : clients HTTP aval
+BFF ..> Validators : fail-fast démarrage
 
 package "Services métier" {
   component "identity-service" as Identity
@@ -23,17 +35,31 @@ package "Services métier" {
   component "audit-service" as Audit
 }
 
+Identity ..> CorrId
+Catalog ..> CorrId
+Patient ..> CorrId
+CareEntry ..> CorrId
+Stay ..> CorrId
+Clinical ..> CorrId
+Audit ..> CorrId
+
+CareEntry ..> Resilience
+Stay ..> Resilience
+Clinical ..> Resilience
+
 BFF --> Identity : JWT / CRUD utilisateurs (Admin)
 BFF --> Catalog : catalogue hospitalier
 BFF --> Patient : patients recherche
 BFF --> CareEntry : urgences admissions transferts
 BFF --> Stay : séjour fiche hospi
 BFF --> Clinical : dossier prescriptions soins fichiers
+BFF --> Audit : journal rapports stats
 
 CareEntry ..> Patient : IDs patient REST
 CareEntry ..> Catalog : IDs service REST
 CareEntry ..> Stay : séjour associé REST
 Clinical ..> Patient : patientId REST
+storage "Stockage objet (MinIO S3)" as ObjStore
 Clinical --> ObjStore : images PDF
 
 database "BD identity" as DB_Id
@@ -43,7 +69,6 @@ database "BD care-entry" as DB_CE
 database "BD stay" as DB_Stay
 database "BD clinical" as DB_Clinical
 database "BD audit" as DB_Audit
-storage "Stockage objet (MinIO S3)" as ObjStore
 
 Identity --> DB_Id
 Catalog --> DB_Cat
@@ -59,6 +84,35 @@ Patient ..> Audit : événements
 CareEntry ..> Audit : événements
 Stay ..> Audit : événements
 Clinical ..> Audit : événements
+
+package "Observabilité (recommandée)" as Obs {
+  component "Spring Actuator\nhealth info metrics" as Actuator
+  component "Prometheus\n(scrape metrics)" as Prometheus
+  component "Grafana\n(dashboard alertes)" as Grafana
+}
+
+BFF ..> Actuator
+Identity ..> Actuator
+Catalog ..> Actuator
+Patient ..> Actuator
+CareEntry ..> Actuator
+Stay ..> Actuator
+Clinical ..> Actuator
+Audit ..> Actuator
+
+Prometheus ..> Actuator : scrape /actuator/prometheus\nou /actuator/metrics
+Grafana --> Prometheus : requêtes PromQL
+
+note right of Resilience
+  Métriques Micrometer :
+  afya.http.resilience.*
+  (retry, 5xx, I/O, circuit)
+end note
+
+note right of CorrId
+  Logs : corr:<correlationId>
+  Erreurs API : traceId
+end note
 
 note right of Audit
   Consommation asynchrone

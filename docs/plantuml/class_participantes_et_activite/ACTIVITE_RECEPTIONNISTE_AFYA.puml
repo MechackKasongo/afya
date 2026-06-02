@@ -1,0 +1,51 @@
+@startuml ACTIVITE_RECEPTIONNISTE_AFYA
+title "Diagramme d'activité — Réceptionniste (SI Afya)"
+|Réceptionniste|
+start
+
+::S'authentifier;
+|Front / BFF|
+:POST /api/v1/auth/login;
+|identity-service|
+:Valider compte + actif;
+
+if (Objectif ?) then (oui)
+  if (Rechercher un patient ?) then (oui)
+    :Saisir nom ou n° dossier;
+    |Front / BFF|
+    :GET /api/v1/patients?search=…;
+    |patient-service|
+    :Trouver patient;
+  else (non)
+    :Enregistrer un patient;
+    |Front / BFF|
+    :POST /api/v1/patients;
+    |patient-service|
+    :Persister Patient + Audit PATIENT_CREATED;
+  endif
+else (non)
+  stop
+endif
+
+|Réceptionniste|
+:Choisir service hospitalier + date admission;
+|care-entry-service|
+:Créer admission (statut OUVERTE);
+|catalog-service|
+:Vérifier service actif + capacité lits;
+if (Service disponible ?) then (oui)
+  |stay-service|
+  :Créer ou lier Stay (chambre/lit si renseigné);
+  :Audit ADMISSION_CREATED + STAY_OPENED;
+  |Réceptionniste|
+  :Confirmer admission à l'écran;
+  stop
+else (non)
+  |Réceptionniste|
+  :Réponse conflit / erreur métier;
+  :Corriger choix service;
+  stop
+endif
+
+@enduml
+

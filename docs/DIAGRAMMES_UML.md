@@ -159,7 +159,7 @@ Les relations `..> : include` traduisent une **dépendance métier** (patient co
 
 ## 3. Diagramme de composants (architecture logicielle)
 
-Vue **implantation** : composants déployables et dépendances principales (REST). Le **BFF** orchestre le front ; l’**audit** consomme des **événements** émis par les autres services.
+Vue **implantation** : composants déployables et dépendances principales (REST). Le **BFF** orchestre le front ; l’**audit** consomme des **événements** émis par les autres services. Version PlantUML détaillée (gateway, `afya-shared`, observabilité) : [plantuml/COMPOSANTS_AFYA.puml](plantuml/COMPOSANTS_AFYA.puml).
 
 ```mermaid
 flowchart LR
@@ -168,7 +168,14 @@ flowchart LR
   end
 
   subgraph edge["Couche exposition"]
-    BFF[API Gateway / BFF]
+    GW[API Gateway Nginx\nTLS rate-limit]
+    BFF[afya-bff]
+  end
+
+  subgraph transversal["afya-shared"]
+    CORR[CorrelationIdFilter]
+    RES[HttpResilienceInterceptor]
+    VAL[Validators fail-fast]
   end
 
   subgraph services["Services métier"]
@@ -181,6 +188,12 @@ flowchart LR
     AUD[audit-service]
   end
 
+  subgraph obs["Observabilité recommandée"]
+    ACT[Actuator metrics]
+    PROM[Prometheus]
+    GRAF[Grafana]
+  end
+
   subgraph data["Persistance"]
     D_ID[(DB identity)]
     D_CAT[(DB catalog)]
@@ -188,17 +201,22 @@ flowchart LR
     D_CE[(DB care-entry)]
     D_ST[(DB stay)]
     D_CR[(DB clinical)]
-    OBJ[(Stockage objet\nimages / PDF)]
+    OBJ[(Stockage objet)]
     D_AUD[(DB audit)]
   end
 
-  WEB -->|HTTPS| BFF
+  WEB -->|HTTPS| GW
+  GW --> BFF
+  BFF -.-> CORR
+  BFF -.-> RES
+  BFF -.-> VAL
   BFF --> ID
   BFF --> CAT
   BFF --> PAT
   BFF --> CE
   BFF --> ST
   BFF --> CR
+  BFF --> AUD
 
   CE -.->|IDs patient / service| PAT
   CE -.->|IDs service| CAT
@@ -220,6 +238,11 @@ flowchart LR
   ST -.->|événements| AUD
   CR -.->|événements| AUD
   CAT -.->|événements| AUD
+
+  BFF -.-> ACT
+  ID -.-> ACT
+  PROM -.->|scrape| ACT
+  GRAF --> PROM
 ```
 
 **Variante 6 services** : fusionner `care-entry-service` et `stay-service` en un seul composant **encounter-stay-service** ; les flèches vers `D_CE` et `D_ST` deviennent une base unique ou deux schémas dans le même déployable.
@@ -228,17 +251,21 @@ flowchart LR
 
 ## 4. Diagramme de déploiement (vue simplifiée)
 
+Version PlantUML : [plantuml/DEPLOIEMENT_AFYA.puml](plantuml/DEPLOIEMENT_AFYA.puml).
+
 ```mermaid
 flowchart TB
   subgraph utilisateur["Utilisateur"]
     NAV[Navigateur]
   end
 
-  subgraph runtime["Environnement d’exécution (ex. conteneurs)"]
-    NG[Reverse proxy / TLS]
-    GW[Conteneur BFF]
-    SVC[Conteneurs services métier]
-    AUDC[Conteneur audit-service]
+  subgraph edge["DMZ / edge"]
+    NG[API Gateway Nginx :8090\nTLS rate-limit]
+  end
+
+  subgraph runtime["Hôte d'exécution"]
+    BFF[Conteneur BFF]
+    SVC[Conteneurs services métier\n+ audit-service]
   end
 
   subgraph stockage["Données"]
@@ -247,14 +274,27 @@ flowchart TB
     BUS{{Bus événements optionnel}}
   end
 
+  subgraph observabilite["Observabilité recommandée"]
+    PROM[Prometheus]
+    GRAF[Grafana]
+    ALT[Alertmanager optionnel]
+  end
+
+  subgraph cicd["CI/CD"]
+    GHA[GitHub Actions\nmvn verify Java 21]
+  end
+
   NAV -->|HTTPS| NG
-  NG --> GW
-  GW --> SVC
+  NG --> BFF
+  BFF --> SVC
   SVC --> DB
   SVC --> S3
   SVC --> BUS
-  BUS -.-> AUDC
-  AUDC --> DB
+  PROM -.->|scrape Actuator| BFF
+  PROM -.->|scrape Actuator| SVC
+  GRAF --> PROM
+  ALT -.-> PROM
+  GHA -.->|build test package| runtime
 ```
 
 ---

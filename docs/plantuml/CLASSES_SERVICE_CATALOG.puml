@@ -44,9 +44,12 @@ class Bed {
   - occupied : boolean
 }
 
-DepartmentController --> DepartmentService --> Department
-HospitalServiceController --> HospitalServiceCatalogService --> HospitalService
-BedController --> BedService --> Bed
+DepartmentController --> DepartmentService
+DepartmentService --> Department
+HospitalServiceController --> HospitalServiceCatalogService
+HospitalServiceCatalogService --> HospitalService
+BedController --> BedService
+BedService --> Bed
 HospitalService --> Department
 
 @enduml

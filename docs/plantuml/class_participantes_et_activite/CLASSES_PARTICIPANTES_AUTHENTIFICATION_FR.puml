@@ -1,65 +1,93 @@
 @startuml CLASSES_PARTICIPANTES_AUTHENTIFICATION_FR
-title "CU 1 — S'authentifier — classes participantes (analyse, français)"
+title "Classes participantes — S'authentifier (attributs et méthodes) — version FR alignée (mêmes classes/relations)"
 skinparam classAttributeIconSize 0
 
-legend right
-  **Phase analyse** (avant développement).
-  <<frontière>> interface utilisateur
-  <<contrôle>> logique métier
-  <<entité>> données persistées
-endlegend
+class "Utilisateur" as User <<actor>>
 
-actor Utilisateur as U1
-
-class InterfaceConnexion <<frontière>> {
-  - identifiantSaisi : Texte
-  - motDePasseSaisi : Texte
+class LoginPage <<boundary>> {
+  - credentials : { username, password }
   --
-  + afficherFormulaire() : void
-  + soumettreConnexion() : void
-  + afficherErreur(message : Texte) : void
-  + redirigerEspaceTravail() : void
+  + handleSubmit() : void
+  + redirectAfterLogin() : void
 }
 
-class ControleurAuthentification <<contrôle>> {
-  - sessionCourante : SessionUtilisateur
+class AuthBffController <<boundary>> {
+  - identityClient : IdentityClient
   --
-  + traiterConnexion(identifiant : Texte, motDePasse : Texte) : JetonAcces
-  + traiterDeconnexion() : void
-  + verifierSession() : Booléen
-  + obtenirProfilUtilisateur() : ProfilUtilisateur
+  + login(request : LoginRequest) : TokenResponse
+  + refresh(request : RefreshRequest) : TokenResponse
+  + logout(request : LogoutRequest) : void
+  + me() : MeResponse
 }
 
-class ServiceAuthentification <<contrôle>> {
-  - registreUtilisateurs : RegistreUtilisateur
+class AuthController <<boundary>> {
+  - authService : AuthService
   --
-  + authentifier(identifiant : Texte, motDePasse : Texte) : UtilisateurCompte
-  + genererJeton(utilisateur : UtilisateurCompte) : JetonAcces
-  + invaliderJeton(jeton : JetonAcces) : void
-  + enregistrerEchecConnexion(identifiant : Texte) : void
+  + login(request : LoginRequest) : TokenResponse
+  + refresh(request : RefreshRequest) : TokenResponse
+  + logout(auth, request, body) : void
+  + me(auth : Authentication) : MeResponse
 }
 
-class UtilisateurCompte <<entité>> {
-  - identifiant : Entier
-  - nomUtilisateur : Texte
-  - motDePasseHaché : Texte
-  - actif : Booléen
+class AuthService <<control>> {
+  - appUserRepository : AppUserRepository
+  - refreshTokenRepository : RefreshTokenRepository
+  - revokedAccessJtiRepository : RevokedAccessJtiRepository
+  - jwtService : JwtService
+  - passwordEncoder : PasswordEncoder
+  - auditEventPublisher : AuditEventPublisher
   --
-  + verifierMotDePasse(motDePasse : Texte) : Booléen
-  + estActif() : Booléen
+  + login(username, password) : TokenResponse
+  + refresh(refreshTokenRaw) : TokenResponse
+  + logout(username, request, refresh, revokeAll) : void
+  + me(username) : MeResponse
+  - issueTokens(user) : TokenResponse
+  - hashToken(raw) : String
 }
 
-class SessionUtilisateur <<entité>> {
-  - dateExpiration : DateHeure
-  - jetonAcces : Texte
+class JwtService <<control>> {
+  - accessSecret : String
+  - refreshSecret : String
   --
-  + estExpiree() : Booléen
+  + issueAccessToken(user) : String
+  + issueRefreshToken(user) : String
+  + parseRefreshToken(raw) : Claims
+  + parseAccessToken(raw) : Claims
 }
 
-U1 --> InterfaceConnexion
-InterfaceConnexion --> ControleurAuthentification
-ControleurAuthentification --> ServiceAuthentification
-ServiceAuthentification --> UtilisateurCompte
-ControleurAuthentification --> SessionUtilisateur
+class AppUser <<entity>> {
+  - id : Long
+  - username : String
+  - email : String
+  - fullName : String
+  - passwordHash : String
+  - roles : Set~Role~
+  - hospitalServiceIds : Set~Long~
+  - active : boolean
+  - createdAt : Instant
+  --
+  + getId() : Long
+  + getUsername() : String
+  + isActive() : boolean
+}
+
+class RefreshToken <<entity>> {
+  - id : Long
+  - user : AppUser
+  - tokenHash : String
+  - expiresAt : Instant
+  - revoked : boolean
+  --
+  + getExpiresAt() : Instant
+  + isRevoked() : boolean
+}
+
+User "1" --> "1" LoginPage : association
+LoginPage "1" --> "1" AuthBffController : association
+AuthBffController "1" --> "1" AuthController : association
+AuthController "1" --> "1" AuthService : association
+AuthService "1" --> "1" AppUser : association
+AuthService "1" --> "1" JwtService : association
+AuthService "1" --> "0..*" RefreshToken : association
 
 @enduml

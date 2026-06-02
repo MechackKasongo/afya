@@ -64,13 +64,18 @@ class Bed <<entity>> {
   - occupied : Boolean
 }
 
-Administrateur --> HospitalServicesPage
-HospitalServicesPage --> HospitalServiceBffController
-HospitalServiceBffController --> HospitalServiceController
-HospitalServiceController --> HospitalServiceCatalogService
+Administrateur "1" --> "1" HospitalServicesPage : association
+HospitalServicesPage "1" --> "1" HospitalServiceBffController : association
+HospitalServiceBffController "1" --> "1" HospitalServiceController : association
+HospitalServiceController "1" --> "1" HospitalServiceCatalogService : association
+HospitalServiceCatalogService "1" --> "0..*" HospitalService : association
+HospitalService "1" --> "1" Department : association
+HospitalServiceCatalogService "1" --> "0..*" Bed : association
 
-HospitalServiceCatalogService --> HospitalService
-HospitalService --> Department
-HospitalServiceCatalogService --> Bed
+legend right
+--
+  **Relations** : association (--) · dependency (..>)
+  Multiplicities on each link
+endlegend
 
 @enduml

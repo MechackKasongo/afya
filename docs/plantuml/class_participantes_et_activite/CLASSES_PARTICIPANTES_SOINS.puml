@@ -78,14 +78,19 @@ class PrescriptionLine <<entity>> {
   - status : String
 }
 
-Infirmier --> MedicalRecordDetailPage
-MedicalRecordDetailPage --> PatientClinicalBffController
-PatientClinicalBffController --> MedicalRecordController
-MedicalRecordController --> ClinicalRecordService
+Infirmier "1" --> "1" MedicalRecordDetailPage : association
+MedicalRecordDetailPage "1" --> "1" PatientClinicalBffController : association
+PatientClinicalBffController "1" --> "1" MedicalRecordController : association
+MedicalRecordController "1" --> "1" ClinicalRecordService : association
+ClinicalRecordService "1" --> "1" MedicalRecord : association
+ClinicalRecordService "1" --> "0..*" NursingCareRecord : association
+ClinicalRecordService "1" --> "0..*" MedicationAdministration : association
+ClinicalRecordService "1" --> "0..*" PrescriptionLine : association
 
-ClinicalRecordService --> MedicalRecord
-ClinicalRecordService --> NursingCareRecord
-ClinicalRecordService --> MedicationAdministration
-ClinicalRecordService --> PrescriptionLine
+legend right
+--
+  **Relations** : association (--) · dependency (..>)
+  Multiplicities on each link
+endlegend
 
 @enduml

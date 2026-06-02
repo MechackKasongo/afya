@@ -8,10 +8,12 @@ legend right
   Phase analyse — avant développement.
   --
   **Relations** :
-  *-- composition (tout–partie, cycle de vie lié)
-  -- association (FK, multiplicité 1 / 0..* / 0..1)
-  ..> dépendance (référence logique inter-microservices)
-  Voir RELATIONS_UML_DIAGRAMMES.md
+  *-- composition (tout–partie)
+  -- association (FK)
+  ..> dépendance (inter-microservices)
+  --
+  **Tableau complet** (22 liens + cardinalités) :
+  RELATIONS_UML_DIAGRAMMES.md § 2
 endlegend
 
 package "Identité et sécurité" #E8F4FC {
@@ -45,9 +47,9 @@ package "Identité et sécurité" #E8F4FC {
     - revoque : Booléen
   }
 
-  UtilisateurCompte "1" -- "0..*" UtilisateurRole
-  Role "1" -- "0..*" UtilisateurRole
-  UtilisateurCompte "1" -- "0..*" SessionUtilisateur
+  UtilisateurCompte "1" -- "0..*" UtilisateurRole : association
+  Role "1" -- "0..*" UtilisateurRole : association
+  UtilisateurCompte "1" -- "0..*" SessionUtilisateur : association
 }
 
 package "Catalogue hospitalier" #E8FCF0 {
@@ -77,8 +79,8 @@ package "Catalogue hospitalier" #E8FCF0 {
     - dateLiberation : DateHeure
   }
 
-  Departement "1" *-- "0..*" ServiceHospitalier
-  ServiceHospitalier "1" *-- "0..*" Lit
+  Departement "1" *-- "0..*" ServiceHospitalier : composition
+  ServiceHospitalier "1" *-- "0..*" Lit : composition
 }
 
 package "Patient" #FFF8E8 {
@@ -134,7 +136,7 @@ package "Parcours patient (admissions)" #FCE8F8 {
     - statut : Texte
   }
 
-  Admission "1" -- "0..*" DemandeTransfert
+  Admission "1" -- "0..*" DemandeTransfert : association
 }
 
 package "Séjour et hospitalisation" #F0E8FC {
@@ -158,7 +160,7 @@ package "Séjour et hospitalisation" #F0E8FC {
     - dateMiseAJour : DateHeure
   }
 
-  Sejour "1" *-- "0..1" FormulaireHospitalisation
+  Sejour "1" *-- "0..1" FormulaireHospitalisation : composition
 }
 
 package "Dossier clinique" #FCEEE8 {
@@ -251,13 +253,13 @@ package "Dossier clinique" #FCEEE8 {
     - dateDepot : DateHeure
   }
 
-  DossierMedical "1" *-- "0..*" Diagnostic
-  DossierMedical "1" *-- "0..*" NoteClinique
-  DossierMedical "1" *-- "0..*" Prescription
-  DossierMedical "1" *-- "0..*" SoinInfirmier
-  DossierMedical "1" *-- "0..*" DocumentClinique
-  Consultation "1" *-- "0..*" EvenementConsultation
-  Prescription "1" -- "0..*" AdministrationMedicament
+  DossierMedical "1" *-- "0..*" Diagnostic : composition
+  DossierMedical "1" *-- "0..*" NoteClinique : composition
+  DossierMedical "1" *-- "0..*" Prescription : composition
+  DossierMedical "1" *-- "0..*" SoinInfirmier : composition
+  DossierMedical "1" *-- "0..*" DocumentClinique : composition
+  Consultation "1" *-- "0..*" EvenementConsultation : composition
+  Prescription "1" -- "0..*" AdministrationMedicament : association
 }
 
 package "Audit et traçabilité" #EEEEEE {
@@ -277,14 +279,22 @@ package "Audit et traçabilité" #EEEEEE {
 
 ' --- Liens logiques inter-contextes (références par identifiant) ---
 
-Patient ..> Admission : identifiantPatient
-Patient ..> VisiteUrgence : identifiantPatient
-Patient ..> DossierMedical : identifiantPatient
-Patient ..> Consultation : identifiantPatient
-Patient ..> Sejour : identifiantPatient
+Patient "1" ..> "0..*" Admission : dépendance
+identifiantPatient
+Patient "1" ..> "0..*" VisiteUrgence : dépendance
+identifiantPatient
+Patient "1" ..> "0..1" DossierMedical : dépendance
+identifiantPatient
+Patient "1" ..> "0..*" Consultation : dépendance
+identifiantPatient
+Patient "1" ..> "0..*" Sejour : dépendance
+identifiantPatient
 
-ServiceHospitalier ..> Admission : identifiantService
-Admission ..> Sejour : identifiantAdmission
-Admission ..> Consultation : identifiantAdmission
+ServiceHospitalier "1" ..> "0..*" Admission : dépendance
+identifiantService
+Admission "1" ..> "0..1" Sejour : dépendance
+identifiantAdmission
+Admission "1" ..> "0..*" Consultation : dépendance
+identifiantAdmission
 
 @enduml

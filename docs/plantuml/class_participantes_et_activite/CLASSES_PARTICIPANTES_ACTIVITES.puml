@@ -56,11 +56,17 @@ class AuditEvent <<entity>> {
   - metadataJson : String
 }
 
-Admin --> ReportingPage
-ReportingPage --> AuditBffController
-ReportingPage --> StatsBffController
-AuditBffController --> AuditEventController
-AuditEventController --> AuditEventService
-AuditEventService --> AuditEvent
+Admin "1" --> "1" ReportingPage : association
+ReportingPage "1" --> "1" AuditBffController : association
+ReportingPage "1" --> "1" StatsBffController : association
+AuditBffController "1" --> "1" AuditEventController : association
+AuditEventController "1" --> "1" AuditEventService : association
+AuditEventService "1" --> "0..*" AuditEvent : association
+
+legend right
+--
+  **Relations** : association (--) · dependency (..>)
+  Multiplicities on each link
+endlegend
 
 @enduml

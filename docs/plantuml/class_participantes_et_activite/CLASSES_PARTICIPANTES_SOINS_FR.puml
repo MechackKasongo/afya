@@ -1,60 +1,96 @@
 @startuml CLASSES_PARTICIPANTES_SOINS_FR
-title "CU 8 — Enregistrer les soins effectués — classes participantes (analyse, français)"
+title "Classes participantes — Enregistrer les soins effectués — version FR alignée (mêmes classes/relations)"
+
 skinparam classAttributeIconSize 0
 
+class Infirmier <<actor>>
+
+class MedicalRecordDetailPage <<boundary>> {
+  - patientId : Long
+  - medicalRecord : MedicalRecordResponse
+  - nursingForm : NursingCareRequest
+  --
+  + loadMedicalRecord() : void
+  + submitNursingCare() : void
+  + submitMedicationAdmin(lineId) : void
+}
+
+class PatientClinicalBffController <<boundary>> {
+  - clinicalRecordClient : ClinicalRecordClient
+  --
+  + getMedicalRecord(patientId) : MedicalRecordResponse
+  + addNursingCare(patientId, request) : NursingCareResponse
+  + administerMedication(patientId, request) : MedicationAdministrationResponse
+}
+
+class MedicalRecordController <<boundary>> {
+  - clinicalRecordService : ClinicalRecordService
+  --
+  + getMedicalRecord(patientId, activeOnly) : MedicalRecordResponse
+  + addNursingCare(patientId, request) : NursingCareResponse
+  + addMedicationAdministration(patientId, request) : MedicationAdministrationResponse
+  + addPrescription(patientId, request) : PrescriptionResponse
+}
+
+class ClinicalRecordService <<control>> {
+  - medicalRecordRepository : MedicalRecordRepository
+  - nursingCareRecordRepository : NursingCareRecordRepository
+  - medicationAdministrationRepository : MedicationAdministrationRepository
+  - prescriptionLineRepository : PrescriptionLineRepository
+  --
+  + getMedicalRecord(patientId, authHeader, activeOnly) : MedicalRecordResponse
+  + addNursingCare(patientId, request, username, authHeader) : NursingCareResponse
+  + addMedicationAdministration(...) : MedicationAdministrationResponse
+  + addPrescription(...) : PrescriptionResponse
+  - findOrCreateRecord(patientId) : MedicalRecord
+}
+
+class MedicalRecord <<entity>> {
+  - id : Long
+  - patientId : Long
+  - allergies : String
+  - antecedents : String
+  - openedAt : Instant
+}
+
+class NursingCareRecord <<entity>> {
+  - id : Long
+  - medicalRecord : MedicalRecord
+  - careType : String
+  - description : String
+  - performedAt : Instant
+  - nurseUsername : String
+}
+
+class MedicationAdministration <<entity>> {
+  - id : Long
+  - prescriptionLine : PrescriptionLine
+  - administeredAt : Instant
+  - doseGiven : String
+  - nurseUsername : String
+}
+
+class PrescriptionLine <<entity>> {
+  - id : Long
+  - drugName : String
+  - dosage : String
+  - frequency : String
+  - status : String
+}
+
+Infirmier "1" --> "1" MedicalRecordDetailPage : association
+MedicalRecordDetailPage "1" --> "1" PatientClinicalBffController : association
+PatientClinicalBffController "1" --> "1" MedicalRecordController : association
+MedicalRecordController "1" --> "1" ClinicalRecordService : association
+ClinicalRecordService "1" --> "1" MedicalRecord : association
+ClinicalRecordService "1" --> "0..*" NursingCareRecord : association
+ClinicalRecordService "1" --> "0..*" MedicationAdministration : association
+ClinicalRecordService "1" --> "0..*" PrescriptionLine : association
+
 legend right
-  **Phase analyse** (avant développement).
-  <<frontière>> <<contrôle>> <<entité>>
+--
+  **Relations** : association (--) · dependency (..>)
+  Multiplicities on each link
 endlegend
-
-actor Infirmier as I8
-
-class InterfaceSoins <<frontière>> {
-  + rechercherPatient() : void
-  + afficherSoinsExistants() : void
-  + saisirNouveauSoin() : void
-  + marquerAdministrationMedicament() : void
-  + confirmerEnregistrement() : void
-}
-
-class ControleurSoins <<contrôle>> {
-  + consulterSoins(identifiantPatient : Entier) : ListeSoins
-  + enregistrerSoin(donnees : FormulaireSoin) : SoinInfirmier
-  + enregistrerAdministration(identifiantPrescription : Entier, dose : Texte) : AdministrationMedicament
-}
-
-class ServiceSoins <<contrôle>> {
-  + validerSoin(donnees : FormulaireSoin) : ResultatValidation
-  + verifierPrescriptionActive(identifiant : Entier) : Booléen
-}
-
-class DossierMedical <<entité>> {
-  - identifiant : Entier
-}
-
-class SoinInfirmier <<entité>> {
-  - typeSoin : Texte
-  - description : Texte
-  - dateRealisation : DateHeure
-  - infirmier : Texte
-}
-
-class Prescription <<entité>> {
-  - medicament : Texte
-  - statut : Texte
-}
-
-class AdministrationMedicament <<entité>> {
-  - doseAdministree : Texte
-  - dateAdministration : DateHeure
-}
-
-I8 --> InterfaceSoins
-InterfaceSoins --> ControleurSoins
-ControleurSoins --> ServiceSoins
-ServiceSoins --> SoinInfirmier
-ServiceSoins --> AdministrationMedicament
-DossierMedical --> SoinInfirmier
-Prescription --> AdministrationMedicament
 
 @enduml

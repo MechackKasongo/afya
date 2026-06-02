@@ -1,58 +1,76 @@
 @startuml CLASSES_PARTICIPANTES_UTILISATEURS_FR
-title "CU 2 — Gérer les utilisateurs — classes participantes (analyse, français)"
+title "Classes participantes — Gérer les utilisateurs — version FR alignée (mêmes classes/relations)"
+
 skinparam classAttributeIconSize 0
 
-legend right
-  **Phase analyse** (avant développement).
-  <<frontière>> <<contrôle>> <<entité>>
-endlegend
+class Administrateur <<actor>>
 
-actor Administrateur as A2
-
-class InterfaceGestionUtilisateurs <<frontière>> {
-  - filtreRecherche : Texte
-  - formulaireUtilisateur : FormulaireUtilisateur
+class UsersAdminPage <<boundary>> {
+  - users : List~UserResponse~
+  - form : UserCreateRequest
   --
-  + afficherListe() : void
-  + afficherFormulaireCreation() : void
-  + afficherFormulaireModification(identifiant : Entier) : void
-  + confirmerSuppression(identifiant : Entier) : void
+  + loadUsers() : void
+  + submitCreate() : void
+  + submitUpdate(id) : void
+  + confirmDelete(id) : void
 }
 
-class ControleurUtilisateurs <<contrôle>> {
-  + listerUtilisateurs(page : Entier, taille : Entier) : ListeUtilisateurs
-  + consulterUtilisateur(identifiant : Entier) : UtilisateurCompte
-  + creerUtilisateur(donnees : FormulaireUtilisateur) : UtilisateurCompte
-  + modifierUtilisateur(identifiant : Entier, donnees : FormulaireUtilisateur) : UtilisateurCompte
-  + supprimerUtilisateur(identifiant : Entier) : void
-  + activerDesactiver(identifiant : Entier, actif : Booléen) : void
-}
-
-class ServiceGestionUtilisateurs <<contrôle>> {
-  + validerDonnees(donnees : FormulaireUtilisateur) : ResultatValidation
-  + attribuerRoles(utilisateur : UtilisateurCompte, codesRoles : ListeTexte) : void
-  + genererMotDePasseTemporaire() : Texte
-}
-
-class UtilisateurCompte <<entité>> {
-  - identifiant : Entier
-  - nomUtilisateur : Texte
-  - motDePasseHaché : Texte
-  - actif : Booléen
+class UserBffController <<boundary>> {
+  - identityClient : IdentityClient
   --
-  + verifierMotDePasse(motDePasse : Texte) : Booléen
-  + estActif() : Booléen
+  + list(page, size, search) : Page~UserResponse~
+  + get(id) : UserResponse
+  + create(request) : UserResponse
+  + update(id, request) : UserResponse
+  + delete(id) : void
 }
 
-class Role <<entité>> {
-  - code : Texte
-  - libelle : Texte
+class UserController <<boundary>> {
+  - userAdminService : UserAdminService
+  --
+  + list(...) : Page~UserResponse~
+  + listRoles() : List~RoleOptionResponse~
+  + create(request) : UserResponse
+  + update(id, request) : UserResponse
+  + updateStatus(id, request) : UserResponse
+  + delete(id) : void
+  + get(id) : UserResponse
 }
 
-A2 --> InterfaceGestionUtilisateurs
-InterfaceGestionUtilisateurs --> ControleurUtilisateurs
-ControleurUtilisateurs --> ServiceGestionUtilisateurs
-ServiceGestionUtilisateurs --> UtilisateurCompte
-UtilisateurCompte --> Role
+class UserAdminService <<control>> {
+  - appUserRepository : AppUserRepository
+  - roleRepository : RoleRepository
+  - passwordEncoder : PasswordEncoder
+  --
+  + getById(id) : UserResponse
+  + list(...) : Page~UserResponse~
+  + create(request) : UserResponse
+  + update(id, request) : UserResponse
+  + updateStatus(id, active) : UserResponse
+  + delete(id) : void
+}
+
+class AppUser <<entity>> {
+  - id : Long
+  - username : String
+  - email : String
+  - fullName : String
+  - passwordHash : String
+  - roles : Set~Role~
+  - active : Boolean
+}
+
+class Role <<entity>> {
+  - id : Long
+  - code : String
+  - label : String
+}
+
+Administrateur "1" --> "1" UsersAdminPage : association
+UsersAdminPage "1" --> "1" UserBffController : association
+UserBffController "1" --> "1" UserController : association
+UserController "1" --> "1" UserAdminService : association
+UserAdminService "1" --> "1" AppUser : association
+AppUser "*" --> "*" Role : association
 
 @enduml

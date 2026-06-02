@@ -48,10 +48,12 @@ class EmergencyVisit {
   - priority : String
 }
 
-AdmissionController --> AdmissionService --> Admission
+AdmissionController --> AdmissionService
+AdmissionService --> Admission
 AdmissionService ..> PatientServiceClient
 AdmissionService ..> CatalogServiceClient
 AdmissionService ..> StayServiceClient
-EmergencyController --> EmergencyVisitService --> EmergencyVisit
+EmergencyController --> EmergencyVisitService
+EmergencyVisitService --> EmergencyVisit
 
 @enduml

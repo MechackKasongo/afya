@@ -1,0 +1,45 @@
+@startuml ACTIVITE_MEDECIN_AFYA
+title "Diagramme d'activité — Médecin (SI Afya)"
+|Médecin|
+start
+
+::S'authentifier;
+|Front / BFF|
+:POST /api/v1/auth/login;
+|identity-service|
+:Valider compte + actif;
+
+|Médecin|
+:Ouvrir dossier + consultation en cours;
+|clinical-record-service|
+:Charger dossier + événements de consultation;
+
+if (Besoin diagnostic ?) then (oui)
+  :Saisir type de maladie + informations;
+  |Front / BFF|
+  :GET /disease-catalog?diseaseType=…;
+  |clinical-record-service|
+  :Enregistrer ConsultationEvent + incrément catalogue;
+endif
+
+if (Besoin prescription ?) then (oui)
+  |Front / BFF|
+  :POST /patients/{id}/prescriptions;
+  |clinical-record-service|
+  :Créer PrescriptionLine;
+endif
+
+|Médecin|
+:Décider sortie ou transfert;
+
+|care-entry-service|
+:Clôturer Admission (SORTIE) OU créer TransferRequest;
+|stay-service|
+:Clôturer Stay (checkOutAt) OU mettre à jour affectation/lit si nécessaire;
+
+|audit-service|
+:Publier événements audit (ADMISSION_UPDATED / TRANSFER_CREATED / STAY_CLOSED);
+
+stop
+@enduml
+

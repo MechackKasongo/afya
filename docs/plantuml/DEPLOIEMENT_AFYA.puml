@@ -12,13 +12,12 @@ node "Poste utilisateur" as Workstation {
 }
 
 node "DMZ / edge" as Edge {
-  artifact "Reverse proxy TLS (Nginx Traefik)" as Proxy
+  artifact "Reverse proxy TLS\n(Nginx API Gateway :8090)" as Proxy
 }
 
 node "Hôte d'exécution (ex. cluster Kubernetes ou VM)" as Host {
   artifact "Conteneur API Gateway BFF" as BffPod
-  artifact "Conteneurs services métier\nidentity catalog patient care-entry stay clinical" as SvcPods
-  artifact "Conteneur audit-service" as AuditPod
+  artifact "Conteneurs services métier\nidentity catalog patient\ncare-entry stay clinical audit" as SvcPods
 }
 
 node "Données et messagerie" as DataZone {
@@ -27,19 +26,50 @@ node "Données et messagerie" as DataZone {
   queue "Bus d'événements\n(optionnel : Kafka RabbitMQ)" as Bus
 }
 
+node "Observabilité (recommandée)" as ObsZone {
+  artifact "Prometheus\n(scrape Actuator)" as Prometheus
+  artifact "Grafana\n(dashboard + alertes)" as Grafana
+  artifact "Alertmanager\n(optionnel)" as Alertmanager
+}
+
+cloud "CI/CD" as CiCd {
+  artifact "GitHub Actions\nmvn verify (Java 21)" as GHA
+}
+
 User --> Browser
 Browser --> Proxy : HTTPS
-Proxy --> BffPod : routage /api
-BffPod --> SvcPods : REST interne
+Proxy --> BffPod : routage /api /actuator
+BffPod --> SvcPods : REST interne\n+ X-Correlation-Id
 SvcPods --> DBs
 SvcPods --> ObjectStore
 SvcPods --> Bus : publication événements
-Bus ..> AuditPod : consommation
-AuditPod --> DBs : persistance audit
+Bus ..> SvcPods : audit-service consomme
+
+Prometheus ..> BffPod : scrape metrics
+Prometheus ..> SvcPods : scrape metrics
+Grafana --> Prometheus
+Alertmanager ..> Prometheus : règles alertes\n(PROMETHEUS_ALERTS_*)
+
+GHA ..> Host : build test package\n(déploiement manuel ou pipeline)
+
+note right of BffPod
+  Chaque conteneur :
+  - Actuator health/info/metrics
+  - afya-shared (correlation, résilience)
+  - validators secrets/URLs au démarrage
+end note
 
 note bottom of DataZone
   Haute disponibilité : réplication BDD,
-  sauvegardes, health checks par conteneur.
+  sauvegardes, health checks par conteneur
+  (docker-compose : curl actuator/health).
+end note
+
+note bottom of ObsZone
+  Fichiers projet :
+  GRAFANA_DASHBOARD_RESILIENCE_AFYA.json
+  PROMETHEUS_ALERTS_RESILIENCE_AFYA.yml
+  RUNBOOK_RESILIENCE_AFYA.md
 end note
 
 @enduml

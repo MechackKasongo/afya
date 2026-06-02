@@ -41,8 +41,10 @@ class Appointment {
   - status : String
 }
 
-PatientController --> PatientRegistryService --> Patient
+PatientController --> PatientRegistryService
+PatientRegistryService --> Patient
 PatientRegistryService --> DossierNumberGenerator
-AppointmentController --> AppointmentService --> Appointment
+AppointmentController --> AppointmentService
+AppointmentService --> Appointment
 
 @enduml

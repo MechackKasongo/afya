@@ -121,15 +121,21 @@ class PrescriptionLine <<entity>> {
   - status : String
 }
 
-Med --> ConsultationDetailView
-ConsultationDetailView --> ConsultationBffController
-ConsultationDetailView --> DiseaseCatalogBffController
-ConsultationDetailView --> PrescriptionBffController
-ConsultationBffController --> ConsultationController
-ConsultationController --> ConsultationService
-ConsultationService --> Consultation
-ConsultationService --> ConsultationEvent
-ConsultationService --> DiseaseCatalogService
-DiseaseCatalogService --> DiseaseCatalog
+Med "1" --> "1" ConsultationDetailView : association
+ConsultationDetailView "1" --> "1" ConsultationBffController : association
+ConsultationDetailView "1" --> "1" DiseaseCatalogBffController : association
+ConsultationDetailView "1" --> "1" PrescriptionBffController : association
+ConsultationBffController "1" --> "1" ConsultationController : association
+ConsultationController "1" --> "1" ConsultationService : association
+ConsultationService "1" --> "0..*" Consultation : association
+ConsultationService "1" --> "0..*" ConsultationEvent : association
+ConsultationService "1" --> "1" DiseaseCatalogService : association
+DiseaseCatalogService "1" --> "0..*" DiseaseCatalog : association
+
+legend right
+--
+  **Relations** : association (--) · dependency (..>)
+  Multiplicities on each link
+endlegend
 
 @enduml

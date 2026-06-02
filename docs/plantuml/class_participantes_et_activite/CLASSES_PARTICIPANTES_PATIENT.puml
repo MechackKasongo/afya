@@ -2,7 +2,7 @@
 title "Classes participantes — Enregistrer un patient"
 skinparam classAttributeIconSize 0
 
-actor Receptionniste as Rec
+class "Receptionniste" as Rec <<actor>>
 
 class PatientsPage <<boundary>> {
   - searchQuery : string
@@ -61,8 +61,17 @@ class PatientDossierSequence <<entity>> {
   - lastValue : long
 }
 
-Rec --> PatientsPage --> PatientBffController --> PatientController --> PatientRegistryService
-PatientRegistryService --> Patient
-PatientRegistryService --> PatientDossierSequence
+Rec "1" --> "1" PatientsPage : association
+PatientsPage "1" --> "1" PatientBffController : association
+PatientBffController "1" --> "1" PatientController : association
+PatientController "1" --> "1" PatientRegistryService : association
+PatientRegistryService "1" --> "0..*" Patient : association
+PatientRegistryService "1" --> "1" PatientDossierSequence : association
+
+legend right
+--
+  **Relations** : association (--) · dependency (..>)
+  Multiplicities on each link
+endlegend
 
 @enduml

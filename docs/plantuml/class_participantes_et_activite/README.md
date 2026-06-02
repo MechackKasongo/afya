@@ -1,22 +1,14 @@
 # Classes participantes et activités — mémoire Afya
 
-Diagrammes **phase d'analyse** (avant développement), alignés sur le § II.3.2 du mémoire.
+Diagrammes des classes participantes et activités, alignés sur le § II.3.2 du mémoire.
 
 ## Fichiers principaux (français)
 
 | Fichier | Contenu |
 |---------|---------|
-| [CLASSES_PARTICIPANTES_ANALYSE_FR.puml](CLASSES_PARTICIPANTES_ANALYSE_FR.puml) | **8 diagrammes** regroupés en un fichier multi-pages (export PDF) |
-| Fichiers `CLASSES_PARTICIPANTES_*_FR.puml` | **Un diagramme par CU**, en **français** (phase analyse) — voir tableau ci-dessous |
+| Fichiers `CLASSES_PARTICIPANTES_*_FR.puml` | **Un diagramme par CU**, version FR **alignée** aux fichiers EN (mêmes classes, attributs, relations) |
 | [DIAGRAMME_PERSISTANCE_AFYA.puml](DIAGRAMME_PERSISTANCE_AFYA.puml) | **Diagramme de persistance seul** — entités, attributs, associations (sans interface ni contrôleur) |
-| [RELATIONS_UML_DIAGRAMMES.md](RELATIONS_UML_DIAGRAMMES.md) | **Guide des relations UML** — types, symboles, bonnes pratiques |
-| [RELATIONS_CLASSES_PARTICIPANTES_AFYA.md](RELATIONS_CLASSES_PARTICIPANTES_AFYA.md) | **Toutes les relations — classes participantes** (8 CU, FR + impl.) |
-| [RELATIONS_CLASSES_PARTICIPANTES_FR.puml](RELATIONS_CLASSES_PARTICIPANTES_FR.puml) | Diagramme relations seules — analyse FR (8 pages) |
-| [RELATIONS_CLASSES_PARTICIPANTES_IMPL.puml](RELATIONS_CLASSES_PARTICIPANTES_IMPL.puml) | Diagramme relations seules — implémentation (8 pages) |
-| [TOUTES_LES_RELATIONS_UML_AFYA.md](TOUTES_LES_RELATIONS_UML_AFYA.md) | Inventaire global (persistance + participantes + CU) |
-| [RELATIONS_PERSISTANCE_AFYA.puml](RELATIONS_PERSISTANCE_AFYA.puml) | Diagramme relations seules — persistance |
-| [RELATIONS_GATEWAYS_BFF_AFYA.md](RELATIONS_GATEWAYS_BFF_AFYA.md) | Relations des gateways/BFF (controllers -> clients) |
-| [RELATIONS_GATEWAYS_BFF.puml](RELATIONS_GATEWAYS_BFF.puml) | Diagramme relations seules — gateway/BFF |
+| [RELATIONS_UML_DIAGRAMMES.md](RELATIONS_UML_DIAGRAMMES.md) | **Inventaire unique** — symboles, relations, cardinalités (persistance, 8 CU, BFF) |
 
 ## Relations UML utilisées
 
@@ -30,7 +22,7 @@ Diagrammes **phase d'analyse** (avant développement), alignés sur le § II.3.2
 
 Détail complet : [RELATIONS_UML_DIAGRAMMES.md](RELATIONS_UML_DIAGRAMMES.md).
 
-## Classes participantes — analyse (français, un fichier par CU)
+## Classes participantes — FR aligné EN (un fichier par CU)
 
 | CU | Fichier |
 |----|---------|
@@ -43,7 +35,11 @@ Détail complet : [RELATIONS_UML_DIAGRAMMES.md](RELATIONS_UML_DIAGRAMMES.md).
 | 7 — Prise en charge médicale | [CLASSES_PARTICIPANTES_PRISE_EN_CHARGE_FR.puml](CLASSES_PARTICIPANTES_PRISE_EN_CHARGE_FR.puml) |
 | 8 — Enregistrer les soins | [CLASSES_PARTICIPANTES_SOINS_FR.puml](CLASSES_PARTICIPANTES_SOINS_FR.puml) |
 
-Stéréotypes : `<<frontière>>`, `<<contrôle>>`, `<<entité>>`. Les fichiers sans suffixe `_FR` restent en **anglais** (implémentation Java/BFF).
+Stéréotypes : `<<boundary>>`, `<<control>>`, `<<entity>>` (noms techniques identiques EN/FR pour éviter les divergences). Les fichiers sans suffixe `_FR` restent en anglais.
+
+Règle de maintenance : tout changement dans un fichier `CLASSES_PARTICIPANTES_*.puml` doit être répliqué dans son équivalent `*_FR.puml`.
+
+**Sur chaque diagramme** : type de relation (`association`, `composition`, `dépendance`) et cardinalités (`"1"`, `"0..*"`, `"0..1"`) sont annotés sur les flèches. Inventaire tabulaire : [RELATIONS_UML_DIAGRAMMES.md](RELATIONS_UML_DIAGRAMMES.md).
 
 ## Diagrammes d'activité (par CU)
 
@@ -60,6 +56,21 @@ Stéréotypes : `<<frontière>>`, `<<contrôle>>`, `<<entité>>`. Les fichiers s
 
 Complément : [ACTIVITE_SORTIE_TRANSFERT_AFYA.puml](ACTIVITE_SORTIE_TRANSFERT_AFYA.puml)
 
+## Diagrammes d'activité (par acteur)
+
+Chaque acteur parcourt les cas d’utilisation qui lui sont associés dans le mémoire (authentification incluse au début).
+
+| Acteur | Fichier |
+|--------|---------|
+| Administrateur | [ACTIVITE_ADMIN_AFYA.puml](ACTIVITE_ADMIN_AFYA.puml) |
+| Réceptionniste | [ACTIVITE_RECEPTIONNISTE_AFYA.puml](ACTIVITE_RECEPTIONNISTE_AFYA.puml) |
+| Médecin | [ACTIVITE_MEDECIN_AFYA.puml](ACTIVITE_MEDECIN_AFYA.puml) |
+| Infirmier·ère | [ACTIVITE_INFERMIER_AFYA.puml](ACTIVITE_INFERMIER_AFYA.puml) |
+
+## Diagramme d'activité général
+
+[ACTIVITE_GENERALE_AFYA.puml](ACTIVITE_GENERALE_AFYA.puml)
+
 ## Classes participantes (implémentation — anglais)
 
 Fichiers individuels par CU (`CLASSES_PARTICIPANTES_*.puml`) : noms Java / BFF après développement.
@@ -73,9 +84,15 @@ plantuml docs/plantuml/class_participantes_et_activite/CLASSES_PARTICIPANTES_AUT
 # Tous les CU français
 plantuml docs/plantuml/class_participantes_et_activite/CLASSES_PARTICIPANTES_*_FR.puml
 
-# Regroupé multi-pages (PDF)
-plantuml docs/plantuml/class_participantes_et_activite/CLASSES_PARTICIPANTES_ANALYSE_FR.puml
+# Persistance (modèle complet)
 plantuml docs/plantuml/class_participantes_et_activite/DIAGRAMME_PERSISTANCE_AFYA.puml
 ```
 
 Version Mermaid (français + anglais) : [../../MEMOIRE_UML_ANALYSE_FR.md](../../MEMOIRE_UML_ANALYSE_FR.md) · [../../MEMOIRE_UML_ANALYSE_EN.md](../../MEMOIRE_UML_ANALYSE_EN.md)
+
+## Autres vues (PlantUML)
+
+| Fichier | Contenu |
+|---------|---------|
+| [../COMPOSANTS_AFYA.puml](../COMPOSANTS_AFYA.puml) | Diagrammes de composants (BFF, services, observabilité) |
+| [../DEPLOIEMENT_AFYA.puml](../DEPLOIEMENT_AFYA.puml) | Diagramme de déploiement (gateway, conteneurs, métriques) |

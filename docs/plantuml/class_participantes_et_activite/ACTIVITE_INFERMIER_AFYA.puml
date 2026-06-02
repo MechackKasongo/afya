@@ -1,0 +1,40 @@
+@startuml ACTIVITE_INFERMIER_AFYA
+title "Diagramme d'activité — Infirmier·ère (SI Afya)"
+|Infirmier|
+start
+
+::S'authentifier;
+|Front / BFF|
+:POST /api/v1/auth/login;
+|identity-service|
+:Valider compte + actif;
+
+|Infirmier|
+:Ouvrir page soins / dossiers médicaux;
+|Front / BFF|
+:GET /api/v1/... (rechercher patient / dossier);
+|clinical-record-service|
+:Charger MedicalRecord + soins existants;
+
+if (Nouveau soin ?) then (oui)
+  :Saisir type de soin + description;
+  |Front / BFF|
+  :POST /soins;
+  |clinical-record-service|
+  :Créer SoinInfirmier;
+endif
+
+if (Administration médicament à exécuter ?) then (oui)
+  :Choisir prescription active + dose;
+  |Front / BFF|
+  :POST /medication-administrations;
+  |clinical-record-service|
+  :Créer MedicationAdministration;
+endif
+
+|Infirmier|
+:Confirmer exécution + retour à l'écran;
+stop
+
+@enduml
+

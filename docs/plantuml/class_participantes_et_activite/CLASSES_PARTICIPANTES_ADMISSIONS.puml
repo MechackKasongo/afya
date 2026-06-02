@@ -71,14 +71,13 @@ class Admission <<entity>> {
   - bedLabel : String
 }
 
-Receptionniste --> AdmissionsPage
-AdmissionsPage --> AdmissionBffController
-AdmissionBffController --> AdmissionController
-AdmissionController --> AdmissionService
-
-AdmissionService --> Admission
-AdmissionService ..> PatientServiceClient
-AdmissionService ..> CatalogServiceClient
-AdmissionService ..> StayServiceClient
+Receptionniste "1" --> "1" AdmissionsPage : association
+AdmissionsPage "1" --> "1" AdmissionBffController : association
+AdmissionBffController "1" --> "1" AdmissionController : association
+AdmissionController "1" --> "1" AdmissionService : association
+AdmissionService "1" --> "0..*" Admission : association
+AdmissionService "1" ..> "1" PatientServiceClient : dépendance
+AdmissionService "1" ..> "1" CatalogServiceClient : dépendance
+AdmissionService "1" ..> "1" StayServiceClient : dépendance
 
 @enduml

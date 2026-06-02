@@ -1,50 +1,77 @@
 @startuml CLASSES_PARTICIPANTES_PATIENT_FR
-title "CU 5 — Enregistrer un patient — classes participantes (analyse, français)"
+title "Classes participantes — Enregistrer un patient — version FR alignée (mêmes classes/relations)"
 skinparam classAttributeIconSize 0
 
+class "Receptionniste" as Rec <<actor>>
+
+class PatientsPage <<boundary>> {
+  - searchQuery : string
+  - patients : PatientResponse[]
+  - createForm : PatientCreateRequest
+  --
+  + search() : void
+  + submitCreate() : void
+  + openDetail(id) : void
+}
+
+class PatientBffController <<boundary>> {
+  - patientClient : PatientClient
+  --
+  + search(query, page, size) : Page~PatientResponse~
+  + getById(id) : PatientResponse
+  + create(request) : PatientResponse
+  + update(id, request) : PatientResponse
+}
+
+class PatientController <<boundary>> {
+  - patientRegistryService : PatientRegistryService
+  --
+  + create(request) : PatientResponse
+  + getById(id) : PatientResponse
+  + search(query, page, size, sortBy, sortDir) : Page~PatientResponse~
+  + update(id, request) : PatientResponse
+}
+
+class PatientRegistryService <<control>> {
+  - patientRepository : PatientRepository
+  - dossierSequenceRepository : PatientDossierSequenceRepository
+  - auditEventPublisher : AuditEventPublisher
+  --
+  + create(request) : PatientResponse
+  + getById(id) : PatientResponse
+  + search(...) : Page~PatientResponse~
+  + update(id, request) : PatientResponse
+  - generateDossierNumber() : String
+}
+
+class Patient <<entity>> {
+  - id : Long
+  - firstName : String
+  - lastName : String
+  - dossierNumber : String
+  - birthDate : LocalDate
+  - sex : String
+  - phone : String
+  - email : String
+  - createdAt : Instant
+}
+
+class PatientDossierSequence <<entity>> {
+  - year : int
+  - lastValue : long
+}
+
+Rec "1" --> "1" PatientsPage : association
+PatientsPage "1" --> "1" PatientBffController : association
+PatientBffController "1" --> "1" PatientController : association
+PatientController "1" --> "1" PatientRegistryService : association
+PatientRegistryService "1" --> "0..*" Patient : association
+PatientRegistryService "1" --> "1" PatientDossierSequence : association
+
 legend right
-  **Phase analyse** (avant développement).
-  <<frontière>> <<contrôle>> <<entité>>
+--
+  **Relations** : association (--) · dependency (..>)
+  Multiplicities on each link
 endlegend
-
-actor Receptionniste as R5
-
-class InterfacePatients <<frontière>> {
-  - termeRecherche : Texte
-  - formulairePatient : FormulairePatient
-  --
-  + lancerRecherche() : void
-  + afficherResultats() : void
-  + afficherFormulaireEnregistrement() : void
-  + afficherMessageSucces(numeroDossier : Texte) : void
-}
-
-class ControleurPatients <<contrôle>> {
-  + rechercherPatient(critere : Texte) : ListePatients
-  + consulterPatient(identifiant : Entier) : Patient
-  + enregistrerPatient(donnees : FormulairePatient) : Patient
-}
-
-class ServicePatients <<contrôle>> {
-  + validerIdentite(donnees : FormulairePatient) : ResultatValidation
-  + genererNumeroDossier() : Texte
-  + enregistrer(donnees : FormulairePatient) : Patient
-}
-
-class Patient <<entité>> {
-  - identifiant : Entier
-  - numeroDossier : Texte
-  - nom : Texte
-  - prenom : Texte
-  - dateNaissance : Date
-  - telephone : Texte
-  --
-  + obtenirNomComplet() : Texte
-}
-
-R5 --> InterfacePatients
-InterfacePatients --> ControleurPatients
-ControleurPatients --> ServicePatients
-ServicePatients --> Patient
 
 @enduml

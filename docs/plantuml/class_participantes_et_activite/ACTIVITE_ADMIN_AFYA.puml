@@ -1,0 +1,45 @@
+@startuml ACTIVITE_ADMIN_AFYA
+title "Diagramme d'activité — Administrateur (SI Afya)"
+|Administrateur|
+start
+
+::S'authentifier;
+|Front / BFF|
+:POST /api/v1/auth/login;
+|identity-service|
+:Valider compte + actif;
+:Générer access JWT + refresh token;
+
+:Accéder aux écrans d'administration;
+
+if (Action admin ?) then (oui)
+  if (Gérer comptes utilisateurs) then (oui)
+    :Accéder au module Utilisateurs;
+    |Front / BFF|
+    :GET /api/v1/users;
+    |identity-service|
+    :CRUD utilisateurs + rôles;
+    :Audit (USER_CREATED / USER_UPDATED / USER_DELETED);
+  elseif (Gérer services hospitaliers) then (oui)
+    :Accéder au module Services hospitaliers;
+    |Front / BFF|
+    :GET /api/v1/hospital-services;
+    |catalog-service|
+    :CRUD services + régénérer lits si besoin;
+    :Audit (HOSPITAL_SERVICE_CREATED / UPDATED / DEACTIVATED);
+  elseif (Gérer activités du système) then (oui)
+    :Accéder au module Rapports / Activités;
+    |Front / BFF|
+    :GET /api/v1/audit/events (filtres);
+    :GET /api/v1/audit/reports/activity;
+    |audit-service|
+    :Récupérer événements + statistiques;
+  else (autre)
+    :Consulter — sans modification;
+  endif
+else (non)
+endif
+
+stop
+@enduml
+

@@ -1,50 +1,72 @@
 @startuml CLASSES_PARTICIPANTES_ACTIVITES_FR
-title "CU 4 — Gérer les activités du système — classes participantes (analyse, français)"
+title "Classes participantes — Gérer les activités du système — version FR alignée (mêmes classes/relations)"
+
 skinparam classAttributeIconSize 0
 
+class Administrateur <<actor>>
+
+class ReportingPage <<boundary>> {
+  - auditEvents : AuditEventResponse[]
+  - filters : { date, action, actor }
+  - reportOverview : PlatformReportOverviewResponse
+  --
+  + loadAudit(page) : void
+  + applyFilters() : void
+  + loadReportOverview() : void
+}
+
+class AuditBffController <<boundary>> {
+  - auditClient : AuditClient
+  --
+  + listEvents(page, size, filters) : Page~AuditEventResponse~
+}
+
+class StatsBffController <<boundary>> {
+  - auditClient : AuditClient
+  - careEntryClient : CareEntryClient
+  --
+  + activityReport() : ActivityReportResponse
+  + volumes() : PlatformReportOverviewResponse
+}
+
+class AuditEventController <<boundary>> {
+  - auditEventService : AuditEventService
+  --
+  + list(page, size, actor, action, from, to) : Page~AuditEventResponse~
+  + ingest(request) : AuditEventResponse
+}
+
+class AuditEventService <<control>> {
+  - auditEventRepository : AuditEventRepository
+  --
+  + list(...) : Page~AuditEventResponse~
+  + ingest(request) : AuditEventResponse
+  + buildActivityReport() : ActivityReportResponse
+}
+
+class AuditEvent <<entity>> {
+  - id : Long
+  - eventId : UUID
+  - occurredAt : Instant
+  - actorUsername : String
+  - action : String
+  - resourceType : String
+  - resourceId : String
+  - sourceService : String
+  - metadataJson : String
+}
+
+Admin "1" --> "1" ReportingPage : association
+ReportingPage "1" --> "1" AuditBffController : association
+ReportingPage "1" --> "1" StatsBffController : association
+AuditBffController "1" --> "1" AuditEventController : association
+AuditEventController "1" --> "1" AuditEventService : association
+AuditEventService "1" --> "0..*" AuditEvent : association
+
 legend right
-  **Phase analyse** (avant développement).
-  <<frontière>> <<contrôle>> <<entité>>
+--
+  **Relations** : association (--) · dependency (..>)
+  Multiplicities on each link
 endlegend
-
-actor Administrateur as A4
-
-class InterfaceSupervision <<frontière>> {
-  - filtreDate : Date
-  - filtreAction : Texte
-  - filtreActeur : Texte
-  --
-  + afficherJournal() : void
-  + appliquerFiltres() : void
-  + afficherDetailEvenement(identifiant : Entier) : void
-  + afficherRapportActivite() : void
-}
-
-class ControleurJournalActivite <<contrôle>> {
-  + consulterEvenements(criteres : CriteresRecherche) : ListeEvenements
-  + consulterRapportStatistiques(periode : Periode) : RapportActivite
-}
-
-class ServiceTraçabilite <<contrôle>> {
-  + enregistrerEvenement(evenement : EvenementTrace) : void
-  + filtrerEvenements(criteres : CriteresRecherche) : ListeEvenements
-  + agregerStatistiques(periode : Periode) : RapportActivite
-}
-
-class JournalActivite <<entité>> {
-  - identifiant : Entier
-  - dateEvenement : DateHeure
-  - acteur : Texte
-  - action : Texte
-  - typeRessource : Texte
-  - identifiantRessource : Texte
-  --
-  + decrire() : Texte
-}
-
-A4 --> InterfaceSupervision
-InterfaceSupervision --> ControleurJournalActivite
-ControleurJournalActivite --> ServiceTraçabilite
-ServiceTraçabilite --> JournalActivite
 
 @enduml

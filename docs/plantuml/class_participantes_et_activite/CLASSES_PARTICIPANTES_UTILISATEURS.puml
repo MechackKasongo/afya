@@ -66,12 +66,11 @@ class Role <<entity>> {
   - label : String
 }
 
-Administrateur --> UsersAdminPage
-UsersAdminPage --> UserBffController
-UserBffController --> UserController
-UserController --> UserAdminService
-
-UserAdminService --> AppUser
-UserAdminService --> Role
+Administrateur "1" --> "1" UsersAdminPage : association
+UsersAdminPage "1" --> "1" UserBffController : association
+UserBffController "1" --> "1" UserController : association
+UserController "1" --> "1" UserAdminService : association
+UserAdminService "1" --> "1" AppUser : association
+AppUser "*" --> "*" Role : association
 
 @enduml

@@ -11,6 +11,9 @@ legend right
   --
   **boundary** UI ou API REST ; **control** service ;
   **entity** persistance locale du microservice.
+  --
+  **Relations** : association (--) · dépendance (..>)
+  Cardinalités sur chaque lien
 endlegend
 
 ' --- Authentification (tous les acteurs)
@@ -30,37 +33,37 @@ package "Cas : Authentification (identity-service)" #ECEFF1 {
     + validateClaims()
   }
   class AppUser <<entity>>
-  AuthRestResource --> AuthApplicationService
-  AuthApplicationService --> TokenIssuer
-  AuthApplicationService --> AppUser
+  AuthRestResource "1" --> "1" AuthApplicationService : association
+  AuthApplicationService "1" --> "1" TokenIssuer : association
+  AuthApplicationService "1" --> "1" AppUser : association
 }
 
 ' --- Administrateur
 package "Admin — utilisateurs et catalogue" #E3F2FD {
   class UserAdminRestResource <<boundary>>
   class UserAdminApplicationService <<control>>
-  UserAdminRestResource --> UserAdminApplicationService
-  UserAdminApplicationService --> AppUser
+  UserAdminRestResource "1" --> "1" UserAdminApplicationService : association
+  UserAdminApplicationService "1" --> "1" AppUser : association
 
   class CatalogAdminRestResource <<boundary>>
   class CatalogAdminApplicationService <<control>>
   class Department <<entity>>
   class HospitalService <<entity>>
-  CatalogAdminRestResource --> CatalogAdminApplicationService
-  CatalogAdminApplicationService --> Department
-  CatalogAdminApplicationService --> HospitalService
+  CatalogAdminRestResource "1" --> "1" CatalogAdminApplicationService : association
+  CatalogAdminApplicationService "1" --> "0..*" Department : association
+  CatalogAdminApplicationService "1" --> "0..*" HospitalService : association
 
   class AuditPublisher <<control>>
-  UserAdminApplicationService ..> AuditPublisher
-  CatalogAdminApplicationService ..> AuditPublisher
+  UserAdminApplicationService "1" ..> "1" AuditPublisher : dépendance
+  CatalogAdminApplicationService "1" ..> "1" AuditPublisher : dépendance
 }
 
 package "Admin — consultation audit et rapports" #E8EAF6 {
   class AuditQueryRestResource <<boundary>>
   class ReportingApplicationService <<control>>
   class AuditEvent <<entity>>
-  AuditQueryRestResource --> ReportingApplicationService
-  ReportingApplicationService --> AuditEvent
+  AuditQueryRestResource "1" --> "1" ReportingApplicationService : association
+  ReportingApplicationService "1" --> "0..*" AuditEvent : association
 }
 
 ' --- Réceptionniste
@@ -68,30 +71,30 @@ package "Réceptionniste — patient et admissions" #E8F5E9 {
   class PatientRestResource <<boundary>>
   class PatientApplicationService <<control>>
   class Patient <<entity>>
-  PatientRestResource --> PatientApplicationService
-  PatientApplicationService --> Patient
+  PatientRestResource "1" --> "1" PatientApplicationService : association
+  PatientApplicationService "1" --> "0..*" Patient : association
 
   class AdmissionRestResource <<boundary>>
   class AdmissionOrchestrationService <<control>>
   class Admission <<entity>>
   class PatientRestClient <<boundary>>
   class CatalogReadClient <<boundary>>
-  AdmissionRestResource --> AdmissionOrchestrationService
-  AdmissionOrchestrationService --> Admission
-  AdmissionOrchestrationService ..> PatientRestClient
-  AdmissionOrchestrationService ..> CatalogReadClient
+  AdmissionRestResource "1" --> "1" AdmissionOrchestrationService : association
+  AdmissionOrchestrationService "1" --> "0..*" Admission : association
+  AdmissionOrchestrationService "1" ..> "1" PatientRestClient : dépendance
+  AdmissionOrchestrationService "1" ..> "1" CatalogReadClient : dépendance
 }
 
 package "Réceptionniste — transfert et séjour" #FCE4EC {
   class TransferRestResource <<boundary>>
   class TransferApplicationService <<control>>
-  TransferRestResource --> TransferApplicationService
+  TransferRestResource "1" --> "1" TransferApplicationService : association
 
   class StayRestResource <<boundary>>
   class StayApplicationService <<control>>
   class Stay <<entity>>
-  StayRestResource --> StayApplicationService
-  StayApplicationService --> Stay
+  StayRestResource "1" --> "1" StayApplicationService : association
+  StayApplicationService "1" --> "0..*" Stay : association
 }
 
 ' --- Médecin
@@ -101,16 +104,16 @@ package "Médecin — dossier clinique et parcours" #FFF3E0 {
   class MedicalRecord <<entity>>
   class PrescriptionLine <<entity>>
   class Diagnosis <<entity>>
-  MedicalRecordRestResource --> ClinicalApplicationService
-  ClinicalApplicationService --> MedicalRecord
-  ClinicalApplicationService --> PrescriptionLine
-  ClinicalApplicationService --> Diagnosis
-  ClinicalApplicationService ..> PatientRestClient : valider patient
+  MedicalRecordRestResource "1" --> "1" ClinicalApplicationService : association
+  ClinicalApplicationService "1" --> "1" MedicalRecord : association
+  ClinicalApplicationService "1" --> "0..*" PrescriptionLine : association
+  ClinicalApplicationService "1" --> "0..*" Diagnosis : association
+  ClinicalApplicationService "1" ..> "1" PatientRestClient : dépendance
 
   class DischargeRestResource <<boundary>>
   class CarePathApplicationService <<control>>
-  DischargeRestResource --> CarePathApplicationService
-  CarePathApplicationService ..> AdmissionOrchestrationService : sortie ou transfert
+  DischargeRestResource "1" --> "1" CarePathApplicationService : association
+  CarePathApplicationService "1" ..> "1" AdmissionOrchestrationService : dépendance
 }
 
 ' --- Infirmier(ère)
@@ -119,10 +122,10 @@ package "Infirmier(ère) — soins et exécution" #E0F7FA {
   class NursingApplicationService <<control>>
   class NursingCareRecord <<entity>>
   class MedicationAdministration <<entity>>
-  NursingRestResource --> NursingApplicationService
-  NursingApplicationService --> NursingCareRecord
-  NursingApplicationService --> MedicationAdministration
-  NursingApplicationService ..> MedicalRecord
+  NursingRestResource "1" --> "1" NursingApplicationService : association
+  NursingApplicationService "1" --> "0..*" NursingCareRecord : association
+  NursingApplicationService "1" --> "0..*" MedicationAdministration : association
+  NursingApplicationService "1" ..> "1" MedicalRecord : dépendance
 }
 
 note bottom of PatientRestClient

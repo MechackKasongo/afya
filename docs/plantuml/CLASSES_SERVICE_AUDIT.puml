@@ -33,6 +33,7 @@ class AuditEvent {
 
 AuditEventController --> AuditEventService
 ActivityReportController --> AuditEventService
-AuditEventService --> AuditEventRepository --> AuditEvent
+AuditEventService --> AuditEventRepository
+AuditEventRepository --> AuditEvent
 
 @enduml

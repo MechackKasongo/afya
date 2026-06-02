@@ -2,7 +2,7 @@
 title "Classes participantes — S'authentifier (attributs et méthodes)"
 skinparam classAttributeIconSize 0
 
-actor "Utilisateur" as User
+class "Utilisateur" as User <<actor>>
 
 class LoginPage <<boundary>> {
   - credentials : { username, password }
@@ -82,12 +82,12 @@ class RefreshToken <<entity>> {
   + isRevoked() : boolean
 }
 
-User --> LoginPage
-LoginPage --> AuthBffController : POST /api/v1/auth/login
-AuthBffController --> AuthController
-AuthController --> AuthService
-AuthService --> AppUser
-AuthService --> JwtService
-AuthService --> RefreshToken
+User "1" --> "1" LoginPage : association
+LoginPage "1" --> "1" AuthBffController : association
+AuthBffController "1" --> "1" AuthController : association
+AuthController "1" --> "1" AuthService : association
+AuthService "1" --> "1" AppUser : association
+AuthService "1" --> "1" JwtService : association
+AuthService "1" --> "0..*" RefreshToken : association
 
 @enduml

@@ -1,53 +1,81 @@
 @startuml CLASSES_PARTICIPANTES_SERVICES_HOSP_FR
-title "CU 3 — Gérer les services hospitaliers — classes participantes (analyse, français)"
+title "Classes participantes — Gérer les services hospitaliers — version FR alignée (mêmes classes/relations)"
+
 skinparam classAttributeIconSize 0
 
+class Administrateur <<actor>>
+
+class HospitalServicesPage <<boundary>> {
+  - departments : List~DepartmentResponse~
+  - services : List~HospitalServiceResponse~
+  --
+  + loadCatalog() : void
+  + saveService(form) : void
+  + generateBeds(serviceId) : void
+}
+
+class HospitalServiceBffController <<boundary>> {
+  - catalogClient : CatalogClient
+  --
+  + listDepartments() : List
+  + listServices() : List
+  + createService(request) : HospitalServiceResponse
+  + updateService(id, request) : HospitalServiceResponse
+}
+
+class HospitalServiceController <<boundary>> {
+  - hospitalServiceCatalogService : HospitalServiceCatalogService
+  --
+  + list(activeOnly) : List~HospitalServiceResponse~
+  + getById(id) : HospitalServiceResponse
+  + create(request) : HospitalServiceResponse
+  + update(id, request) : HospitalServiceResponse
+  + updateStatus(id, request) : void
+}
+
+class HospitalServiceCatalogService <<control>> {
+  - hospitalServiceRepository : HospitalServiceRepository
+  - bedService : BedService
+  --
+  + create(request) : HospitalServiceResponse
+  + update(id, request) : HospitalServiceResponse
+  + delete(id) : void
+}
+
+class Department <<entity>> {
+  - id : Long
+  - code : String
+  - name : String
+  - active : Boolean
+}
+
+class HospitalService <<entity>> {
+  - id : Long
+  - department : Department
+  - name : String
+  - bedCapacity : Integer
+  - bedsPerRoom : Integer
+  - active : Boolean
+}
+
+class Bed <<entity>> {
+  - id : Long
+  - label : String
+  - occupied : Boolean
+}
+
+Administrateur "1" --> "1" HospitalServicesPage : association
+HospitalServicesPage "1" --> "1" HospitalServiceBffController : association
+HospitalServiceBffController "1" --> "1" HospitalServiceController : association
+HospitalServiceController "1" --> "1" HospitalServiceCatalogService : association
+HospitalServiceCatalogService "1" --> "0..*" HospitalService : association
+HospitalService "1" --> "1" Department : association
+HospitalServiceCatalogService "1" --> "0..*" Bed : association
+
 legend right
-  **Phase analyse** (avant développement).
-  <<frontière>> <<contrôle>> <<entité>>
+--
+  **Relations** : association (--) · dependency (..>)
+  Multiplicities on each link
 endlegend
-
-actor Administrateur as A3
-
-class InterfaceServicesHospitaliers <<frontière>> {
-  + afficherCatalogue() : void
-  + saisirNouveauService() : void
-  + modifierService(identifiant : Entier) : void
-  + confirmerSuppression(identifiant : Entier) : void
-  + consulterLits(identifiantService : Entier) : void
-}
-
-class ControleurServicesHospitaliers <<contrôle>> {
-  + listerServices() : ListeServices
-  + consulterService(identifiant : Entier) : ServiceHospitalier
-  + ajouterService(donnees : FormulaireService) : ServiceHospitalier
-  + modifierService(identifiant : Entier, donnees : FormulaireService) : ServiceHospitalier
-  + supprimerService(identifiant : Entier) : void
-}
-
-class ServiceCatalogueHospitalier <<contrôle>> {
-  + validerCapacite(capacite : Entier) : Booléen
-  + genererLits(service : ServiceHospitalier) : ListeLit
-  + verifierUtilisationAvantSuppression(identifiant : Entier) : Booléen
-}
-
-class ServiceHospitalier <<entité>> {
-  - identifiant : Entier
-  - nom : Texte
-  - description : Texte
-  - responsable : Texte
-  - capaciteLits : Entier
-}
-
-class Lit <<entité>> {
-  - libelle : Texte
-  - occupe : Booléen
-}
-
-A3 --> InterfaceServicesHospitaliers
-InterfaceServicesHospitaliers --> ControleurServicesHospitaliers
-ControleurServicesHospitaliers --> ServiceCatalogueHospitalier
-ServiceCatalogueHospitalier --> ServiceHospitalier
-ServiceHospitalier --> Lit
 
 @enduml

@@ -19,9 +19,8 @@ Un fichier par microservice : **controllers**, **services**, **repositories**, *
 
 Version Mermaid : [../MERMAID_CLASSES_PAR_SERVICE.md](../MERMAID_CLASSES_PAR_SERVICE.md).
 
-Relations gateway/BFF (inventaire + vue relation-only) :
-[class_participantes_et_activite/RELATIONS_GATEWAYS_BFF_AFYA.md](class_participantes_et_activite/RELATIONS_GATEWAYS_BFF_AFYA.md) ·
-[class_participantes_et_activite/RELATIONS_GATEWAYS_BFF.puml](class_participantes_et_activite/RELATIONS_GATEWAYS_BFF.puml)
+Relations et cardinalités (inventaire unique) :
+[class_participantes_et_activite/RELATIONS_UML_DIAGRAMMES.md](class_participantes_et_activite/RELATIONS_UML_DIAGRAMMES.md)
 
 ## Modèle du domaine
 
@@ -46,7 +45,7 @@ Chaque fichier inclut **attributs** et **méthodes** des classes boundary / cont
 
 Synthèse : [CLASSES_PARTICIPANTES_AFYA.puml](CLASSES_PARTICIPANTES_AFYA.puml)
 
-**Analyse mémoire (français)** : [class_participantes_et_activite/CLASSES_PARTICIPANTES_ANALYSE_FR.puml](class_participantes_et_activite/CLASSES_PARTICIPANTES_ANALYSE_FR.puml) · [DIAGRAMME_PERSISTANCE_AFYA.puml](class_participantes_et_activite/DIAGRAMME_PERSISTANCE_AFYA.puml)
+**Classes participantes FR alignées EN** : [class_participantes_et_activite/README.md](class_participantes_et_activite/README.md) · [DIAGRAMME_PERSISTANCE_AFYA.puml](class_participantes_et_activite/DIAGRAMME_PERSISTANCE_AFYA.puml)
 
 ## Diagrammes d'activité
 
@@ -62,6 +61,19 @@ Synthèse : [CLASSES_PARTICIPANTES_AFYA.puml](CLASSES_PARTICIPANTES_AFYA.puml)
 | Enregistrer les soins | [ACTIVITE_SOIN_INFIRMIER_AFYA.puml](ACTIVITE_SOIN_INFIRMIER_AFYA.puml) |
 
 Complément : [ACTIVITE_SORTIE_TRANSFERT_AFYA.puml](ACTIVITE_SORTIE_TRANSFERT_AFYA.puml)
+
+Diagrammes d'activité (par acteur) :
+
+| Acteur | Fichier |
+|--------|---------|
+| Administrateur | [ACTIVITE_ADMIN_AFYA.puml](ACTIVITE_ADMIN_AFYA.puml) |
+| Réceptionniste | [ACTIVITE_RECEPTIONNISTE_AFYA.puml](ACTIVITE_RECEPTIONNISTE_AFYA.puml) |
+| Médecin | [ACTIVITE_MEDECIN_AFYA.puml](ACTIVITE_MEDECIN_AFYA.puml) |
+| Infirmier·ère | [ACTIVITE_INFERMIER_AFYA.puml](ACTIVITE_INFERMIER_AFYA.puml) |
+
+Diagramme d'activité général :
+
+[ACTIVITE_GENERALE_AFYA.puml](ACTIVITE_GENERALE_AFYA.puml)
 
 ## Diagrammes de conception
 

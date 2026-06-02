@@ -50,20 +50,26 @@ package "Clients HTTP" {
   }
 }
 
-AuthBffController --> IdentityClient
-UserBffController --> IdentityClient
-PatientBffController --> PatientClient
-AdmissionBffController --> CareEntryClient
-EmergencyBffController --> CareEntryClient
-StayBffController --> StayClient
-PatientClinicalBffController --> ClinicalRecordClient
-ConsultationBffController --> ClinicalRecordClient
-PrescriptionBffController --> ClinicalRecordClient
-DiseaseCatalogBffController --> ClinicalRecordClient
-HospitalServiceBffController --> CatalogClient
-AuditBffController --> AuditClient
-StatsBffController --> AuditClient
-StatsBffController --> CareEntryClient
-StatsBffController --> ClinicalRecordClient
+AuthBffController "1" --> "1" IdentityClient : association
+UserBffController "1" --> "1" IdentityClient : association
+PatientBffController "1" --> "1" PatientClient : association
+AdmissionBffController "1" --> "1" CareEntryClient : association
+EmergencyBffController "1" --> "1" CareEntryClient : association
+StayBffController "1" --> "1" StayClient : association
+PatientClinicalBffController "1" --> "1" ClinicalRecordClient : association
+ConsultationBffController "1" --> "1" ClinicalRecordClient : association
+PrescriptionBffController "1" --> "1" ClinicalRecordClient : association
+DiseaseCatalogBffController "1" --> "1" ClinicalRecordClient : association
+HospitalServiceBffController "1" --> "1" CatalogClient : association
+AuditBffController "1" --> "1" AuditClient : association
+StatsBffController "1" --> "1" AuditClient : association
+StatsBffController "1" --> "1" CareEntryClient : association
+StatsBffController "1" --> "1" ClinicalRecordClient : association
+
+legend right
+  **Relations** : association (controller → client HTTP)
+  Cardinalité : "1" → "1" par appel
+  Transversal : X-Correlation-Id, timeout, retry, circuit-breaker
+endlegend
 
 @enduml
