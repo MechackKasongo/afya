@@ -42,7 +42,13 @@ public class GlobalExceptionHandler {
 
     private static ResponseEntity<ApiErrorResponse> build(HttpStatus status, String error, String message) {
         return ResponseEntity.status(status).body(
-                new ApiErrorResponse(status.value(), error, message, Instant.now())
+                new ApiErrorResponse(
+                        status.value(),
+                        error,
+                        message,
+                        Instant.now(),
+                        CorrelationIdSupport.currentId()
+                )
         );
     }
 }

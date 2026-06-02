@@ -15,6 +15,8 @@ Diagrammes **phase d'analyse** (avant développement), alignés sur le § II.3.2
 | [RELATIONS_CLASSES_PARTICIPANTES_IMPL.puml](RELATIONS_CLASSES_PARTICIPANTES_IMPL.puml) | Diagramme relations seules — implémentation (8 pages) |
 | [TOUTES_LES_RELATIONS_UML_AFYA.md](TOUTES_LES_RELATIONS_UML_AFYA.md) | Inventaire global (persistance + participantes + CU) |
 | [RELATIONS_PERSISTANCE_AFYA.puml](RELATIONS_PERSISTANCE_AFYA.puml) | Diagramme relations seules — persistance |
+| [RELATIONS_GATEWAYS_BFF_AFYA.md](RELATIONS_GATEWAYS_BFF_AFYA.md) | Relations des gateways/BFF (controllers -> clients) |
+| [RELATIONS_GATEWAYS_BFF.puml](RELATIONS_GATEWAYS_BFF.puml) | Diagramme relations seules — gateway/BFF |
 
 ## Relations UML utilisées
 

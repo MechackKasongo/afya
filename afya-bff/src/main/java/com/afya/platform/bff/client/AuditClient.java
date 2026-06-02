@@ -1,5 +1,6 @@
 package com.afya.platform.bff.client;
 
+import com.afya.platform.bff.config.DownstreamRestClientFactory;
 import com.afya.platform.bff.dto.ActivityReportResponse;
 import com.afya.platform.bff.dto.AuditEventResponse;
 import com.afya.platform.bff.support.ActivityReportFallback;
@@ -19,8 +20,11 @@ public class AuditClient {
 
     private final RestClient restClient;
 
-    public AuditClient(@Value("${app.services.audit-base-url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    public AuditClient(
+            @Value("${app.services.audit-base-url}") String baseUrl,
+            DownstreamRestClientFactory restClientFactory
+    ) {
+        this.restClient = restClientFactory.create(baseUrl);
     }
 
     public ActivityReportResponse activityReport(Instant from, Instant to, String authorizationHeader) {

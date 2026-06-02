@@ -1,5 +1,6 @@
 package com.afya.platform.bff.client;
 
+import com.afya.platform.bff.config.DownstreamRestClientFactory;
 import com.afya.platform.bff.dto.AdmissionClinicalFormRequest;
 import com.afya.platform.bff.dto.AdmissionClinicalFormResponse;
 import com.afya.platform.bff.dto.HospitalizationFormRequest;
@@ -19,8 +20,11 @@ public class StayClient {
 
     private final RestClient restClient;
 
-    public StayClient(@Value("${app.services.stay-base-url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    public StayClient(
+            @Value("${app.services.stay-base-url}") String baseUrl,
+            DownstreamRestClientFactory restClientFactory
+    ) {
+        this.restClient = restClientFactory.create(baseUrl);
     }
 
     public StayVolumesResponse volumes(String authorizationHeader) {

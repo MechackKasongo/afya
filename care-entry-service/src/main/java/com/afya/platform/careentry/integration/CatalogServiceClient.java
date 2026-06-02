@@ -3,12 +3,15 @@ package com.afya.platform.careentry.integration;
 import com.afya.platform.shared.exception.BadRequestException;
 import com.afya.platform.shared.exception.ConflictException;
 import com.afya.platform.shared.exception.NotFoundException;
+import com.afya.platform.shared.http.RestClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+
+import java.time.Duration;
 
 @Component
 public class CatalogServiceClient {
@@ -17,8 +20,12 @@ public class CatalogServiceClient {
 
     private final RestClient restClient;
 
-    public CatalogServiceClient(@Value("${app.services.catalog-base-url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    public CatalogServiceClient(
+            @Value("${app.services.catalog-base-url}") String baseUrl,
+            @Value("${app.http.client.connect-timeout:2s}") Duration connectTimeout,
+            @Value("${app.http.client.read-timeout:10s}") Duration readTimeout
+    ) {
+        this.restClient = RestClients.create(baseUrl, connectTimeout, readTimeout);
     }
 
     public HospitalServiceSummary getHospitalService(Long serviceId, String authorizationHeader) {

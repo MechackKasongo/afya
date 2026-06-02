@@ -1,11 +1,14 @@
 package com.afya.platform.careentry.integration;
 
+import com.afya.platform.shared.http.RestClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+
+import java.time.Duration;
 
 @Component
 public class StayServiceClient {
@@ -14,8 +17,12 @@ public class StayServiceClient {
 
     private final RestClient restClient;
 
-    public StayServiceClient(@Value("${app.services.stay-base-url:http://localhost:8085}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    public StayServiceClient(
+            @Value("${app.services.stay-base-url:http://localhost:8085}") String baseUrl,
+            @Value("${app.http.client.connect-timeout:2s}") Duration connectTimeout,
+            @Value("${app.http.client.read-timeout:10s}") Duration readTimeout
+    ) {
+        this.restClient = RestClients.create(baseUrl, connectTimeout, readTimeout);
     }
 
     public StayOpenResponse open(StayOpenRequest request, String authorizationHeader) {

@@ -1,5 +1,6 @@
 package com.afya.platform.bff.client;
 
+import com.afya.platform.bff.config.DownstreamRestClientFactory;
 import com.afya.platform.bff.dto.DeathDeclarationRequest;
 import com.afya.platform.bff.dto.PatientCreateRequest;
 import com.afya.platform.bff.dto.PatientVolumesResponse;
@@ -18,8 +19,11 @@ public class PatientClient {
 
     private final RestClient restClient;
 
-    public PatientClient(@Value("${app.services.patient-base-url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    public PatientClient(
+            @Value("${app.services.patient-base-url}") String baseUrl,
+            DownstreamRestClientFactory restClientFactory
+    ) {
+        this.restClient = restClientFactory.create(baseUrl);
     }
 
     public Page<PatientResponse> search(

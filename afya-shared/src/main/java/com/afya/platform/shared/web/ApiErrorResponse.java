@@ -6,6 +6,10 @@ public record ApiErrorResponse(
         int status,
         String error,
         String message,
-        Instant timestamp
+        Instant timestamp,
+        String traceId
 ) {
+    public ApiErrorResponse(int status, String error, String message, Instant timestamp) {
+        this(status, error, message, timestamp, null);
+    }
 }

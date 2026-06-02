@@ -1,5 +1,6 @@
 package com.afya.platform.bff.client;
 
+import com.afya.platform.bff.config.DownstreamRestClientFactory;
 import com.afya.platform.bff.dto.*;
 import com.afya.platform.bff.dto.clinical.*;
 import com.afya.platform.bff.support.PageRestSupport;
@@ -17,8 +18,11 @@ public class ClinicalRecordClient {
 
     private final RestClient restClient;
 
-    public ClinicalRecordClient(@Value("${app.services.clinical-base-url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    public ClinicalRecordClient(
+            @Value("${app.services.clinical-base-url}") String baseUrl,
+            DownstreamRestClientFactory restClientFactory
+    ) {
+        this.restClient = restClientFactory.create(baseUrl);
     }
 
     public Page<ConsultationResponse> listConsultations(

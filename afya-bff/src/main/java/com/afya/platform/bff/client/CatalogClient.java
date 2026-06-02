@@ -1,5 +1,6 @@
 package com.afya.platform.bff.client;
 
+import com.afya.platform.bff.config.DownstreamRestClientFactory;
 import com.afya.platform.bff.dto.BedResponse;
 import com.afya.platform.bff.dto.BedSuggestionResponse;
 import com.afya.platform.bff.dto.CatalogOccupancyStatsResponse;
@@ -23,8 +24,11 @@ public class CatalogClient {
 
     private final RestClient restClient;
 
-    public CatalogClient(@Value("${app.services.catalog-base-url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    public CatalogClient(
+            @Value("${app.services.catalog-base-url}") String baseUrl,
+            DownstreamRestClientFactory restClientFactory
+    ) {
+        this.restClient = restClientFactory.create(baseUrl);
     }
 
     public Page<HospitalServiceResponse> listHospitalServices(

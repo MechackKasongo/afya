@@ -19,6 +19,10 @@ Un fichier par microservice : **controllers**, **services**, **repositories**, *
 
 Version Mermaid : [../MERMAID_CLASSES_PAR_SERVICE.md](../MERMAID_CLASSES_PAR_SERVICE.md).
 
+Relations gateway/BFF (inventaire + vue relation-only) :
+[class_participantes_et_activite/RELATIONS_GATEWAYS_BFF_AFYA.md](class_participantes_et_activite/RELATIONS_GATEWAYS_BFF_AFYA.md) ·
+[class_participantes_et_activite/RELATIONS_GATEWAYS_BFF.puml](class_participantes_et_activite/RELATIONS_GATEWAYS_BFF.puml)
+
 ## Modèle du domaine
 
 | Fichier | Contenu |

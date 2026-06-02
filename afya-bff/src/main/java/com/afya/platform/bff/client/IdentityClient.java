@@ -1,6 +1,7 @@
 package com.afya.platform.bff.client;
 
 import com.afya.platform.bff.dto.*;
+import com.afya.platform.bff.config.DownstreamRestClientFactory;
 import com.afya.platform.bff.support.AuthorizationSupport;
 import com.afya.platform.bff.support.PageRestSupport;
 import com.afya.platform.bff.support.RestClientTypes;
@@ -17,8 +18,11 @@ public class IdentityClient {
 
     private final RestClient restClient;
 
-    public IdentityClient(@Value("${app.services.identity-base-url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    public IdentityClient(
+            @Value("${app.services.identity-base-url}") String baseUrl,
+            DownstreamRestClientFactory restClientFactory
+    ) {
+        this.restClient = restClientFactory.create(baseUrl);
     }
 
     public TokenResponse login(LoginRequest request) {

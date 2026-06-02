@@ -1,5 +1,6 @@
 package com.afya.platform.bff.client;
 
+import com.afya.platform.bff.config.DownstreamRestClientFactory;
 import com.afya.platform.bff.dto.AdmissionCreateRequest;
 import com.afya.platform.bff.dto.CareEntryVolumesResponse;
 import com.afya.platform.bff.dto.AdmissionResponse;
@@ -27,8 +28,11 @@ public class CareEntryClient {
 
     private final RestClient restClient;
 
-    public CareEntryClient(@Value("${app.services.care-entry-base-url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    public CareEntryClient(
+            @Value("${app.services.care-entry-base-url}") String baseUrl,
+            DownstreamRestClientFactory restClientFactory
+    ) {
+        this.restClient = restClientFactory.create(baseUrl);
     }
 
     public AdmissionResponse create(AdmissionCreateRequest request, String authorizationHeader) {

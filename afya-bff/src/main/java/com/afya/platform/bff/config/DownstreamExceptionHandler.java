@@ -1,5 +1,6 @@
 package com.afya.platform.bff.config;
 
+import com.afya.platform.shared.web.CorrelationIdSupport;
 import com.afya.platform.shared.web.ApiErrorResponse;
 import tools.jackson.databind.json.JsonMapper;
 import org.springframework.http.HttpStatus;
@@ -31,7 +32,8 @@ public class DownstreamExceptionHandler {
                     ex.getStatusCode().value(),
                     HttpStatus.valueOf(ex.getStatusCode().value()).getReasonPhrase(),
                     "Erreur service en aval",
-                    Instant.now()
+                    Instant.now(),
+                    CorrelationIdSupport.currentId()
             ));
         }
     }
@@ -53,7 +55,8 @@ public class DownstreamExceptionHandler {
                 HttpStatus.SERVICE_UNAVAILABLE.value(),
                 HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
                 message,
-                Instant.now()
+                Instant.now(),
+                CorrelationIdSupport.currentId()
         ));
     }
 }
