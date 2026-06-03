@@ -1,53 +1,40 @@
 @startuml ACTIVITE_GENERALE_AFYA
-title "Diagramme d'activité — Vue générale (Afya SI)"
+title "Diagramme d'activité — Vue générale (SI Afya)"
 
-|Acteur (Admin / Réceptionniste / Médecin / Infirmier)|
+|Utilisateur|
 start
+:S'authentifier;
 
-::S'authentifier;
-|Front / BFF|
-:POST /api/v1/auth/login;
 |identity-service|
-:Valider compte + actif;
+:Valider identifiants et rôles;
 
-|Acteur (selon rôle)|
-if (Choisir cas d'utilisation ?) then (oui)
-  if (Gérer utilisateurs) then (oui)
-    :Gérer comptes + rôles;
-    |identity-service|
-    :CRUD users;
-  elseif (Gérer services hospitaliers) then (oui)
-    :Gérer catalogue + capacité lits;
-    |catalog-service|
-    :CRUD hospital-services + régénérer lits;
-  elseif (Enregistrer / rechercher patient) then (oui)
-    :Rechercher patient ou créer patient;
-    |patient-service|
-    :GET /patients?search ou POST /patients;
-  elseif (Enregistrer admission) then (oui)
-    :Créer admission + lier Stay (chambre/lit si possible);
-    |care-entry-service|
-    :Créer admission;
-    |stay-service|
-    :Créer/lier Stay;
-  elseif (Prise en charge médicale) then (oui)
-    :Consulter dossier + enregistrer diagnostic / prescription;
-    |clinical-record-service|
-    :Créer ConsultationEvent + PrescriptionLine;
-    :Décider sortie/transfert;
-    |care-entry-service|
-    :Clôturer Admission (SORTIE) ou créer TransferRequest;
-  elseif (Enregistrer soins infirmiers) then (oui)
-    :Saisir soin + exécuter administration médicament;
-    |clinical-record-service|
-    :Créer SoinInfirmier + MedicationAdministration;
-  else (aucune)
-    :Consulter / lecture seule;
-  endif
-else (non)
-  stop
+|Utilisateur|
+if (Cas d'utilisation ?) then (Utilisateurs)
+  |identity-service|
+  :Administrer comptes et rôles;
+elseif (Services) then
+  |catalog-service|
+  :Administrer catalogue et lits;
+elseif (Patient) then
+  |patient-service|
+  :Rechercher ou enregistrer;
+elseif (Admission) then
+  |care-entry-service|
+  :Créer admission;
+  |stay-service|
+  :Ouvrir séjour;
+elseif (Prise en charge) then
+  |clinical-record-service|
+  :Diagnostic et prescription;
+  |care-entry-service|
+  :Sortie ou transfert;
+elseif (Soins) then
+  |clinical-record-service|
+  :Soins et administration;
+else (Lecture)
+  :Consultation seule;
 endif
 
 stop
-@enduml
 
+@enduml

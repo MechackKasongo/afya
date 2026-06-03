@@ -1,0 +1,49 @@
+@startuml ACTIVITE_PAR_ACTEUR_COLONNES_AFYA
+title "Activité — colonne Administrateur (fichier regroupé)"
+
+note as N1
+  **Vue par colonne acteur (4 fichiers séparés)**
+  PlantUML activité ne supporte pas newpage/detach ici.
+  Utiliser :
+  - ACTIVITE_COLONNE_ADMINISTRATEUR_AFYA.puml
+  - ACTIVITE_COLONNE_RECEPTIONNISTE_AFYA.puml
+  - ACTIVITE_COLONNE_MEDECIN_AFYA.puml
+  - ACTIVITE_COLONNE_INFIRMIER_AFYA.puml
+end note
+
+|Administrateur|
+start
+:S'authentifier;
+
+|identity-service|
+:Valider identifiants;
+:Générer session;
+
+|Administrateur|
+:Accéder à l'espace administration;
+
+if (Action ?) then (Utilisateurs)
+  :Ouvrir module Utilisateurs;
+  |identity-service|
+  :Gérer comptes et rôles;
+  :Journaliser;
+  |Administrateur|
+  :Fin;
+elseif (Services hospitaliers) then
+  :Ouvrir module Services;
+  |catalog-service|
+  :Gérer catalogue et lits;
+  :Journaliser;
+  |Administrateur|
+  :Fin;
+elseif (Activités système) then
+  :Ouvrir module Rapports;
+  |audit-service|
+  :Consulter journal et statistiques;
+  |Administrateur|
+  :Fin;
+else (Consultation)
+  :Consulter sans modification;
+endif
+stop
+@enduml

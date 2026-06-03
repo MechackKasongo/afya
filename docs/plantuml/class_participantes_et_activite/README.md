@@ -71,6 +71,35 @@ Chaque acteur parcourt les cas d’utilisation qui lui sont associés dans le m�
 
 [ACTIVITE_GENERALE_AFYA.puml](ACTIVITE_GENERALE_AFYA.puml)
 
+## Diagramme d'activité — acteurs et capacités (4 fichiers)
+
+Vue **menu utilisateur** (style OPJ/Admin) : authentification (décision), **Choisir opération**, **fork** des cas d'utilisation, **décisions** ◇ seulement pour les vrais choix (trouvé/valide/sortie…). Le détail technique est dans les `ACTIVITE_*_AFYA.puml` par CU. Aligné sur [CAS_UTILISATION_AFYA.puml](CAS_UTILISATION_AFYA.puml).
+
+| Acteur | Fichier |
+|--------|---------|
+| Administrateur | [ACTIVITE_CAPACITES_ADMINISTRATEUR_AFYA.puml](ACTIVITE_CAPACITES_ADMINISTRATEUR_AFYA.puml) |
+| Réceptionniste | [ACTIVITE_CAPACITES_RECEPTIONNISTE_AFYA.puml](ACTIVITE_CAPACITES_RECEPTIONNISTE_AFYA.puml) |
+| Médecin | [ACTIVITE_CAPACITES_MEDECIN_AFYA.puml](ACTIVITE_CAPACITES_MEDECIN_AFYA.puml) |
+| Infirmier(ère) | [ACTIVITE_CAPACITES_INFIRMIER_AFYA.puml](ACTIVITE_CAPACITES_INFIRMIER_AFYA.puml) |
+
+## Diagramme d'activité — une colonne par acteur
+
+**Un fichier PlantUML par acteur** (colonne swimlane + flux complet).  
+`newpage` / `detach` ne sont pas fiables en diagramme d'activité (beta PlantUML).
+
+| Acteur | Fichier |
+|--------|---------|
+| Administrateur | [ACTIVITE_COLONNE_ADMINISTRATEUR_AFYA.puml](ACTIVITE_COLONNE_ADMINISTRATEUR_AFYA.puml) |
+| Réceptionniste | [ACTIVITE_COLONNE_RECEPTIONNISTE_AFYA.puml](ACTIVITE_COLONNE_RECEPTIONNISTE_AFYA.puml) |
+| Médecin | [ACTIVITE_COLONNE_MEDECIN_AFYA.puml](ACTIVITE_COLONNE_MEDECIN_AFYA.puml) |
+| Infirmier | [ACTIVITE_COLONNE_INFIRMIER_AFYA.puml](ACTIVITE_COLONNE_INFIRMIER_AFYA.puml) |
+
+Fichier regroupé (admin + note) : [ACTIVITE_PAR_ACTEUR_COLONNES_AFYA.puml](ACTIVITE_PAR_ACTEUR_COLONNES_AFYA.puml)
+
+```bash
+plantuml docs/plantuml/class_participantes_et_activite/ACTIVITE_COLONNE_*_AFYA.puml
+```
+
 ## Classes participantes (implémentation — anglais)
 
 Fichiers individuels par CU (`CLASSES_PARTICIPANTES_*.puml`) : noms Java / BFF après développement.

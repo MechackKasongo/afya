@@ -1,5 +1,5 @@
-@startuml ACTIVITE_ADMIN_AFYA
-title "Diagramme d'activité — Administrateur (SI Afya)"
+@startuml ACTIVITE_COLONNE_ADMINISTRATEUR_AFYA
+title "Activité — colonne Administrateur"
 
 |Administrateur|
 start
@@ -12,23 +12,28 @@ start
 |Administrateur|
 :Accéder à l'espace administration;
 
-if (Quelle action ?) then (Utilisateurs)
+if (Action ?) then (Utilisateurs)
   :Ouvrir module Utilisateurs;
   |identity-service|
   :Gérer comptes et rôles;
-  :Journaliser les actions;
+  :Journaliser;
+  |Administrateur|
+  :Fin;
 elseif (Services hospitaliers) then
   :Ouvrir module Services;
   |catalog-service|
   :Gérer catalogue et lits;
-  :Journaliser les actions;
+  :Journaliser;
+  |Administrateur|
+  :Fin;
 elseif (Activités système) then
   :Ouvrir module Rapports;
   |audit-service|
   :Consulter journal et statistiques;
+  |Administrateur|
+  :Fin;
 else (Consultation)
   :Consulter sans modification;
 endif
-
 stop
 @enduml

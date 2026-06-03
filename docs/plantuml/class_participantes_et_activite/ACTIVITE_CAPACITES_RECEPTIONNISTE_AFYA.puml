@@ -1,0 +1,55 @@
+@startuml ACTIVITE_CAPACITES_RECEPTIONNISTE_AFYA
+title "Diagramme d'activité côté Réceptionniste (SI Afya)"
+' Détail : ACTIVITE_ENREGISTRER_PATIENT_AFYA, ACTIVITE_ADMISSION_PATIENT_AFYA.
+
+start
+label authentification
+:S'authentifier;
+if (Authentification ?) then (Si échec)
+  ->authentification;
+else (Si réussie)
+  :Choisir opération;
+  fork
+    :Logout;
+    ->authentification;
+  fork again
+    :Rechercher un patient;
+    :Saisir un critère de recherche;
+    if (Patient trouvé ?) then (oui)
+      :Afficher la fiche patient;
+    else (non)
+      :Afficher message patient non trouvé;
+    endif
+    :Choisir opération;
+  fork again
+    :Enregistrer un patient;
+    :Saisir l'identité du patient;
+    if (Données valides ?) then (oui)
+      :Confirmer et afficher le n° de dossier;
+    else (non)
+      :Afficher erreur de validation;
+    endif
+    :Choisir opération;
+  fork again
+    :Enregistrer l'admission;
+    :Rechercher ou enregistrer le patient;
+    :Choisir le service et la date;
+    if (Service disponible ?) then (oui)
+      :Confirmer l'admission;
+    else (non)
+      :Corriger le choix de service;
+    endif
+    :Choisir opération;
+  fork again
+    :Affecter un patient à un service;
+    :Choisir opération;
+  fork again
+    :Gérer les transferts administratifs;
+    :Choisir opération;
+  fork again
+    :Consulter l'historique des admissions;
+    :Choisir opération;
+  end fork
+endif
+stop
+@enduml

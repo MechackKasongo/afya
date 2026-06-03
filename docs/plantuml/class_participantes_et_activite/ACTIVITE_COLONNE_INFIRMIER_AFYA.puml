@@ -1,5 +1,5 @@
-@startuml ACTIVITE_INFERMIER_AFYA
-title "Diagramme d'activité — Infirmier (SI Afya)"
+@startuml ACTIVITE_COLONNE_INFIRMIER_AFYA
+title "Activité — colonne Infirmier"
 
 |Infirmier|
 start
@@ -9,27 +9,28 @@ start
 :Valider identifiants;
 
 |Infirmier|
-:Rechercher le patient;
+:Rechercher patient;
 
 |clinical-record-service|
 :Charger dossier et soins;
 
 |Infirmier|
 if (Nouveau soin ?) then (oui)
-  :Saisir type et description;
+  :Saisir soin;
   |clinical-record-service|
-  :Enregistrer le soin;
+  :Enregistrer soin infirmier;
   |Infirmier|
+  :Fin;
 endif
 
 if (Administration ?) then (oui)
   :Choisir prescription et dose;
   |clinical-record-service|
-  :Enregistrer l'administration;
+  :Enregistrer administration;
   |Infirmier|
+  :Fin;
 endif
 
 :Fin;
 stop
-
 @enduml

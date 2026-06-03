@@ -1,5 +1,5 @@
-@startuml ACTIVITE_RECEPTIONNISTE_AFYA
-title "Diagramme d'activité — Réceptionniste (SI Afya)"
+@startuml ACTIVITE_COLONNE_RECEPTIONNISTE_AFYA
+title "Activité — colonne Réceptionniste"
 
 |Réceptionniste|
 start
@@ -14,34 +14,33 @@ if (Besoin patient ?) then (Recherche)
   |patient-service|
   :Rechercher le patient;
   |Réceptionniste|
-  if (Patient trouvé ?) then (oui)
+  if (Trouvé ?) then (oui)
     :Afficher la fiche;
   else (non)
-    :Enregistrer un nouveau patient;
+    :Créer un patient;
     |patient-service|
-    :Créer le patient;
-    :Journaliser;
+    :Enregistrer et journaliser;
     |Réceptionniste|
-    :Afficher le n° dossier;
+    :Afficher n° dossier;
   endif
-else (Admission)
-  :Patient déjà identifié;
+else (Admission directe)
+  :Patient déjà connu;
 endif
 
-:Choisir service et date d'admission;
+:Choisir service et date;
 
 |care-entry-service|
-:Créer l'admission;
+:Créer admission;
 
 |catalog-service|
-:Vérifier service et capacité;
+:Vérifier capacité;
 
-if (Service disponible ?) then (oui)
+if (Disponible ?) then (oui)
   |stay-service|
-  :Ouvrir le séjour;
+  :Ouvrir séjour;
   :Journaliser;
   |Réceptionniste|
-  :Confirmer l'admission;
+  :Confirmer admission;
   stop
 else (non)
   |Réceptionniste|
@@ -49,5 +48,4 @@ else (non)
   :Corriger le choix;
   stop
 endif
-
 @enduml

@@ -1,5 +1,5 @@
-@startuml ACTIVITE_MEDECIN_AFYA
-title "Diagramme d'activité — Médecin (SI Afya)"
+@startuml ACTIVITE_COLONNE_MEDECIN_AFYA
+title "Activité — colonne Médecin"
 
 |Médecin|
 start
@@ -18,35 +18,37 @@ start
 if (Diagnostic ?) then (oui)
   :Saisir maladie et observations;
   |clinical-record-service|
-  :Enregistrer le diagnostic;
+  :Enregistrer diagnostic;
   |Médecin|
+  :Fin;
 endif
 
 if (Prescription ?) then (oui)
-  :Saisir le traitement;
+  :Saisir traitement;
   |clinical-record-service|
-  :Enregistrer la prescription;
+  :Enregistrer prescription;
   |Médecin|
+  :Fin;
 endif
 
 :Décider sortie ou transfert;
 
 if (Sortie ?) then (oui)
   |care-entry-service|
-  :Clôturer l'admission;
+  :Clôturer admission;
   |stay-service|
-  :Clôturer le séjour;
+  :Clôturer séjour;
 else (Transfert)
   |care-entry-service|
-  :Créer demande de transfert;
+  :Créer transfert;
   |stay-service|
-  :Mettre à jour le séjour;
+  :Mettre à jour séjour;
 endif
 
 |audit-service|
-:Journaliser la décision;
+:Journaliser décision;
 
 |Médecin|
+:Fin;
 stop
-
 @enduml

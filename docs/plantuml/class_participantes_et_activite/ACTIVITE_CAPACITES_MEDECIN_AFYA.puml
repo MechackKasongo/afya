@@ -1,0 +1,44 @@
+@startuml ACTIVITE_CAPACITES_MEDECIN_AFYA
+title "Diagramme d'activité côté Médecin (SI Afya)"
+' Détail : ACTIVITE_PRISE_EN_CHARGE_MEDICALE_AFYA, ACTIVITE_SORTIE_TRANSFERT_AFYA.
+
+start
+label authentification
+:S'authentifier;
+if (Authentification ?) then (Si échec)
+  ->authentification;
+else (Si réussie)
+  :Choisir opération;
+  fork
+    :Logout;
+    ->authentification;
+  fork again
+    :Consulter le dossier médical du patient;
+    :Choisir opération;
+  fork again
+    :Ajouter diagnostics et observations;
+    if (Données complètes ?) then (oui)
+      :Enregistrer le diagnostic;
+    else (non)
+      :Afficher erreur de saisie;
+    endif
+    :Choisir opération;
+  fork again
+    :Enregistrer les prescriptions;
+    :Choisir opération;
+  fork again
+    :Décider du transfert ou de la sortie;
+    if (Décision ?) then (Sortie)
+      :Saisir motif et date de sortie;
+      :Clôturer admission et séjour;
+    elseif (Transfert) then
+      :Choisir le service de destination;
+      :Créer le transfert;
+    else (Annuler)
+      :Abandonner la décision;
+    endif
+    :Choisir opération;
+  end fork
+endif
+stop
+@enduml
