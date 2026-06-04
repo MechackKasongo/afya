@@ -1,0 +1,55 @@
+@startuml COMPOSANTS_STAY_SERVICE
+title "Diagramme de composants — stay-service (:8085)"
+skinparam componentStyle rectangle
+
+actor "Client HTTP" as Client
+
+package "stay-service" {
+
+  component "StayController\n/api/v1/stays" as StayCtrl <<REST>>
+  component "StayStatsController" as StatsCtrl <<REST>>
+
+  component "StayService" as StaySvc <<service>>
+
+  component "StayRepository" as StayRepo <<repository>>
+  component "HospitalizationFormRepository" as FormRepo <<repository>>
+
+  component "CareEntryServiceClient" as CeClient <<integration>>
+  component "PatientServiceClient" as PatClient <<integration>>
+
+  component "SecurityConfig" as SecCfg <<config>>
+}
+
+package "afya-shared" as Shared {
+  component "HttpResilienceInterceptor" as Resilience
+  component "RestAuditEventPublisher" as AuditPub
+}
+
+database "PostgreSQL\nafya_stay :5437" as DB
+
+component "care-entry-service\n:8084" as CareEntry
+component "patient-service\n:8083" as Patient
+component "audit-service\n:8087" as Audit
+
+Client --> StayCtrl
+Client --> StatsCtrl
+
+StayCtrl --> StaySvc
+StatsCtrl --> StayRepo
+StaySvc --> StayRepo
+StaySvc --> FormRepo
+StaySvc --> CeClient
+StaySvc --> PatClient
+
+StayRepo --> DB
+FormRepo --> DB
+
+CeClient ..> CareEntry : GET admission
+PatClient ..> Patient : GET patient
+CeClient ..> Resilience
+PatClient ..> Resilience
+
+StaySvc ..> AuditPub
+AuditPub ..> Audit
+
+@enduml

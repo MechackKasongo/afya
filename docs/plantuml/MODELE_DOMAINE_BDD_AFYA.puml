@@ -1,0 +1,367 @@
+@startuml MODELE_DOMAINE_BDD_AFYA
+title "Modèle du domaine — dérivé du schéma PostgreSQL (Flyway)"
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+legend right
+  Source : **db/migration/V*.sql** (état après toutes les migrations).
+  Classe = table ; attribut = colonne SQL.
+  **FK** : clé étrangère JPA/SQL (trait plein).
+  **Réf. logique** : BIGINT sans FK inter-bases (trait pointillé).
+  Méthodes applicatives : voir **CONCEPTION_BDD_AFYA.puml**.
+endlegend
+
+package "afya_identity" <<BoundedContext>> #E8F4FC {
+
+  class app_users <<table>> {
+    id : BIGINT «PK»
+    username : VARCHAR(80) «UK»
+    email : VARCHAR(160)
+    full_name : VARCHAR(120)
+    password_hash : VARCHAR(255)
+    active : BOOLEAN
+    created_at : TIMESTAMP
+  }
+
+  class roles <<table>> {
+    id : BIGINT «PK»
+    code : VARCHAR(40) «UK»
+    label : VARCHAR(120)
+  }
+
+  class user_roles <<table>> {
+    user_id : BIGINT «PK,FK»
+    role_id : BIGINT «PK,FK»
+  }
+
+  class refresh_tokens <<table>> {
+    id : BIGINT «PK»
+    user_id : BIGINT «FK»
+    token_hash : VARCHAR(128) «UK»
+    expires_at : TIMESTAMP
+    revoked : BOOLEAN
+    created_at : TIMESTAMP
+  }
+
+  class revoked_access_jti <<table>> {
+    jti : VARCHAR(64) «PK»
+    expires_at : TIMESTAMP
+    revoked_at : TIMESTAMP
+  }
+
+  class user_hospital_services <<table>> {
+    user_id : BIGINT «PK,FK»
+    hospital_service_id : BIGINT «PK»
+  }
+
+  app_users "1" *-- "*" user_roles
+  roles "1" *-- "*" user_roles
+  app_users "1" *-- "*" refresh_tokens
+  app_users "1" *-- "*" user_hospital_services
+}
+
+package "afya_catalog" <<BoundedContext>> #E8FCF0 {
+
+  class departments <<table>> {
+    id : BIGINT «PK»
+    code : VARCHAR(40) «UK»
+    name : VARCHAR(120)
+    active : BOOLEAN
+    created_at : TIMESTAMP
+  }
+
+  class hospital_services <<table>> {
+    id : BIGINT «PK»
+    department_id : BIGINT «FK»
+    name : VARCHAR(120) «UK»
+    bed_capacity : INT
+    beds_per_room : INT
+    room_letter_prefix : CHAR(1)
+    bed_assignment_policy : VARCHAR(32)
+    active : BOOLEAN
+    created_at : TIMESTAMP
+  }
+
+  class beds <<table>> {
+    id : BIGINT «PK»
+    hospital_service_id : BIGINT «FK»
+    label : VARCHAR(40)
+    occupied : BOOLEAN
+    last_freed_at : TIMESTAMP
+  }
+
+  departments "1" *-- "1..*" hospital_services
+  hospital_services "1" *-- "0..*" beds
+}
+
+package "afya_patient" <<BoundedContext>> #FFF8E8 {
+
+  class patients <<table>> {
+    id : BIGINT «PK»
+    first_name : VARCHAR(80)
+    last_name : VARCHAR(80)
+    post_name : VARCHAR(120)
+    dossier_number : VARCHAR(40) «UK»
+    birth_date : DATE
+    sex : VARCHAR(10)
+    phone : VARCHAR(120)
+    email : VARCHAR(120)
+    address : VARCHAR(255)
+    blood_group : VARCHAR(10)
+    height_cm : DECIMAL(5,2)
+    created_at : TIMESTAMP
+    deceased_at : TIMESTAMP
+  }
+
+  class patient_dossier_sequences <<table>> {
+    sequence_year : INT «PK»
+    letter_block : VARCHAR(4)
+    sequence_number : INT
+  }
+
+  class appointments <<table>> {
+    id : BIGINT «PK»
+    patient_id : BIGINT «FK»
+    scheduled_at : TIMESTAMP
+    status : VARCHAR(20)
+    reason : VARCHAR(255)
+    created_at : TIMESTAMP
+  }
+
+  patients "1" *-- "0..*" appointments
+}
+
+package "afya_care_entry" <<BoundedContext>> #FCE8F8 {
+
+  class admissions <<table>> {
+    id : BIGINT «PK»
+    patient_id : BIGINT
+    hospital_service_id : BIGINT
+    admitted_at : TIMESTAMP
+    discharged_at : TIMESTAMP
+    status : VARCHAR(20)
+    discharge_reason : VARCHAR(255)
+    admission_reason : VARCHAR(255)
+    created_at : TIMESTAMP
+  }
+
+  class transfer_requests <<table>> {
+    id : BIGINT «PK»
+    admission_id : BIGINT «FK»
+    from_service_id : BIGINT
+    to_service_id : BIGINT
+    requested_at : TIMESTAMP
+    reason : VARCHAR(255)
+  }
+
+  class emergency_visits <<table>> {
+    id : BIGINT «PK»
+    patient_id : BIGINT
+    arrived_at : TIMESTAMP
+    ended_at : TIMESTAMP
+    status : VARCHAR(20)
+    triage_notes : VARCHAR(500)
+    priority : VARCHAR(5)
+    triage_level : VARCHAR(20)
+    orientation : VARCHAR(120)
+    created_at : TIMESTAMP
+  }
+
+  class emergency_visit_timeline_events <<table>> {
+    id : BIGINT «PK»
+    emergency_visit_id : BIGINT «FK»
+    event_type : VARCHAR(40)
+    details : VARCHAR(500)
+    created_at : TIMESTAMP
+  }
+
+  class vital_sign_readings <<table>> {
+    id : BIGINT «PK»
+    admission_id : BIGINT «FK»
+    recorded_at : TIMESTAMP
+    slot : VARCHAR(20)
+    systolic_bp : INT
+    diastolic_bp : INT
+    pulse_bpm : INT
+    temperature_celsius : DECIMAL(5,2)
+    weight_kg : DECIMAL(6,2)
+    diuresis_ml : INT
+    stools_note : VARCHAR(500)
+  }
+
+  admissions "1" *-- "0..*" transfer_requests
+  admissions "1" *-- "0..*" vital_sign_readings
+  emergency_visits "1" *-- "0..*" emergency_visit_timeline_events
+}
+
+package "afya_stay" <<BoundedContext>> #F0E8FC {
+
+  class stays <<table>> {
+    id : BIGINT «PK»
+    patient_id : BIGINT
+    admission_id : BIGINT «UK»
+    check_in_at : TIMESTAMP
+    check_out_at : TIMESTAMP
+    room_label : VARCHAR(40)
+    bed_label : VARCHAR(40)
+    status : VARCHAR(20)
+    created_at : TIMESTAMP
+  }
+
+  class hospitalization_forms <<table>> {
+    stay_id : BIGINT «PK,FK»
+    chief_complaint : VARCHAR(500)
+    history_text : VARCHAR(4000)
+    allergies : VARCHAR(500)
+    antecedents_text : TEXT
+    anamnesis_text : TEXT
+    physical_exam_pulmonary_text : TEXT
+    physical_exam_cardiac_text : TEXT
+    physical_exam_abdominal_text : TEXT
+    physical_exam_neurological_text : TEXT
+    physical_exam_misc_text : TEXT
+    paraclinical_text : TEXT
+    conclusion_text : TEXT
+    updated_at : TIMESTAMP
+  }
+
+  stays "1" *-- "0..1" hospitalization_forms
+}
+
+package "afya_clinical" <<BoundedContext>> #FCEEE8 {
+
+  class medical_records <<table>> {
+    id : BIGINT «PK»
+    patient_id : BIGINT «UK»
+    opened_at : TIMESTAMP
+    allergies : VARCHAR(4000)
+    antecedents : VARCHAR(16000)
+  }
+
+  class clinical_notes <<table>> {
+    id : BIGINT «PK»
+    medical_record_id : BIGINT «FK»
+    authored_at : TIMESTAMP
+    author_username : VARCHAR(80)
+    narrative : VARCHAR(4000)
+  }
+
+  class diagnoses <<table>> {
+    id : BIGINT «PK»
+    medical_record_id : BIGINT «FK»
+    code : VARCHAR(40)
+    label : VARCHAR(255)
+    recorded_at : TIMESTAMP
+    author_username : VARCHAR(80)
+  }
+
+  class prescription_lines <<table>> {
+    id : BIGINT «PK»
+    medical_record_id : BIGINT «FK»
+    drug_name : VARCHAR(120)
+    dosage : VARCHAR(500)
+    frequency : VARCHAR(80)
+    start_date : DATE
+    end_date : DATE
+    status : VARCHAR(20)
+    prescribed_by : VARCHAR(80)
+    created_at : TIMESTAMP
+  }
+
+  class medication_administrations <<table>> {
+    id : BIGINT «PK»
+    prescription_line_id : BIGINT «FK»
+    administered_at : TIMESTAMP
+    dose_given : VARCHAR(80)
+    nurse_username : VARCHAR(80)
+    notes : VARCHAR(500)
+  }
+
+  class nursing_care_records <<table>> {
+    id : BIGINT «PK»
+    medical_record_id : BIGINT «FK»
+    care_type : VARCHAR(80)
+    performed_at : TIMESTAMP
+    nurse_username : VARCHAR(80)
+    description : VARCHAR(2000)
+  }
+
+  class clinical_documents <<table>> {
+    id : BIGINT «PK»
+    medical_record_id : BIGINT «FK»
+    title : VARCHAR(200)
+    content_type : VARCHAR(100)
+    object_storage_key : VARCHAR(500)
+    uploaded_at : TIMESTAMP
+    uploaded_by : VARCHAR(80)
+  }
+
+  class consultations <<table>> {
+    id : BIGINT «PK»
+    patient_id : BIGINT
+    admission_id : BIGINT
+    doctor_name : VARCHAR(80)
+    reason : VARCHAR(255)
+    consultation_date_time : TIMESTAMP
+  }
+
+  class consultation_events <<table>> {
+    id : BIGINT «PK»
+    consultation_id : BIGINT «FK»
+    patient_id : BIGINT
+    event_type : VARCHAR(40)
+    content : VARCHAR(4000)
+    disease_type : VARCHAR(120)
+    disease_name : VARCHAR(255)
+    created_at : TIMESTAMP
+  }
+
+  class disease_catalog <<table>> {
+    id : BIGSERIAL «PK»
+    disease_type : VARCHAR(120)
+    label : VARCHAR(255)
+    label_normalized : VARCHAR(255)
+    usage_count : INT
+    first_used_at : TIMESTAMP
+    last_used_at : TIMESTAMP
+  }
+
+  medical_records "1" *-- "0..*" clinical_notes
+  medical_records "1" *-- "0..*" diagnoses
+  medical_records "1" *-- "0..*" prescription_lines
+  medical_records "1" *-- "0..*" nursing_care_records
+  medical_records "1" *-- "0..*" clinical_documents
+  consultations "1" *-- "0..*" consultation_events
+  prescription_lines "1" *-- "0..*" medication_administrations
+}
+
+package "afya_audit" <<BoundedContext>> #EEEEEE {
+
+  class audit_events <<table>> {
+    id : BIGSERIAL «PK»
+    event_id : UUID «UK»
+    occurred_at : TIMESTAMP
+    actor_username : VARCHAR(80)
+    action : VARCHAR(80)
+    resource_type : VARCHAR(60)
+    resource_id : VARCHAR(80)
+    source_service : VARCHAR(40)
+    metadata_json : TEXT
+    created_at : TIMESTAMP
+  }
+}
+
+' --- Références inter-bases (sans FK SQL) ---
+
+user_hospital_services ..> hospital_services : hospital_service_id
+patients ..> admissions : patient_id
+patients ..> emergency_visits : patient_id
+patients ..> stays : patient_id
+patients ..> medical_records : patient_id
+patients ..> consultations : patient_id
+hospital_services ..> admissions : hospital_service_id
+admissions ..> stays : admission_id
+admissions ..> consultations : admission_id
+
+@enduml

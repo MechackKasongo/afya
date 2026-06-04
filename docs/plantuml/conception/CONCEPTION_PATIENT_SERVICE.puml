@@ -1,0 +1,71 @@
+@startuml CONCEPTION_PATIENT_SERVICE
+title "Conception — patient-service (:8083)"
+skinparam classAttributeIconSize 0
+
+package "Présentation REST" {
+  class PatientController {
+    + create(PatientCreateRequest) : PatientResponse
+    + getById(Long) : PatientResponse
+    + search(...) : Page<PatientResponse>
+    + update(Long, PatientUpdateRequest) : PatientResponse
+    + updateContacts(Long, PatientContactsUpdateRequest) : PatientResponse
+    + declareDeath(Long, DeathDeclarationRequest) : PatientResponse
+  }
+  class AppointmentController {
+    + listByPatient(Long) : List<AppointmentResponse>
+    + create(Long, AppointmentCreateRequest) : AppointmentResponse
+    + cancel(Long, Long) : AppointmentResponse
+  }
+  class PatientStatsController {
+    + countPatients() : long
+  }
+}
+
+package "Application" {
+  class PatientRegistryService {
+    + create(PatientCreateRequest) : PatientResponse
+    + getById(Long) : PatientResponse
+    + search(...) : Page<PatientResponse>
+    + update(Long, PatientUpdateRequest) : PatientResponse
+    + updateContacts(Long, ...) : PatientResponse
+    + declareDeath(Long, DeathDeclarationRequest) : PatientResponse
+  }
+  class AppointmentService {
+    + listByPatient(Long) : List<AppointmentResponse>
+    + create(Long, AppointmentCreateRequest) : AppointmentResponse
+    + cancel(Long, Long) : AppointmentResponse
+  }
+  class DossierNumberGenerator {
+    + generate() : String
+  }
+}
+
+package "Persistance" {
+  interface PatientRepository {
+    + findByDossierNumber(String) : Optional<Patient>
+    + findById(Long) : Optional<Patient>
+    + save(Patient) : Patient
+  }
+  interface AppointmentRepository
+  interface PatientDossierSequenceRepository
+  class Patient <<Entity>> {
+    - dossierNumber : String
+    - deceasedAt : Instant
+    --
+    + getFirstName() : String
+    + setDeceasedAt(Instant) : void
+  }
+  class Appointment <<Entity>>
+  class PatientDossierSequence <<Entity>>
+}
+
+PatientController --> PatientRegistryService
+AppointmentController --> AppointmentService
+PatientStatsController --> PatientRepository
+PatientRegistryService --> PatientRepository
+PatientRegistryService --> DossierNumberGenerator
+PatientRegistryService --> PatientDossierSequenceRepository
+AppointmentService --> AppointmentRepository
+PatientRepository --> Patient
+
+@enduml

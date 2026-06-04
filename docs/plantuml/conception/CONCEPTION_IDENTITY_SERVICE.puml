@@ -1,0 +1,98 @@
+@startuml CONCEPTION_IDENTITY_SERVICE
+title "Conception — identity-service (:8081)"
+skinparam classAttributeIconSize 0
+
+package "Présentation REST" {
+  class AuthController {
+    + login(LoginRequest) : TokenResponse
+    + refresh(RefreshRequest) : TokenResponse
+    + logout(HttpServletRequest, RefreshRequest) : void
+    + me(Authentication) : MeResponse
+  }
+  class UserController {
+    + list(...) : Page<UserResponse>
+    + listRoles() : List<RoleOptionResponse>
+    + create(UserCreateRequest) : UserResponse
+    + update(Long, UserUpdateRequest) : UserResponse
+    + updateStatus(Long, UserStatusRequest) : UserResponse
+    + delete(Long) : void
+    + get(Long) : UserResponse
+    + credentialsForUser(Long) : UserCredentialsResponse
+  }
+}
+
+package "Application" {
+  class AuthService {
+    + login(String, String) : TokenResponse
+    + refresh(String) : TokenResponse
+    + logout(String, String) : void
+    + me(Authentication) : MeResponse
+  }
+  class UserAdminService {
+    + list(...) : Page<UserResponse>
+    + create(UserCreateRequest) : UserResponse
+    + update(Long, UserUpdateRequest) : UserResponse
+    + updateStatus(Long, UserStatusRequest) : UserResponse
+    + delete(Long) : void
+    + getById(Long) : UserResponse
+  }
+  class JwtService {
+    + issueAccessToken(AppUser) : String
+    + issueRefreshToken(AppUser) : String
+    + parseAccessToken(String) : Claims
+    + parseRefreshToken(String) : Claims
+  }
+  class CredentialsLogService {
+    + preview(PasswordPreviewRequest) : PasswordPreviewResponse
+    + exportCredentialsFile() : byte[]
+  }
+}
+
+package "Persistance" {
+  interface AppUserRepository {
+    + findByUsernameIgnoreCase(String) : Optional<AppUser>
+    + findById(Long) : Optional<AppUser>
+    + save(AppUser) : AppUser
+  }
+  interface RoleRepository {
+    + findByCode(String) : Optional<Role>
+  }
+  interface RefreshTokenRepository {
+    + findByTokenHash(String) : Optional<RefreshToken>
+    + save(RefreshToken) : RefreshToken
+  }
+  interface RevokedAccessJtiRepository {
+    + save(RevokedAccessJti) : RevokedAccessJti
+  }
+  class AppUser <<Entity>> {
+    - id : Long
+    - username : String
+    - hospitalServiceIds : Set<Long>
+    --
+    + getRoles() : Set<Role>
+    + isActive() : boolean
+  }
+  class Role <<Entity>>
+  class RefreshToken <<Entity>>
+  class RevokedAccessJti <<Entity>>
+  class user_hospital_services <<table>>
+}
+
+interface AuditEventPublisher {
+  + publish(...) : void
+}
+
+AuthController --> AuthService
+UserController --> UserAdminService
+UserController --> CredentialsLogService
+AuthService --> AppUserRepository
+AuthService --> RefreshTokenRepository
+AuthService --> RevokedAccessJtiRepository
+AuthService --> JwtService
+UserAdminService --> AppUserRepository
+UserAdminService --> RoleRepository
+AppUserRepository --> AppUser
+AuthService ..> AuditEventPublisher
+UserAdminService ..> AuditEventPublisher
+
+@enduml

@@ -1,0 +1,79 @@
+@startuml COMPOSANTS_IDENTITY_SERVICE
+title "Diagramme de composants — identity-service (:8081)"
+skinparam componentStyle rectangle
+
+actor "Client HTTP\n(BFF / tests)" as Client
+
+package "identity-service" {
+
+  together {
+    component "AuthController\n/api/v1/auth" as AuthCtrl <<REST>>
+    component "UserController\n/api/v1/users" as UserCtrl <<REST>>
+  }
+
+  together {
+    component "AuthService" as AuthSvc <<service>>
+    component "UserAdminService" as UserSvc <<service>>
+    component "JwtService" as JwtSvc <<service>>
+    component "CredentialsLogService" as CredLog <<service>>
+  }
+
+  together {
+    component "SecurityConfig" as SecCfg <<config>>
+    component "JwtAuthenticationFilter" as JwtFilter <<config>>
+    component "BootstrapAccountProvisioner" as Bootstrap <<config>>
+  }
+
+  together {
+    component "AppUserRepository" as UserRepo <<repository>>
+    component "RoleRepository" as RoleRepo <<repository>>
+    component "RefreshTokenRepository" as RefreshRepo <<repository>>
+    component "RevokedAccessJtiRepository" as JtiRepo <<repository>>
+  }
+}
+
+package "afya-shared" as Shared {
+  component "CorrelationIdFilter" as Corr
+  component "RestAuditEventPublisher" as AuditPub
+  component "GlobalExceptionHandler" as Err
+}
+
+database "PostgreSQL\nafya_identity :5433" as DB
+
+component "audit-service\n:8087" as Audit
+
+Client --> AuthCtrl : JWT login / refresh
+Client --> UserCtrl : CRUD users (ADMIN)
+
+AuthCtrl --> AuthSvc
+UserCtrl --> UserSvc
+UserCtrl --> CredLog
+AuthSvc --> JwtSvc
+AuthSvc --> UserRepo
+AuthSvc --> RefreshRepo
+AuthSvc --> JtiRepo
+UserSvc --> UserRepo
+UserSvc --> RoleRepo
+
+UserRepo --> DB
+RoleRepo --> DB
+RefreshRepo --> DB
+JtiRepo --> DB
+
+SecCfg --> JwtFilter
+AuthSvc ..> AuditPub
+UserSvc ..> AuditPub
+AuditPub ..> Audit : POST events
+
+AuthCtrl ..> Corr
+UserCtrl ..> Corr
+AuthSvc ..> Err
+
+note right of DB
+  Tables : app_users, roles,
+  user_roles, refresh_tokens,
+  revoked_access_jti,
+  user_hospital_services
+end note
+
+@enduml

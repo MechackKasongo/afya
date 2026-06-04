@@ -1,39 +1,120 @@
 @startuml COMPOSANTS_AFYA
-title "Diagramme de composants — plateforme Afya (multi-services)"
+title "Diagramme de composants — plateforme Afya (déploiement et dépendances REST)"
 skinparam componentStyle rectangle
 skinparam ArrowColor #333333
+top to bottom direction
 
-package "Poste client" {
-  component "Application web responsive" as Web << SPA >>
+legend right
+  **Ports** : dev local / stack Docker (`docker-compose.stack.yml`).
+  **afya-shared** : bibliothèque Maven (filtres, résilience HTTP, audit).
+  Liens **pleins** : appels REST synchrones.
+  Liens **pointillés** : dépendance compile / publication audit HTTP.
+  Pas de JOIN SQL inter-services — uniquement des IDs.
+endlegend
+
+package "Poste client" as ClientTier {
+
+  component "Navigateur\n(Chrome, Firefox…)" as Browser
+
+  together {
+    component "frontend\nReact 19 + Vite + TypeScript" as Spa <<SPA>>
+    component "Serveur statique UI\n(Nginx conteneur web)\n:8088" as WebUi <<nginx>>
+  }
+
+  Browser --> Spa : utilise
+  Spa --> WebUi : assets / index.html
 }
 
-package "Couche exposition" {
-  component "API Gateway (Nginx)\nTLS rate-limit" as Gateway << gateway >>
-  component "API Gateway / BFF" as BFF
+package "Couche exposition (edge)" as EdgeTier {
+
+  interface "HTTPS\n/api/v1/*" as ApiHttps
+  interface "HTTP\n/actuator/*" as ActuatorEdge
+
+  component "API Gateway\n(Nginx)\n:8090 HTTP · :8443 TLS\nrate-limit · proxy" as Gateway <<gateway>>
+
+  package "afya-bff\nSpring Boot :8080" as BffPkg {
+
+    component "Contrôleurs REST\n/auth /patients /admissions\n/consultations /users /audit…" as BffControllers <<controller>>
+
+    component "Clients REST aval\nIdentity · Catalog · Patient\nCareEntry · Stay · Clinical · Audit" as BffClients <<client>>
+
+    component "Services d'agrégation\nStats · Reporting · Enrichissement UI" as BffServices <<service>>
+  }
+
+  WebUi --> ApiHttps : fetch /api
+  ApiHttps - Gateway
+  Gateway --> ActuatorEdge
+  ActuatorEdge - BffControllers : proxy
+  BffControllers --> BffServices
+  BffServices --> BffClients
 }
 
-Web --> Gateway : HTTPS
-Gateway --> BFF : /api/v1/\n/actuator/
+package "Bibliothèque transversale (afya-shared)" as SharedLib {
 
-package "Transversal (afya-shared)" as Shared {
-  component "CorrelationIdFilter\nX-Correlation-Id + MDC" as CorrId
-  component "HttpResilienceInterceptor\ntimeout retry circuit-breaker" as Resilience
+  component "CorrelationIdFilter\nX-Correlation-Id · MDC" as CorrId
+  component "HttpResilienceInterceptor\ntimeout · retry · circuit-breaker" as Resilience
+  component "GlobalExceptionHandler\nréponses d'erreur API" as Errors
+  component "RestAuditEventPublisher\nPOST /api/v1/audit/events" as AuditPub
+  component "JwtAuthDetails · HospitalScopeSupport\npérimètre services JWT" as JwtScope
   component "ProductionSecretsValidator\nDownstreamUrlsValidator" as Validators
 }
 
-BFF ..> CorrId : filtre requête
-BFF ..> Resilience : clients HTTP aval
-BFF ..> Validators : fail-fast démarrage
+BffPkg ..> CorrId
+BffPkg ..> Resilience
+BffPkg ..> Errors
+BffPkg ..> Validators
+BffClients ..> Resilience
 
-package "Services métier" {
-  component "identity-service" as Identity
-  component "catalog-service" as Catalog
-  component "patient-service" as Patient
-  component "care-entry-service" as CareEntry
-  component "stay-service" as Stay
-  component "clinical-record-service" as Clinical
-  component "audit-service" as Audit
+package "Services métier (Spring Boot)" as SvcTier {
+
+  interface "REST\n/api/v1" as RestApi
+
+  component "identity-service\n:8081\nAuth JWT · utilisateurs · rôles" as Identity <<microservice>>
+  component "catalog-service\n:8082\nDépartements · services · lits · stats occupation" as Catalog <<microservice>>
+  component "patient-service\n:8083\nRéférentiel patient · recherche" as Patient <<microservice>>
+  component "care-entry-service\n:8084\nAdmissions · urgences · transferts · signes vitaux" as CareEntry <<microservice>>
+  component "stay-service\n:8085\nSéjour · fiche d'hospitalisation" as Stay <<microservice>>
+  component "clinical-record-service\n:8086\nDossier · consultations · prescriptions · documents" as Clinical <<microservice>>
+  component "audit-service\n:8087\nJournal · rapports d'activité" as Audit <<microservice>>
+
+  RestApi - Identity
+  RestApi - Catalog
+  RestApi - Patient
+  RestApi - CareEntry
+  RestApi - Stay
+  RestApi - Clinical
+  RestApi - Audit
 }
+
+BffClients --> RestApi : RestClient\nBearer JWT
+
+package "Intégrations inter-services (HTTP)" as Integration {
+
+  component "PatientServiceClient" as CePatClient
+  component "CatalogServiceClient" as CeCatClient
+  component "StayServiceClient" as CeStayClient
+  component "CareEntryServiceClient" as StCeClient
+  component "PatientServiceClient" as StPatClient
+  component "PatientServiceClient" as CrPatClient
+  component "CareEntryServiceClient" as CrCeClient
+}
+
+CareEntry --> CePatClient
+CareEntry --> CeCatClient
+CareEntry --> CeStayClient
+CePatClient ..> Patient : GET patient
+CeCatClient ..> Catalog : GET service / lit
+CeStayClient ..> Stay : POST séjour
+
+Stay --> StCeClient
+Stay --> StPatClient
+StCeClient ..> CareEntry : GET admission
+StPatClient ..> Patient : GET patient
+
+Clinical --> CrPatClient
+Clinical --> CrCeClient
+CrPatClient ..> Patient : GET patient
+CrCeClient ..> CareEntry : GET admission
 
 Identity ..> CorrId
 Catalog ..> CorrId
@@ -46,52 +127,49 @@ Audit ..> CorrId
 CareEntry ..> Resilience
 Stay ..> Resilience
 Clinical ..> Resilience
+CareEntry ..> AuditPub
+Stay ..> AuditPub
+Clinical ..> AuditPub
+Patient ..> AuditPub
+Catalog ..> AuditPub
+Identity ..> AuditPub
+BffPkg ..> AuditPub : optionnel
 
-BFF --> Identity : JWT / CRUD utilisateurs (Admin)
-BFF --> Catalog : catalogue hospitalier
-BFF --> Patient : patients recherche
-BFF --> CareEntry : urgences admissions transferts
-BFF --> Stay : séjour fiche hospi
-BFF --> Clinical : dossier prescriptions soins fichiers
-BFF --> Audit : journal rapports stats
+AuditPub ..> Audit : ingestion HTTP\nX-Audit-Ingestion-Key
 
-CareEntry ..> Patient : IDs patient REST
-CareEntry ..> Catalog : IDs service REST
-CareEntry ..> Stay : séjour associé REST
-Clinical ..> Patient : patientId REST
-storage "Stockage objet (MinIO S3)" as ObjStore
-Clinical --> ObjStore : images PDF
+package "Persistance" as DataTier {
 
-database "BD identity" as DB_Id
-database "BD catalog" as DB_Cat
-database "BD patient" as DB_Pat
-database "BD care-entry" as DB_CE
-database "BD stay" as DB_Stay
-database "BD clinical" as DB_Clinical
-database "BD audit" as DB_Audit
+  database "PostgreSQL 16\nafya_identity" as DB_Id
+  database "PostgreSQL 16\nafya_catalog" as DB_Cat
+  database "PostgreSQL 16\nafya_patient" as DB_Pat
+  database "PostgreSQL 16\nafya_care_entry" as DB_CE
+  database "PostgreSQL 16\nafya_stay" as DB_Stay
+  database "PostgreSQL 16\nafya_clinical" as DB_Clinical
+  database "PostgreSQL 16\nafya_audit" as DB_Audit
 
-Identity --> DB_Id
-Catalog --> DB_Cat
-Patient --> DB_Pat
-CareEntry --> DB_CE
-Stay --> DB_Stay
-Clinical --> DB_Clinical
-Audit --> DB_Audit
-
-Identity ..> Audit : événements
-Catalog ..> Audit : événements
-Patient ..> Audit : événements
-CareEntry ..> Audit : événements
-Stay ..> Audit : événements
-Clinical ..> Audit : événements
-
-package "Observabilité (recommandée)" as Obs {
-  component "Spring Actuator\nhealth info metrics" as Actuator
-  component "Prometheus\n(scrape metrics)" as Prometheus
-  component "Grafana\n(dashboard alertes)" as Grafana
+  storage "MinIO S3\n:9000\n(documents cliniques)" as MinIO <<object store>>
+  storage "Filesystem local\n(dev STORAGE_PROVIDER=filesystem)" as FsStore <<filesystem>>
 }
 
-BFF ..> Actuator
+Identity --> DB_Id : JPA
+Catalog --> DB_Cat : JPA
+Patient --> DB_Pat : JPA
+CareEntry --> DB_CE : JPA
+Stay --> DB_Stay : JPA
+Clinical --> DB_Clinical : JPA
+Audit --> DB_Audit : JPA
+
+Clinical --> MinIO : SDK MinIO\nupload / download
+Clinical ..> FsStore : variante dev
+
+package "Observabilité (recommandée)" as ObsTier {
+
+  component "Spring Boot Actuator\n/health · /metrics · /prometheus" as Actuator
+  component "Prometheus\nscrape métriques" as Prometheus
+  component "Grafana\ndashboards · alertes" as Grafana
+}
+
+BffPkg ..> Actuator
 Identity ..> Actuator
 Catalog ..> Actuator
 Patient ..> Actuator
@@ -100,29 +178,37 @@ Stay ..> Actuator
 Clinical ..> Actuator
 Audit ..> Actuator
 
-Prometheus ..> Actuator : scrape /actuator/prometheus\nou /actuator/metrics
-Grafana --> Prometheus : requêtes PromQL
+Prometheus ..> Actuator : scrape
+Grafana --> Prometheus : PromQL
 
-note right of Resilience
-  Métriques Micrometer :
-  afya.http.resilience.*
-  (retry, 5xx, I/O, circuit)
+note right of Gateway
+  Phase E — point d'entrée unique.
+  Ne contient **aucune** logique métier :
+  TLS, rate-limit, reverse-proxy vers BFF.
 end note
 
-note right of CorrId
-  Logs : corr:<correlationId>
-  Erreurs API : traceId
-end note
-
-note right of Audit
-  Consommation asynchrone
-  (file message broker ou HTTP)
+note bottom of BffPkg
+  **16 contrôleurs** proxy/agrègent les 7 services.
+  Valide le JWT (secret partagé avec identity).
+  Filtre admissions par hospitalServiceIds (non-admin).
 end note
 
 note bottom of CareEntry
-  **Variante 6 services :** fusion
-  care-entry + stay en
-  **encounter-stay-service**
+  À l'admission : appel **StayServiceClient**
+  pour ouvrir le séjour automatiquement.
 end note
+
+note bottom of Clinical
+  **STORAGE_PROVIDER** :
+  minio (stack) ou filesystem (dev).
+end note
+
+note as N6
+  **Variante 6 services :**
+  fusion care-entry + stay
+  -> encounter-stay-service
+end note
+N6 .. CareEntry
+N6 .. Stay
 
 @enduml

@@ -1,0 +1,58 @@
+@startuml COMPOSANTS_PATIENT_SERVICE
+title "Diagramme de composants — patient-service (:8083)"
+skinparam componentStyle rectangle
+
+actor "Client HTTP" as Client
+
+package "patient-service" {
+
+  component "PatientController\n/api/v1/patients" as PatCtrl <<REST>>
+  component "AppointmentController" as ApptCtrl <<REST>>
+  component "PatientStatsController" as StatsCtrl <<REST>>
+
+  component "PatientRegistryService" as PatSvc <<service>>
+  component "AppointmentService" as ApptSvc <<service>>
+  component "DossierNumberGenerator" as DossierGen <<service>>
+
+  component "PatientRepository" as PatRepo <<repository>>
+  component "AppointmentRepository" as ApptRepo <<repository>>
+  component "PatientDossierSequenceRepository" as SeqRepo <<repository>>
+
+  component "SecurityConfig" as SecCfg <<config>>
+}
+
+package "afya-shared" as Shared {
+  component "RestAuditEventPublisher" as AuditPub
+}
+
+database "PostgreSQL\nafya_patient :5435" as DB
+
+component "audit-service" as Audit
+
+Client --> PatCtrl
+Client --> ApptCtrl
+Client --> StatsCtrl
+
+PatCtrl --> PatSvc
+ApptCtrl --> ApptSvc
+StatsCtrl --> PatRepo
+
+PatSvc --> PatRepo
+PatSvc --> DossierGen
+PatSvc --> SeqRepo
+ApptSvc --> ApptRepo
+ApptSvc --> PatRepo
+
+PatRepo --> DB
+ApptRepo --> DB
+SeqRepo --> DB
+
+PatSvc ..> AuditPub
+AuditPub ..> Audit
+
+note right of ApptCtrl
+  RDV : hors périmètre BFF
+  (API présente, usage limité)
+end note
+
+@enduml

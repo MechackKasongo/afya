@@ -1,0 +1,51 @@
+@startuml MODELE_DOMAINE_STAY_SERVICE
+title "Modèle du domaine — stay-service (BDD afya_stay :5437)"
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+database "PostgreSQL\nafya_stay" as DB
+
+package "afya_stay" {
+
+  class stays <<table>> {
+    id : BIGINT «PK»
+    patient_id : BIGINT
+    admission_id : BIGINT «UK»
+    check_in_at : TIMESTAMP
+    check_out_at : TIMESTAMP
+    room_label : VARCHAR(40)
+    bed_label : VARCHAR(40)
+    status : VARCHAR(20)
+    created_at : TIMESTAMP
+  }
+
+  class hospitalization_forms <<table>> {
+    stay_id : BIGINT «PK,FK»
+    chief_complaint : VARCHAR(500)
+    history_text : VARCHAR(4000)
+    allergies : VARCHAR(500)
+    antecedents_text : TEXT
+    anamnesis_text : TEXT
+    physical_exam_pulmonary_text : TEXT
+    physical_exam_cardiac_text : TEXT
+    physical_exam_abdominal_text : TEXT
+    physical_exam_neurological_text : TEXT
+    physical_exam_misc_text : TEXT
+    paraclinical_text : TEXT
+    conclusion_text : TEXT
+    updated_at : TIMESTAMP
+  }
+
+  stays "1" *-- "0..1" hospitalization_forms
+}
+
+stays --> DB
+hospitalization_forms --> DB
+
+class "patient-service\npatients" as ExtPat <<external>>
+class "care-entry-service\nadmissions" as ExtAdm <<external>>
+
+stays ..> ExtPat : patient_id
+stays ..> ExtAdm : admission_id
+
+@enduml

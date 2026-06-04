@@ -1,60 +1,103 @@
 @startuml CONCEPTION_COUCHE_SERVICE_AFYA
-title "Diagramme de classes de conception — patron en couches (ex. care-entry-service)"
+title "Diagramme de classes de conception — care-entry-service (référence)"
 skinparam classAttributeIconSize 0
 
 package "Présentation (REST)" {
   class AdmissionController {
     + create(request) : AdmissionResponse
-    + findById(id) : AdmissionResponse
-    + listByPatient(patientId, page, size) : PageAdmissionResponse
-    + transfer(id, request) : AdmissionResponse
+    + getById(id) : AdmissionResponse
+    + list(patientId, status, page, size) : Page
+    + transfer(id, dto) : AdmissionResponse
+    + discharge(id, dto) : AdmissionResponse
+    + cancel(id) : AdmissionResponse
+    + declareDeath(id, dto) : AdmissionResponse
   }
-  class DischargeController {
-    + discharge(id, request) : AdmissionResponse
+  class EmergencyController {
+    + create(request) : EmergencyResponse
+    + list(...) : Page
+    + triage(id, request) : EmergencyResponse
+    + orient(id, request) : EmergencyResponse
+    + close(id) : EmergencyResponse
+  }
+  class VitalSignController {
+    + record(admissionId, request) : VitalSignResponse
+    + listByAdmission(admissionId) : List
+  }
+  class CareEntryStatsController {
+    + volumes() : PlatformVolumesResponse
   }
 }
 
 package "Application" {
-  class AdmissionOrchestrationService {
+  class AdmissionService {
     - admissionRepository : AdmissionRepository
-    - patientClient : PatientRestClient
-    - catalogClient : CatalogReadClient
-    - stayClient : StayRestClient
-    - auditPublisher : AuditEventPublisher
+    - transferRequestRepository : TransferRequestRepository
+    - patientServiceClient : PatientServiceClient
+    - catalogServiceClient : CatalogServiceClient
+    - stayServiceClient : StayServiceClient
+    - admissionWriter : AdmissionWriter
+    - auditEventPublisher : AuditEventPublisher
     --
-    + admit(command) : Admission
-    + transfer(command) : Admission
-    + discharge(command) : Admission
+    + admit(request, authHeader) : AdmissionResponse
+    + transfer(id, dto, authHeader) : AdmissionResponse
+    + discharge(id, dto, authHeader) : AdmissionResponse
+    + cancel(id, authHeader) : AdmissionResponse
+    + declareDeath(id, dto, authHeader) : AdmissionResponse
+    + getById(id, authHeader) : AdmissionResponse
+    + list(...) : Page
   }
-  class PatientRestClient {
-    + getById(patientId) : PatientSummary
+  class EmergencyVisitService
+  class EmergencyVisitTimelineService
+  class VitalSignService
+  class AdmissionWriter {
+    + persist(admission) : Admission
   }
-  class CatalogReadClient {
-    + getService(id) : HospitalServiceSummary
-  }
-  class StayRestClient {
-    + openStay(command) : StaySummary
-    + closeStay(stayId, command) : void
-  }
-  class AuditEventPublisher {
-    + publish(event) : void
+  class AuthorizationHeaderSupport {
+    + {static} requireBearer(request) : String
   }
 }
 
-package "Domaine / persistance" {
-  class AdmissionRepository <<interface>> {
+package "Intégration (HTTP)" {
+  class PatientServiceClient {
+    + getPatient(patientId, auth) : PatientSummary
+  }
+  class CatalogServiceClient {
+    + getHospitalService(id, auth) : HospitalServiceSummary
+  }
+  class StayServiceClient {
+    + openStay(request, auth) : StaySummary
+  }
+  class PatientSummary <<DTO>>
+  class HospitalServiceSummary <<DTO>>
+  class StayOpenRequest <<DTO>>
+  class StaySummary <<DTO>>
+}
+
+package "Persistance" {
+  interface AdmissionRepository {
     + save(admission) : Admission
-    + findById(id) : OptionalAdmission
-    + findByPatientId(patientId, pageable) : PageAdmission
+    + findById(id) : Optional
+    + findByPatientId(...) : Page
   }
-  class AdmissionJpaRepository <<interface>> {
-  }
+  interface TransferRequestRepository
+  interface EmergencyVisitRepository
+  interface VitalSignReadingRepository
   class Admission {
     - id : Long
-    - patientId : UUID
-    - hospitalServiceId : UUID
+    - patientId : Long
+    - hospitalServiceId : Long
     - admittedAt : Instant
+    - dischargedAt : Instant
     - status : AdmissionStatus
+    - admissionReason : String
+    - dischargeReason : String
+    - createdAt : Instant
+  }
+  class TransferRequest {
+    - admissionId : Long
+    - fromServiceId : Long
+    - toServiceId : Long
+    - requestedAt : Instant
   }
   enum AdmissionStatus {
     OUVERTE
@@ -66,34 +109,45 @@ package "Domaine / persistance" {
 
 package "DTO (records)" {
   class AdmissionCreateRequest <<record>> {
-    patientId : UUID
-    hospitalServiceId : UUID
+    patientId : Long
+    hospitalServiceId : Long
+    admissionReason : String
     admittedAt : Instant
   }
-  class AdmissionResponse <<record>> {
-    id : Long
-    patientId : UUID
-    status : String
-  }
+  class AdmissionResponse <<record>>
+  class TransferRequestDto <<record>>
+  class DischargeRequest <<record>>
 }
 
-AdmissionController --> AdmissionOrchestrationService
-DischargeController --> AdmissionOrchestrationService
-AdmissionOrchestrationService --> AdmissionRepository
-AdmissionOrchestrationService --> PatientRestClient
-AdmissionOrchestrationService --> CatalogReadClient
-AdmissionOrchestrationService --> StayRestClient
-AdmissionOrchestrationService --> AuditEventPublisher
-AdmissionRepository <|.. AdmissionJpaRepository
-AdmissionJpaRepository --> Admission
+package "afya-shared (dépendances)" {
+  interface AuditEventPublisher
+  class HospitalScopeSupport
+  class NotFoundException
+  class ConflictException
+}
+
+AdmissionController --> AdmissionService
+EmergencyController --> EmergencyVisitService
+VitalSignController --> VitalSignService
+AdmissionController ..> AuthorizationHeaderSupport
+AdmissionService --> AdmissionRepository
+AdmissionService --> TransferRequestRepository
+AdmissionService --> PatientServiceClient
+AdmissionService --> CatalogServiceClient
+AdmissionService --> StayServiceClient
+AdmissionService --> AdmissionWriter
+AdmissionService --> AuditEventPublisher
+AdmissionService ..> HospitalScopeSupport
+AdmissionRepository --> Admission
 Admission --> AdmissionStatus
 AdmissionController ..> AdmissionCreateRequest : @Valid
 AdmissionController ..> AdmissionResponse : retour
 
-note right of AdmissionOrchestrationService
-  **Conception** : une transaction locale
-  par service ; orchestration HTTP
-  vers patient, catalog, stay.
+note right of AdmissionService
+  **Conception** : une transaction JPA locale ;
+  appels REST synchrones vers patient,
+  catalog, stay ; audit HTTP via
+  RestAuditEventPublisher.
 end note
 
 @enduml

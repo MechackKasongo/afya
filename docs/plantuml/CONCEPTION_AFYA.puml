@@ -1,0 +1,258 @@
+@startuml CONCEPTION_AFYA
+title "Diagramme de conception — plateforme Afya (architecture en couches)"
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+top to bottom direction
+
+legend right
+  **Conception** : patron **layered** par microservice.
+  **controller** : REST `/api/v1`, validation `@Valid`, JWT relay.
+  **service** : règles métier, `@Transactional` local.
+  **integration** : `RestClient` + résilience (`afya-shared`).
+  **repository** : Spring Data JPA.
+  Pas de logique métier dans le BFF (agrégation / proxy).
+endlegend
+
+package "Patron microservice (7 services métier)" as SvcPattern {
+
+  package "Présentation — controller" as LayerCtrl {
+    class Controller <<REST>> {
+      + endpoints CRUD / commandes
+      + AuthorizationHeaderSupport
+    }
+  }
+
+  package "Application — service" as LayerSvc {
+    class XxxService <<Service>> {
+      + règles métier
+      + transactions locales
+      + HospitalScopeSupport
+      + AuditEventPublisher
+    }
+    class XxxWriter <<Service>> {
+      + persistance encapsulée
+    }
+  }
+
+  package "Intégration — integration" as LayerInt {
+    class XxxServiceClient <<Component>> {
+      + RestClient HTTP aval
+      + DTO Summary / Request
+    }
+  }
+
+  package "Persistance — repository + model" as LayerRepo {
+    class XxxRepository <<interface>> {
+      + Spring Data JPA
+    }
+    class Xxx <<Entity>> {
+      - attributs JPA
+    }
+    class XxxStatus <<enum>>
+  }
+
+  package "Transfert — dto" as LayerDto {
+    class XxxRequest <<record>>
+    class XxxResponse <<record>>
+  }
+
+  package "Configuration — config" as LayerCfg {
+    class SecurityConfig
+    class RestClientConfig
+  }
+}
+
+LayerCtrl --> LayerSvc
+LayerSvc --> LayerRepo
+LayerSvc --> LayerInt
+LayerCtrl ..> LayerDto
+LayerSvc ..> LayerDto
+LayerInt ..> LayerDto
+
+package "Bibliothèque transversale afya-shared" as Shared {
+
+  package "web" {
+    class CorrelationIdFilter
+    class GlobalExceptionHandler
+    class ApiErrorResponse
+  }
+
+  package "http" {
+    class HttpResilienceInterceptor
+    class RestClients
+  }
+
+  package "security" {
+    class JwtAuthenticationFilter
+    class JwtAccessTokenValidator
+    class JwtAuthDetails
+    class HospitalScopeSupport
+  }
+
+  package "audit" {
+    interface AuditEventPublisher {
+      + publish(action, metadata)
+    }
+    class RestAuditEventPublisher
+    class AuditEventIngestRequest
+    class AuditActorResolver
+  }
+
+  package "exception" {
+    class DomainException
+    class NotFoundException
+    class BadRequestException
+    class ConflictException
+  }
+}
+
+LayerSvc ..> Shared : utilise
+LayerInt ..> Shared : RestClient + résilience
+
+package "afya-bff — agrégation (sans domaine métier)" as Bff {
+
+  package "controller" as BffCtrl {
+    class AuthBffController
+    class PatientBffController
+    class AdmissionBffController
+    class EmergencyBffController
+    class ConsultationBffController
+    class UserBffController
+    class AuditBffController
+    class StatsBffController
+    class AutresBffControllers <<REST>>
+  }
+
+  package "client" as BffClient {
+    class IdentityClient
+    class PatientClient
+    class CatalogClient
+    class CareEntryClient
+    class StayClient
+    class ClinicalRecordClient
+    class AuditClient
+  }
+
+  package "config" as BffCfg {
+    class DownstreamRestClientFactory {
+      + create(baseUrl) : RestClient
+    }
+    class DownstreamExceptionHandler
+  }
+
+  package "service / support" as BffSupport {
+    class PlatformReportService
+    class AdmissionUiEnricher
+    class HospitalServiceResolver
+  }
+}
+
+BffCtrl --> BffClient
+BffCtrl --> BffSupport
+BffClient --> DownstreamRestClientFactory
+DownstreamRestClientFactory ..> HttpResilienceInterceptor
+DownstreamRestClientFactory ..> CorrelationIdFilter
+
+package "Référence détaillée — care-entry-service" as CareEntryRef {
+
+  class AdmissionController {
+    + create(request) : AdmissionResponse
+    + getById(id) : AdmissionResponse
+    + list(...) : Page
+    + transfer(id, dto) : AdmissionResponse
+    + discharge(id, dto) : AdmissionResponse
+    + cancel(id) : AdmissionResponse
+    + declareDeath(id, dto) : AdmissionResponse
+  }
+  class EmergencyController
+  class VitalSignController
+  class CareEntryStatsController
+
+  class AdmissionService {
+    - admissionRepository
+    - transferRequestRepository
+    - patientServiceClient
+    - catalogServiceClient
+    - stayServiceClient
+    - admissionWriter
+    - auditEventPublisher
+    --
+    + admit(request, auth) : AdmissionResponse
+    + transfer(id, dto, auth) : AdmissionResponse
+    + discharge(id, dto, auth) : AdmissionResponse
+  }
+  class EmergencyVisitService
+  class VitalSignService
+  class AdmissionWriter
+
+  class PatientServiceClient {
+    + getPatient(id, auth) : PatientSummary
+  }
+  class CatalogServiceClient {
+    + getHospitalService(id, auth) : HospitalServiceSummary
+  }
+  class StayServiceClient {
+    + openStay(request, auth) : StaySummary
+  }
+
+  class AdmissionRepository <<interface>>
+  class TransferRequestRepository <<interface>>
+  class Admission <<Entity>>
+  class TransferRequest <<Entity>>
+  enum AdmissionStatus
+
+  class AdmissionCreateRequest <<record>>
+  class AdmissionResponse <<record>>
+}
+
+AdmissionController --> AdmissionService
+EmergencyController --> EmergencyVisitService
+VitalSignController --> VitalSignService
+AdmissionService --> AdmissionRepository
+AdmissionService --> TransferRequestRepository
+AdmissionService --> PatientServiceClient
+AdmissionService --> CatalogServiceClient
+AdmissionService --> StayServiceClient
+AdmissionService --> AdmissionWriter
+AdmissionService --> AuditEventPublisher
+AdmissionRepository --> Admission
+Admission --> AdmissionStatus
+AdmissionController ..> AdmissionCreateRequest
+AdmissionController ..> AdmissionResponse
+
+package "Extension clinical-record — stockage" as ClinicalExt {
+  interface ObjectStorageService {
+    + put(key, stream) : void
+    + get(key) : InputStream
+  }
+  class MinioObjectStorageService
+  class FilesystemObjectStorageService
+  class ClinicalRecordService
+}
+
+ClinicalRecordService --> ObjectStorageService
+MinioObjectStorageService ..|> ObjectStorageService
+FilesystemObjectStorageService ..|> ObjectStorageService
+
+note bottom of SvcPattern
+  **identity** : AuthController, UserController · AuthService, JwtService, UserAdminService
+  **catalog** : DepartmentController, HospitalServiceController, BedController, StatsController
+  **patient** : PatientController · PatientRegistryService, DossierNumberGenerator
+  **stay** : StayController, StayStatsController · StayService + CareEntryServiceClient
+  **clinical** : MedicalRecordController, ConsultationController, PrescriptionController…
+  **audit** : AuditEventController, ActivityReportController · AuditEventService
+end note
+
+note right of Bff
+  16 contrôleurs exposent `/api/v1/*` au front.
+  Relay JWT `Authorization: Bearer`.
+  Filtre périmètre admissions (non-admin).
+end note
+
+note right of AdmissionService
+  Transaction **locale** PostgreSQL.
+  Orchestration **HTTP** : patient, catalog, stay.
+  Publication audit après succès.
+end note
+
+@enduml

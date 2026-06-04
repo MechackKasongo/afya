@@ -1,0 +1,134 @@
+@startuml CONCEPTION_BFF
+title "Conception — afya-bff (:8080)"
+skinparam classAttributeIconSize 0
+
+package "Présentation REST" {
+  class AuthBffController {
+    + login(LoginRequest) : TokenResponse
+    + refresh(RefreshRequest) : TokenResponse
+    + logout(...) : void
+    + me(Authentication) : MeResponse
+  }
+  class UserBffController {
+    + listUsers(...) : Page
+    + createUser(...) : UserResponse
+    + updateUser(...) : UserResponse
+  }
+  class PatientBffController {
+    + search(...) : Page
+    + create(...) : PatientResponse
+    + getById(Long) : PatientResponse
+    + update(...) : PatientResponse
+  }
+  class AdmissionBffController {
+    + create(...) : AdmissionResponse
+    + list(...) : Page
+    + transfer(...) : AdmissionResponse
+    + suggestBed(String) : BedSuggestionResponse
+  }
+  class EmergencyBffController {
+    + list(...) : Page
+    + create(...) : EmergencyResponse
+  }
+  class StayBffController {
+    + getFormByAdmission(Long) : HospitalizationFormResponse
+    + upsertForm(...) : HospitalizationFormResponse
+  }
+  class ConsultationBffController {
+    + list(...) : Page
+    + create(...) : ConsultationResponse
+    + events(Long) : List
+  }
+  class PatientClinicalBffController {
+    + getMedicalRecord(Long) : MedicalRecordResponse
+    + addPrescription(...) : PrescriptionLineResponse
+  }
+  class StatsBffController {
+    + occupancy() : OccupancyStatsResponse
+    + volumes() : PlatformVolumesResponse
+  }
+  class AuditBffController {
+    + listEvents(...) : Page
+    + activityReport() : ActivityReportResponse
+  }
+}
+
+package "Clients HTTP" {
+  class IdentityClient {
+    + login(...) : TokenResponse
+    + listUsers(...) : Page
+    + createUser(...) : UserResponse
+  }
+  class PatientClient {
+    + search(...) : Page
+    + create(...) : PatientResponse
+  }
+  class CatalogClient {
+    + listHospitalServices() : List
+    + occupancy() : OccupancyStatsResponse
+    + suggestBed(Long) : BedSuggestionResponse
+  }
+  class CareEntryClient {
+    + createAdmission(...) : AdmissionResponse
+    + listAdmissions(...) : Page
+    + listEmergencies(...) : Page
+  }
+  class StayClient {
+    + getForm(Long) : HospitalizationFormResponse
+    + upsertForm(...) : HospitalizationFormResponse
+  }
+  class ClinicalRecordClient {
+    + getMedicalRecord(Long) : MedicalRecordResponse
+    + createConsultation(...) : ConsultationResponse
+    + listSelectableDiseases(String) : List
+  }
+  class AuditClient {
+    + searchEvents(...) : Page
+    + activityReport(...) : ActivityReportResponse
+  }
+}
+
+package "Application / support" {
+  class PlatformReportService {
+    + buildActivityReport() : ActivityReportResponse
+  }
+  class PlatformVolumesService {
+    + aggregateVolumes() : PlatformVolumesResponse
+  }
+  class MeEnrichmentService {
+    + enrich(MeResponse) : MeResponse
+  }
+  class AdmissionUiEnricher {
+    + enrich(Page<AdmissionResponse>) : Page
+  }
+  class HospitalServiceResolver {
+    + resolveNames(Set<Long>) : Map
+  }
+  class DownstreamRestClientFactory {
+    + create(String baseUrl) : RestClient
+  }
+}
+
+AuthBffController --> IdentityClient
+UserBffController --> IdentityClient
+PatientBffController --> PatientClient
+AdmissionBffController --> CareEntryClient
+AdmissionBffController --> AdmissionUiEnricher
+EmergencyBffController --> CareEntryClient
+StayBffController --> StayClient
+ConsultationBffController --> ClinicalRecordClient
+PatientClinicalBffController --> ClinicalRecordClient
+StatsBffController --> CatalogClient
+StatsBffController --> PlatformVolumesService
+AuditBffController --> AuditClient
+AdmissionUiEnricher --> CatalogClient
+IdentityClient --> DownstreamRestClientFactory
+PatientClient --> DownstreamRestClientFactory
+CareEntryClient --> DownstreamRestClientFactory
+
+note right of AuthBffController
+  Pas de base JPA :
+  agrégation et proxy uniquement.
+end note
+
+@enduml

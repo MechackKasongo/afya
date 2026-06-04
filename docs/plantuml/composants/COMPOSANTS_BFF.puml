@@ -1,0 +1,117 @@
+@startuml COMPOSANTS_BFF
+title "Diagramme de composants — afya-bff (:8080)"
+skinparam componentStyle rectangle
+
+actor "SPA React\n:5173 / :8088" as Spa
+actor "API Gateway\n:8090" as Gw
+
+package "afya-bff" {
+
+  together {
+    component "AuthBffController" as AuthBff <<REST>>
+    component "UserBffController" as UserBff <<REST>>
+    component "PatientBffController" as PatBff <<REST>>
+    component "AdmissionBffController" as AdmBff <<REST>>
+    component "EmergencyBffController" as ErgBff <<REST>>
+    component "StayBffController" as StayBff <<REST>>
+    component "AdmissionStayBffController" as AdmStayBff <<REST>>
+    component "PatientClinicalBffController" as ClinBff <<REST>>
+    component "ConsultationBffController" as ConsBff <<REST>>
+    component "PrescriptionBffController" as RxBff <<REST>>
+    component "DiseaseCatalogBffController" as DisBff <<REST>>
+    component "HospitalServiceBffController" as HospBff <<REST>>
+    component "DepartmentBffController" as DeptBff <<REST>>
+    component "AuditBffController" as AuditBff <<REST>>
+    component "StatsBffController" as StatsBff <<REST>>
+    component "AdminBffController" as AdminBff <<REST>>
+  }
+
+  together {
+    component "IdentityClient" as IdCl <<client>>
+    component "PatientClient" as PatCl <<client>>
+    component "CatalogClient" as CatCl <<client>>
+    component "CareEntryClient" as CeCl <<client>>
+    component "StayClient" as StCl <<client>>
+    component "ClinicalRecordClient" as CrCl <<client>>
+    component "AuditClient" as AudCl <<client>>
+  }
+
+  together {
+    component "PlatformReportService" as ReportSvc <<service>>
+    component "PlatformVolumesService" as VolSvc <<service>>
+    component "MeEnrichmentService" as MeSvc <<service>>
+    component "AdmissionUiEnricher" as AdmEnrich <<support>>
+    component "HospitalServiceResolver" as HospRes <<support>>
+  }
+
+  component "DownstreamRestClientFactory" as RestFactory <<config>>
+  component "DownstreamExceptionHandler" as ErrHdl <<config>>
+  component "SecurityConfig" as SecCfg <<config>>
+  component "WebConfig\nCORS" as WebCfg <<config>>
+}
+
+package "afya-shared" as Shared {
+  component "HttpResilienceInterceptor" as Resilience
+  component "CorrelationIdFilter" as Corr
+}
+
+component "identity-service\n:8081" as Identity
+component "catalog-service\n:8082" as Catalog
+component "patient-service\n:8083" as Patient
+component "care-entry-service\n:8084" as CareEntry
+component "stay-service\n:8085" as Stay
+component "clinical-record-service\n:8086" as Clinical
+component "audit-service\n:8087" as Audit
+
+Spa --> Gw : HTTPS /api/v1
+Gw --> AuthBff : proxy
+
+AuthBff --> IdCl
+UserBff --> IdCl
+PatBff --> PatCl
+AdmBff --> CeCl
+ErgBff --> CeCl
+StayBff --> StCl
+AdmStayBff --> CeCl
+AdmStayBff --> StCl
+ClinBff --> CrCl
+ConsBff --> CrCl
+RxBff --> CrCl
+DisBff --> CrCl
+HospBff --> CatCl
+DeptBff --> CatCl
+AuditBff --> AudCl
+StatsBff --> AudCl
+StatsBff --> CeCl
+StatsBff --> CrCl
+AdminBff --> ReportSvc
+StatsBff --> VolSvc
+AuthBff --> MeSvc
+
+AdmBff --> AdmEnrich
+AdmBff --> HospRes
+AdmEnrich --> CatCl
+
+IdCl --> RestFactory
+PatCl --> RestFactory
+CatCl --> RestFactory
+CeCl --> RestFactory
+StCl --> RestFactory
+CrCl --> RestFactory
+AudCl --> RestFactory
+RestFactory ..> Resilience
+
+IdCl ..> Identity
+PatCl ..> Patient
+CatCl ..> Catalog
+CeCl ..> CareEntry
+StCl ..> Stay
+CrCl ..> Clinical
+AudCl ..> Audit
+
+note right of AuthBff
+  Point d'entrée unique pour le front.
+  Agrégation sans logique métier JPA.
+end note
+
+@enduml

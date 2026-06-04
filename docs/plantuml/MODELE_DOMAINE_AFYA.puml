@@ -1,190 +1,740 @@
 @startuml MODELE_DOMAINE_AFYA
-title "Modèle du domaine conceptuel — plateforme Afya (contextes délimités)"
+title "Modèle du domaine Afya — classes, attributs et méthodes (aligné JPA)"
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam linetype ortho
 
 legend right
-  Chaque paquet = un **microservice** et sa base PostgreSQL.
-  Les liens inter-paquets passent par des **identifiants logiques**
-  (patientId, admissionId, hospitalServiceId) sans FK JPA inter-bases.
+  Attributs et **méthodes publiques** des entités JPA.
+  **FK intra-service** : association UML (ManyToOne).
+  **Référence inter-service** : attribut Long (patientId, …).
+  Enums : constantes sans méthode métier.
 endlegend
 
 package "identity-service" <<BoundedContext>> #E8F4FC {
+
   class AppUser <<AggregateRoot>> {
-    + id : Long
-    username : string
-    email : string
-    fullName : string
-    passwordHash : string
-    active : boolean
+    - id : Long «PK»
+    - username : String
+    - email : String
+    - fullName : String
+    - passwordHash : String
+    - active : boolean
+    - createdAt : Instant
+    - hospitalServiceIds : Set<Long>
+    --
+    + getId() : Long
+    + getUsername() : String
+    + setUsername(String) : void
+    + getEmail() : String
+    + setEmail(String) : void
+    + getFullName() : String
+    + setFullName(String) : void
+    + getPasswordHash() : String
+    + setPasswordHash(String) : void
+    + getRoles() : Set<Role>
+    + setRoles(Set<Role>) : void
+    + getHospitalServiceIds() : Set<Long>
+    + setHospitalServiceIds(Set<Long>) : void
+    + isActive() : boolean
+    + setActive(boolean) : void
+    + getCreatedAt() : Instant
   }
+
   class Role <<Entity>> {
-    + id : Long
-    code : string
-    label : string
+    - id : Long «PK»
+    - code : String
+    - label : String
+    --
+    + getId() : Long
+    + getCode() : String
+    + setCode(String) : void
+    + getLabel() : String
+    + setLabel(String) : void
   }
+
   class RefreshToken <<Entity>> {
-    + id : Long
-    tokenHash : string
-    expiresAt : instant
-    revoked : boolean
+    - id : Long «PK»
+    - userId : Long «FK»
+    - tokenHash : String
+    - expiresAt : Instant
+    - revoked : boolean
+    - createdAt : Instant
+    --
+    + getId() : Long
+    + getUser() : AppUser
+    + setUser(AppUser) : void
+    + getTokenHash() : String
+    + setTokenHash(String) : void
+    + getExpiresAt() : Instant
+    + setExpiresAt(Instant) : void
+    + isRevoked() : boolean
+    + setRevoked(boolean) : void
   }
-  AppUser "*" -- "*" Role
-  AppUser "1" o-- "*" RefreshToken
-  note bottom of AppUser
-    Affectations services : user_hospital_services
-  end note
+
+  class RevokedAccessJti <<Entity>> {
+    - jti : String «PK»
+    - expiresAt : Instant
+    - revokedAt : Instant
+    --
+    + RevokedAccessJti()
+    + RevokedAccessJti(String, Instant)
+    + getJti() : String
+    + getExpiresAt() : Instant
+  }
+
+  AppUser "1" o-- "*" RefreshToken : user
+  AppUser "*" -- "*" Role : user_roles
 }
 
 package "catalog-service" <<BoundedContext>> #E8FCF0 {
+
   class Department <<AggregateRoot>> {
-    + id : Long
-    code : string
-    name : string
+    - id : Long «PK»
+    - code : String
+    - name : String
+    - active : boolean
+    - createdAt : Instant
+    --
+    + getId() : Long
+    + getCode() : String
+    + setCode(String) : void
+    + getName() : String
+    + setName(String) : void
+    + isActive() : boolean
+    + setActive(boolean) : void
   }
+
   class HospitalService <<AggregateRoot>> {
-    + id : Long
-    name : string
-    bedCapacity : int
-    bedsPerRoom : int
+    - id : Long «PK»
+    - departmentId : Long «FK»
+    - name : String
+    - bedCapacity : int
+    - bedsPerRoom : int
+    - roomLetterPrefix : char
+    - bedAssignmentPolicy : BedAssignmentPolicy
+    - active : boolean
+    - createdAt : Instant
+    --
+    + getId() : Long
+    + getDepartment() : Department
+    + setDepartment(Department) : void
+    + getName() : String
+    + setName(String) : void
+    + getBedCapacity() : int
+    + setBedCapacity(int) : void
+    + getBedsPerRoom() : int
+    + setBedsPerRoom(int) : void
+    + getRoomLetterPrefix() : char
+    + setRoomLetterPrefix(char) : void
+    + getBedAssignmentPolicy() : BedAssignmentPolicy
+    + setBedAssignmentPolicy(BedAssignmentPolicy) : void
+    + isActive() : boolean
+    + setActive(boolean) : void
   }
+
   class Bed <<Entity>> {
-    + id : Long
-    label : string
-    occupied : boolean
+    - id : Long «PK»
+    - hospitalServiceId : Long «FK»
+    - label : String
+    - occupied : boolean
+    - lastFreedAt : Instant
+    --
+    + getId() : Long
+    + getHospitalService() : HospitalService
+    + setHospitalService(HospitalService) : void
+    + getLabel() : String
+    + setLabel(String) : void
+    + isOccupied() : boolean
+    + setOccupied(boolean) : void
+    + getLastFreedAt() : Instant
+    + setLastFreedAt(Instant) : void
   }
-  Department "1" *-- "*" HospitalService
-  HospitalService "1" o-- "*" Bed
+
+  Department "1" *-- "1..*" HospitalService
+  HospitalService "1" *-- "0..*" Bed
 }
 
 package "patient-service" <<BoundedContext>> #FFF8E8 {
+
   class Patient <<AggregateRoot>> {
-    + id : Long
-    dossierNumber : string
-    firstName : string
-    lastName : string
-    birthDate : date
-    sex : string
+    - id : Long «PK»
+    - firstName : String
+    - lastName : String
+    - postName : String
+    - dossierNumber : String
+    - birthDate : LocalDate
+    - sex : String
+    - phone : String
+    - email : String
+    - address : String
+    - bloodGroup : String
+    - heightCm : BigDecimal
+    - createdAt : Instant
+    - deceasedAt : Instant
+    --
+    + getId() : Long
+    + getFirstName() : String
+    + setFirstName(String) : void
+    + getLastName() : String
+    + setLastName(String) : void
+    + getPostName() : String
+    + setPostName(String) : void
+    + getDossierNumber() : String
+    + setDossierNumber(String) : void
+    + getBirthDate() : LocalDate
+    + setBirthDate(LocalDate) : void
+    + getSex() : String
+    + setSex(String) : void
+    + getPhone() : String
+    + setPhone(String) : void
+    + getEmail() : String
+    + setEmail(String) : void
+    + getAddress() : String
+    + setAddress(String) : void
+    + getBloodGroup() : String
+    + setBloodGroup(String) : void
+    + getHeightCm() : BigDecimal
+    + setHeightCm(BigDecimal) : void
+    + getDeceasedAt() : Instant
+    + setDeceasedAt(Instant) : void
   }
+
+  class PatientDossierSequence <<Entity>> {
+    - sequenceYear : int «PK»
+    - letterBlock : String
+    - sequenceNumber : int
+    --
+    + getSequenceYear() : int
+    + setSequenceYear(int) : void
+    + getLetterBlock() : String
+    + setLetterBlock(String) : void
+    + getSequenceNumber() : int
+    + setSequenceNumber(int) : void
+  }
+
+  class Appointment <<Entity>> {
+    - id : Long «PK»
+    - patientId : Long «FK»
+    - scheduledAt : Instant
+    - status : AppointmentStatus
+    - reason : String
+    - createdAt : Instant
+    --
+    + getId() : Long
+    + getPatient() : Patient
+    + setPatient(Patient) : void
+    + getScheduledAt() : Instant
+    + setScheduledAt(Instant) : void
+    + getStatus() : AppointmentStatus
+    + setStatus(AppointmentStatus) : void
+    + getReason() : String
+    + setReason(String) : void
+  }
+  note right of Appointment : Hors périmètre métier\n(non exposé BFF)
+
+  Patient "1" o-- "0..*" Appointment
 }
 
 package "care-entry-service" <<BoundedContext>> #FCE8F8 {
+
   class Admission <<AggregateRoot>> {
-    + id : Long
-    admittedAt : instant
-    status : enum
+    - id : Long «PK»
+    - patientId : Long
+    - hospitalServiceId : Long
+    - admittedAt : Instant
+    - dischargedAt : Instant
+    - status : AdmissionStatus
+    - admissionReason : String
+    - dischargeReason : String
+    - createdAt : Instant
     --
-    patientId : Long
-    hospitalServiceId : Long
+    + getId() : Long
+    + getPatientId() : Long
+    + setPatientId(Long) : void
+    + getHospitalServiceId() : Long
+    + setHospitalServiceId(Long) : void
+    + getAdmittedAt() : Instant
+    + setAdmittedAt(Instant) : void
+    + getDischargedAt() : Instant
+    + setDischargedAt(Instant) : void
+    + getStatus() : AdmissionStatus
+    + setStatus(AdmissionStatus) : void
+    + getDischargeReason() : String
+    + setDischargeReason(String) : void
+    + getAdmissionReason() : String
+    + setAdmissionReason(String) : void
   }
+
   class TransferRequest <<Entity>> {
-    + id : Long
-    requestedAt : instant
-    fromServiceId : Long
-    toServiceId : Long
+    - id : Long «PK»
+    - admissionId : Long «FK»
+    - fromServiceId : Long
+    - toServiceId : Long
+    - requestedAt : Instant
+    - reason : String
+    --
+    + getId() : Long
+    + getAdmission() : Admission
+    + setAdmission(Admission) : void
+    + getFromServiceId() : Long
+    + setFromServiceId(Long) : void
+    + getToServiceId() : Long
+    + setToServiceId(Long) : void
+    + getReason() : String
+    + setReason(String) : void
   }
-  class EmergencyVisit <<Entity>> {
-    + id : Long
-    status : enum
-    patientId : Long
+
+  class EmergencyVisit <<AggregateRoot>> {
+    - id : Long «PK»
+    - patientId : Long
+    - arrivedAt : Instant
+    - endedAt : Instant
+    - status : EmergencyStatus
+    - priority : String
+    - triageLevel : String
+    - orientation : String
+    - triageNotes : String
+    - createdAt : Instant
+    --
+    + getId() : Long
+    + getPatientId() : Long
+    + setPatientId(Long) : void
+    + getArrivedAt() : Instant
+    + setArrivedAt(Instant) : void
+    + getEndedAt() : Instant
+    + setEndedAt(Instant) : void
+    + getStatus() : EmergencyStatus
+    + setStatus(EmergencyStatus) : void
+    + getTriageNotes() : String
+    + setTriageNotes(String) : void
+    + getPriority() : String
+    + setPriority(String) : void
+    + getTriageLevel() : String
+    + setTriageLevel(String) : void
+    + getOrientation() : String
+    + setOrientation(String) : void
   }
-  Admission "1" o-- "*" TransferRequest
+
+  class EmergencyVisitTimelineEvent <<Entity>> {
+    - id : Long «PK»
+    - emergencyVisitId : Long «FK»
+    - eventType : String
+    - details : String
+    - createdAt : Instant
+    --
+    + getId() : Long
+    + getEmergencyVisit() : EmergencyVisit
+    + setEmergencyVisit(EmergencyVisit) : void
+    + getEventType() : String
+    + setEventType(String) : void
+    + getDetails() : String
+    + setDetails(String) : void
+    + getCreatedAt() : Instant
+    + setCreatedAt(Instant) : void
+  }
+
+  class VitalSignReading <<Entity>> {
+    - id : Long «PK»
+    - admissionId : Long
+    - recordedAt : Instant
+    - slot : VitalSignSlot
+    - systolicBp : Integer
+    - diastolicBp : Integer
+    - pulseBpm : Integer
+    - temperatureCelsius : BigDecimal
+    - weightKg : BigDecimal
+    - diuresisMl : Integer
+    - stoolsNote : String
+    --
+    + getId() : Long
+    + getAdmissionId() : Long
+    + setAdmissionId(Long) : void
+    + getRecordedAt() : Instant
+    + setRecordedAt(Instant) : void
+    + getSlot() : VitalSignSlot
+    + setSlot(VitalSignSlot) : void
+    + getSystolicBp() : Integer
+    + setSystolicBp(Integer) : void
+    + getDiastolicBp() : Integer
+    + setDiastolicBp(Integer) : void
+    + getPulseBpm() : Integer
+    + setPulseBpm(Integer) : void
+    + getTemperatureCelsius() : BigDecimal
+    + setTemperatureCelsius(BigDecimal) : void
+    + getWeightKg() : BigDecimal
+    + setWeightKg(BigDecimal) : void
+    + getDiuresisMl() : Integer
+    + setDiuresisMl(Integer) : void
+    + getStoolsNote() : String
+    + setStoolsNote(String) : void
+  }
+
+  enum AdmissionStatus {
+    OUVERTE
+    TRANSFEREE
+    DECEDE
+    SORTIE
+    ANNULEE
+  }
+
+  Admission "1" *-- "0..*" TransferRequest
+  EmergencyVisit "1" *-- "0..*" EmergencyVisitTimelineEvent
+  Admission ..> "0..*" VitalSignReading : admissionId
+  Admission --> AdmissionStatus
 }
 
 package "stay-service" <<BoundedContext>> #F0E8FC {
+
   class Stay <<AggregateRoot>> {
-    + id : Long
-    roomLabel : string
-    bedLabel : string
+    - id : Long «PK»
+    - patientId : Long
+    - admissionId : Long
+    - checkInAt : Instant
+    - checkOutAt : Instant
+    - roomLabel : String
+    - bedLabel : String
+    - status : StayStatus
+    - createdAt : Instant
     --
-    patientId : Long
-    admissionId : Long
+    + getId() : Long
+    + getPatientId() : Long
+    + setPatientId(Long) : void
+    + getAdmissionId() : Long
+    + setAdmissionId(Long) : void
+    + getCheckInAt() : Instant
+    + setCheckInAt(Instant) : void
+    + getCheckOutAt() : Instant
+    + setCheckOutAt(Instant) : void
+    + getRoomLabel() : String
+    + setRoomLabel(String) : void
+    + getBedLabel() : String
+    + setBedLabel(String) : void
+    + getStatus() : StayStatus
+    + setStatus(StayStatus) : void
   }
+
   class HospitalizationForm <<Entity>> {
-    chiefComplaint : string
-    historyText : text
-    allergies : string
+    - stayId : Long «PK, FK»
+    - antecedentsText : String
+    - anamnesisText : String
+    - physicalExamPulmonaryText : String
+    - physicalExamCardiacText : String
+    - physicalExamAbdominalText : String
+    - physicalExamNeurologicalText : String
+    - physicalExamMiscText : String
+    - paraclinicalText : String
+    - conclusionText : String
+    - updatedAt : Instant
+    --
+    + getStayId() : Long
+    + getStay() : Stay
+    + setStay(Stay) : void
+    + getAntecedentsText() : String
+    + setAntecedentsText(String) : void
+    + getAnamnesisText() : String
+    + setAnamnesisText(String) : void
+    + getPhysicalExamPulmonaryText() : String
+    + setPhysicalExamPulmonaryText(String) : void
+    + getPhysicalExamCardiacText() : String
+    + setPhysicalExamCardiacText(String) : void
+    + getPhysicalExamAbdominalText() : String
+    + setPhysicalExamAbdominalText(String) : void
+    + getPhysicalExamNeurologicalText() : String
+    + setPhysicalExamNeurologicalText(String) : void
+    + getPhysicalExamMiscText() : String
+    + setPhysicalExamMiscText(String) : void
+    + getParaclinicalText() : String
+    + setParaclinicalText(String) : void
+    + getConclusionText() : String
+    + setConclusionText(String) : void
+    + getUpdatedAt() : Instant
+    + setUpdatedAt(Instant) : void
   }
+
   Stay "1" *-- "0..1" HospitalizationForm
 }
 
 package "clinical-record-service" <<BoundedContext>> #FCEEE8 {
-  class MedicalRecord <<AggregateRoot>> {
-    + id : Long
-    patientId : Long
-  }
-  class Consultation <<AggregateRoot>> {
-    + id : Long
-    doctorName : string
-    reason : string
-    --
-    patientId : Long
-    admissionId : Long
-  }
-  class ConsultationEvent <<Entity>> {
-    + id : Long
-    eventType : enum
-    content : text
-    diseaseType : string
-    diseaseName : string
-    createdAt : instant
-  }
-  class DiseaseCatalog <<Entity>> {
-    + id : Long
-    diseaseType : string
-    label : string
-    usageCount : int
-  }
-  class Diagnosis <<Entity>> {
-    code : string
-    label : string
-  }
-  class PrescriptionLine <<Entity>> {
-    drugName : string
-    dosage : string
-    frequency : string
-  }
-  class NursingCareRecord <<Entity>> {
-    careType : string
-    description : text
-    performedAt : instant
-  }
-  class MedicationAdministration <<Entity>> {
-    administeredAt : instant
-    doseGiven : string
-  }
-  class ClinicalNote <<Entity>>
-  class ClinicalDocument <<Entity>>
 
-  MedicalRecord "1" *-- "*" Diagnosis
-  MedicalRecord "1" *-- "*" PrescriptionLine
-  MedicalRecord "1" *-- "*" NursingCareRecord
-  MedicalRecord "1" *-- "*" MedicationAdministration
-  MedicalRecord "1" *-- "*" ClinicalNote
-  MedicalRecord "1" *-- "*" ClinicalDocument
-  Consultation "1" *-- "*" ConsultationEvent
-  PrescriptionLine "1" ..> "*" MedicationAdministration : exécution
+  class MedicalRecord <<AggregateRoot>> {
+    - id : Long «PK»
+    - patientId : Long
+    - openedAt : Instant
+    - allergies : String
+    - antecedents : String
+    --
+    + getId() : Long
+    + getPatientId() : Long
+    + setPatientId(Long) : void
+    + getOpenedAt() : Instant
+    + getAllergies() : String
+    + setAllergies(String) : void
+    + getAntecedents() : String
+    + setAntecedents(String) : void
+  }
+
+  class Consultation <<AggregateRoot>> {
+    - id : Long «PK»
+    - patientId : Long
+    - admissionId : Long
+    - doctorName : String
+    - reason : String
+    - consultationDateTime : Instant
+    --
+    + getId() : Long
+    + getPatientId() : Long
+    + setPatientId(Long) : void
+    + getAdmissionId() : Long
+    + setAdmissionId(Long) : void
+    + getDoctorName() : String
+    + setDoctorName(String) : void
+    + getReason() : String
+    + setReason(String) : void
+    + getConsultationDateTime() : Instant
+    + setConsultationDateTime(Instant) : void
+  }
+
+  class ConsultationEvent <<Entity>> {
+    - id : Long «PK»
+    - consultationId : Long «FK»
+    - patientId : Long
+    - eventType : ConsultationEventType
+    - content : String
+    - diseaseType : String
+    - diseaseName : String
+    - createdAt : Instant
+    --
+    + getId() : Long
+    + getConsultation() : Consultation
+    + setConsultation(Consultation) : void
+    + getPatientId() : Long
+    + setPatientId(Long) : void
+    + getEventType() : ConsultationEventType
+    + setEventType(ConsultationEventType) : void
+    + getContent() : String
+    + setContent(String) : void
+    + getDiseaseType() : String
+    + setDiseaseType(String) : void
+    + getDiseaseName() : String
+    + setDiseaseName(String) : void
+    + getCreatedAt() : Instant
+  }
+
+  class DiseaseCatalog <<Entity>> {
+    - id : Long «PK»
+    - diseaseType : String
+    - label : String
+    - labelNormalized : String
+    - usageCount : int
+    - firstUsedAt : Instant
+    - lastUsedAt : Instant
+    --
+    + {static} MIN_USAGE_FOR_SELECTION : int
+    + getId() : Long
+    + getDiseaseType() : String
+    + setDiseaseType(String) : void
+    + getLabel() : String
+    + setLabel(String) : void
+    + getLabelNormalized() : String
+    + setLabelNormalized(String) : void
+    + getUsageCount() : int
+    + setUsageCount(int) : void
+    + getFirstUsedAt() : Instant
+    + setFirstUsedAt(Instant) : void
+    + getLastUsedAt() : Instant
+    + setLastUsedAt(Instant) : void
+    + isSelectable() : boolean
+  }
+
+  class Diagnosis <<Entity>> {
+    - id : Long «PK»
+    - medicalRecordId : Long «FK»
+    - code : String
+    - label : String
+    - recordedAt : Instant
+    - authorUsername : String
+    --
+    + getId() : Long
+    + getMedicalRecord() : MedicalRecord
+    + setMedicalRecord(MedicalRecord) : void
+    + getCode() : String
+    + setCode(String) : void
+    + getLabel() : String
+    + setLabel(String) : void
+    + getRecordedAt() : Instant
+    + getAuthorUsername() : String
+    + setAuthorUsername(String) : void
+  }
+
+  class PrescriptionLine <<Entity>> {
+    - id : Long «PK»
+    - medicalRecordId : Long «FK»
+    - drugName : String
+    - dosage : String
+    - frequency : String
+    - startDate : LocalDate
+    - endDate : LocalDate
+    - status : PrescriptionStatus
+    - prescribedBy : String
+    - createdAt : Instant
+    --
+    + getId() : Long
+    + getMedicalRecord() : MedicalRecord
+    + setMedicalRecord(MedicalRecord) : void
+    + getDrugName() : String
+    + setDrugName(String) : void
+    + getDosage() : String
+    + setDosage(String) : void
+    + getFrequency() : String
+    + setFrequency(String) : void
+    + getStartDate() : LocalDate
+    + setStartDate(LocalDate) : void
+    + getEndDate() : LocalDate
+    + setEndDate(LocalDate) : void
+    + getStatus() : PrescriptionStatus
+    + setStatus(PrescriptionStatus) : void
+    + getPrescribedBy() : String
+    + setPrescribedBy(String) : void
+    + getCreatedAt() : Instant
+  }
+
+  class MedicationAdministration <<Entity>> {
+    - id : Long «PK»
+    - prescriptionLineId : Long «FK»
+    - administeredAt : Instant
+    - doseGiven : String
+    - nurseUsername : String
+    - notes : String
+    --
+    + getId() : Long
+    + getPrescriptionLine() : PrescriptionLine
+    + setPrescriptionLine(PrescriptionLine) : void
+    + getAdministeredAt() : Instant
+    + getDoseGiven() : String
+    + setDoseGiven(String) : void
+    + getNurseUsername() : String
+    + setNurseUsername(String) : void
+    + getNotes() : String
+    + setNotes(String) : void
+  }
+
+  class ClinicalNote <<Entity>> {
+    - id : Long «PK»
+    - medicalRecordId : Long «FK»
+    - authoredAt : Instant
+    - authorUsername : String
+    - narrative : String
+    --
+    + getId() : Long
+    + getMedicalRecord() : MedicalRecord
+    + setMedicalRecord(MedicalRecord) : void
+    + getAuthoredAt() : Instant
+    + getAuthorUsername() : String
+    + setAuthorUsername(String) : void
+    + getNarrative() : String
+    + setNarrative(String) : void
+  }
+
+  class NursingCareRecord <<Entity>> {
+    - id : Long «PK»
+    - medicalRecordId : Long «FK»
+    - careType : String
+    - performedAt : Instant
+    - nurseUsername : String
+    - description : String
+    --
+    + getId() : Long
+    + getMedicalRecord() : MedicalRecord
+    + setMedicalRecord(MedicalRecord) : void
+    + getCareType() : String
+    + setCareType(String) : void
+    + getPerformedAt() : Instant
+    + getNurseUsername() : String
+    + setNurseUsername(String) : void
+    + getDescription() : String
+    + setDescription(String) : void
+  }
+
+  class ClinicalDocument <<Entity>> {
+    - id : Long «PK»
+    - medicalRecordId : Long «FK»
+    - title : String
+    - contentType : String
+    - objectStorageKey : String
+    - uploadedAt : Instant
+    - uploadedBy : String
+    --
+    + getId() : Long
+    + getMedicalRecord() : MedicalRecord
+    + setMedicalRecord(MedicalRecord) : void
+    + getTitle() : String
+    + setTitle(String) : void
+    + getContentType() : String
+    + setContentType(String) : void
+    + getObjectStorageKey() : String
+    + setObjectStorageKey(String) : void
+    + getUploadedAt() : Instant
+    + getUploadedBy() : String
+    + setUploadedBy(String) : void
+  }
+
+  MedicalRecord "1" *-- "0..*" Diagnosis
+  MedicalRecord "1" *-- "0..*" PrescriptionLine
+  MedicalRecord "1" *-- "0..*" ClinicalNote
+  MedicalRecord "1" *-- "0..*" NursingCareRecord
+  MedicalRecord "1" *-- "0..*" ClinicalDocument
+  Consultation "1" *-- "0..*" ConsultationEvent
+  PrescriptionLine "1" o-- "0..*" MedicationAdministration
+  ConsultationEvent ..> DiseaseCatalog : diseaseType / diseaseName
 }
 
 package "audit-service" <<BoundedContext>> #EEEEEE {
+
   class AuditEvent <<Entity>> {
-    + id : Long
-    occurredAt : instant
-    actorUsername : string
-    action : string
-    resourceType : string
-    resourceId : string
-    sourceService : string
+    - id : Long «PK»
+    - eventId : UUID
+    - occurredAt : Instant
+    - actorUsername : String
+    - action : String
+    - resourceType : String
+    - resourceId : String
+    - sourceService : String
+    - metadataJson : String
+    - createdAt : Instant
+    --
+    + getId() : Long
+    + getEventId() : UUID
+    + setEventId(UUID) : void
+    + getOccurredAt() : Instant
+    + setOccurredAt(Instant) : void
+    + getActorUsername() : String
+    + setActorUsername(String) : void
+    + getAction() : String
+    + setAction(String) : void
+    + getResourceType() : String
+    + setResourceType(String) : void
+    + getResourceId() : String
+    + setResourceId(String) : void
+    + getSourceService() : String
+    + setSourceService(String) : void
+    + getMetadataJson() : String
+    + setMetadataJson(String) : void
+    + getCreatedAt() : Instant
   }
 }
 
-Patient .. Admission : patientId >
-Patient .. Stay : patientId >
-Patient .. MedicalRecord : patientId >
-Patient .. Consultation : patientId >
-HospitalService .. Admission : hospitalServiceId >
-Admission .. Consultation : admissionId >
-Admission .. Stay : admissionId >
+' --- Références inter-contextes ---
+
+AppUser ..> HospitalService : hospitalServiceIds
+Patient ..> Admission : patientId
+Patient ..> EmergencyVisit : patientId
+Patient ..> Stay : patientId
+Patient ..> MedicalRecord : patientId
+Patient ..> Consultation : patientId
+HospitalService ..> Admission : hospitalServiceId
+HospitalService ..> TransferRequest : fromServiceId / toServiceId
+Admission ..> Stay : admissionId
+Admission ..> Consultation : admissionId
 
 @enduml

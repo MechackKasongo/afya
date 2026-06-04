@@ -1,0 +1,67 @@
+@startuml MODELE_DOMAINE_IDENTITY_SERVICE
+title "Modèle du domaine — identity-service (BDD afya_identity :5433)"
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+database "PostgreSQL\nafya_identity" as DB
+
+package "afya_identity" {
+
+  class app_users <<table>> {
+    id : BIGINT «PK»
+    username : VARCHAR(80) «UK»
+    email : VARCHAR(160)
+    full_name : VARCHAR(120)
+    password_hash : VARCHAR(255)
+    active : BOOLEAN
+    created_at : TIMESTAMP
+  }
+
+  class roles <<table>> {
+    id : BIGINT «PK»
+    code : VARCHAR(40) «UK»
+    label : VARCHAR(120)
+  }
+
+  class user_roles <<table>> {
+    user_id : BIGINT «PK,FK»
+    role_id : BIGINT «PK,FK»
+  }
+
+  class refresh_tokens <<table>> {
+    id : BIGINT «PK»
+    user_id : BIGINT «FK»
+    token_hash : VARCHAR(128) «UK»
+    expires_at : TIMESTAMP
+    revoked : BOOLEAN
+    created_at : TIMESTAMP
+  }
+
+  class revoked_access_jti <<table>> {
+    jti : VARCHAR(64) «PK»
+    expires_at : TIMESTAMP
+    revoked_at : TIMESTAMP
+  }
+
+  class user_hospital_services <<table>> {
+    user_id : BIGINT «PK,FK»
+    hospital_service_id : BIGINT «PK»
+  }
+
+  app_users "1" *-- "*" user_roles
+  roles "1" *-- "*" user_roles
+  app_users "1" *-- "*" refresh_tokens
+  app_users "1" *-- "*" user_hospital_services
+}
+
+app_users --> DB
+roles --> DB
+user_roles --> DB
+refresh_tokens --> DB
+revoked_access_jti --> DB
+user_hospital_services --> DB
+
+class "catalog-service\nhospital_services" as ExtCat <<external>>
+user_hospital_services ..> ExtCat : hospital_service_id\n(réf. logique)
+
+@enduml

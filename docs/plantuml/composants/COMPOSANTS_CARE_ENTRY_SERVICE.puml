@@ -1,0 +1,90 @@
+@startuml COMPOSANTS_CARE_ENTRY_SERVICE
+title "Diagramme de composants — care-entry-service (:8084)"
+skinparam componentStyle rectangle
+
+actor "Client HTTP" as Client
+
+package "care-entry-service" {
+
+  component "AdmissionController" as AdmCtrl <<REST>>
+  component "EmergencyController" as ErgCtrl <<REST>>
+  component "VitalSignController" as VitalCtrl <<REST>>
+  component "CareEntryStatsController" as StatsCtrl <<REST>>
+
+  component "AdmissionService" as AdmSvc <<service>>
+  component "AdmissionWriter" as AdmWriter <<service>>
+  component "EmergencyVisitService" as ErgSvc <<service>>
+  component "EmergencyVisitTimelineService" as TimelineSvc <<service>>
+  component "VitalSignService" as VitalSvc <<service>>
+
+  component "AdmissionRepository" as AdmRepo <<repository>>
+  component "TransferRequestRepository" as TransRepo <<repository>>
+  component "EmergencyVisitRepository" as ErgRepo <<repository>>
+  component "EmergencyVisitTimelineEventRepository" as TlRepo <<repository>>
+  component "VitalSignReadingRepository" as VitalRepo <<repository>>
+
+  component "PatientServiceClient" as PatClient <<integration>>
+  component "CatalogServiceClient" as CatClient <<integration>>
+  component "StayServiceClient" as StayClient <<integration>>
+
+  component "SecurityConfig" as SecCfg <<config>>
+}
+
+package "afya-shared" as Shared {
+  component "HttpResilienceInterceptor" as Resilience
+  component "RestAuditEventPublisher" as AuditPub
+  component "HospitalScopeSupport" as Scope
+}
+
+database "PostgreSQL\nafya_care_entry :5436" as DB
+
+component "patient-service\n:8083" as Patient
+component "catalog-service\n:8082" as Catalog
+component "stay-service\n:8085" as Stay
+component "audit-service\n:8087" as Audit
+
+Client --> AdmCtrl
+Client --> ErgCtrl
+Client --> VitalCtrl
+Client --> StatsCtrl
+
+AdmCtrl --> AdmSvc
+ErgCtrl --> ErgSvc
+ErgCtrl --> TimelineSvc
+VitalCtrl --> VitalSvc
+StatsCtrl --> AdmRepo
+
+AdmSvc --> AdmRepo
+AdmSvc --> TransRepo
+AdmSvc --> AdmWriter
+AdmSvc --> PatClient
+AdmSvc --> CatClient
+AdmSvc --> StayClient
+AdmSvc ..> Scope
+ErgSvc --> ErgRepo
+TimelineSvc --> TlRepo
+VitalSvc --> VitalRepo
+
+AdmRepo --> DB
+TransRepo --> DB
+ErgRepo --> DB
+TlRepo --> DB
+VitalRepo --> DB
+
+PatClient ..> Patient : GET patient
+CatClient ..> Catalog : GET service
+StayClient ..> Stay : POST stay
+PatClient ..> Resilience
+CatClient ..> Resilience
+StayClient ..> Resilience
+
+AdmSvc ..> AuditPub
+ErgSvc ..> AuditPub
+AuditPub ..> Audit
+
+note bottom of AdmSvc
+  À l'admission : ouverture séjour
+  via StayServiceClient
+end note
+
+@enduml

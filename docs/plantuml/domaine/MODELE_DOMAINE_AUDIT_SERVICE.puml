@@ -1,0 +1,32 @@
+@startuml MODELE_DOMAINE_AUDIT_SERVICE
+title "Modèle du domaine — audit-service (BDD afya_audit :5439)"
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+database "PostgreSQL\nafya_audit" as DB
+
+package "afya_audit" {
+
+  class audit_events <<table>> {
+    id : BIGSERIAL «PK»
+    event_id : UUID «UK»
+    occurred_at : TIMESTAMP
+    actor_username : VARCHAR(80)
+    action : VARCHAR(80)
+    resource_type : VARCHAR(60)
+    resource_id : VARCHAR(80)
+    source_service : VARCHAR(40)
+    metadata_json : TEXT
+    created_at : TIMESTAMP
+  }
+}
+
+audit_events --> DB
+
+note bottom of audit_events
+  Alimentée par tous les services
+  via RestAuditEventPublisher (HTTP).
+  Journal append-only.
+end note
+
+@enduml

@@ -1,0 +1,48 @@
+@startuml CONCEPTION_AUDIT_SERVICE
+title "Conception — audit-service (:8087)"
+skinparam classAttributeIconSize 0
+
+package "Présentation REST" {
+  class AuditEventController {
+    + record(AuditEventCreateRequest) : AuditEventResponse
+    + search(...) : Page<AuditEventResponse>
+  }
+  class ActivityReportController {
+    + activityReport(Instant, Instant) : ActivityReportResponse
+  }
+}
+
+package "Application" {
+  class AuditEventService {
+    + record(AuditEventCreateRequest) : AuditEventResponse
+    + search(...) : Page<AuditEventResponse>
+    + activityReport(Instant, Instant) : ActivityReportResponse
+  }
+}
+
+package "Persistance" {
+  interface AuditEventRepository {
+    + save(AuditEvent) : AuditEvent
+    + findByOccurredAtBetween(...) : Page<AuditEvent>
+    + countByActionBetween(...) : Map
+  }
+  class AuditEvent <<Entity>> {
+    - eventId : UUID
+    - occurredAt : Instant
+    - actorUsername : String
+    - action : String
+    - resourceType : String
+    - sourceService : String
+    - metadataJson : String
+    --
+    + getEventId() : UUID
+    + setOccurredAt(Instant) : void
+  }
+}
+
+AuditEventController --> AuditEventService
+ActivityReportController --> AuditEventService
+AuditEventService --> AuditEventRepository
+AuditEventRepository --> AuditEvent
+
+@enduml

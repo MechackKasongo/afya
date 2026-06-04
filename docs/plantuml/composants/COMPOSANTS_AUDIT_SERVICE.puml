@@ -1,0 +1,43 @@
+@startuml COMPOSANTS_AUDIT_SERVICE
+title "Diagramme de composants — audit-service (:8087)"
+skinparam componentStyle rectangle
+
+actor "Client HTTP\n(BFF / services)" as Client
+
+package "audit-service" {
+
+  component "AuditEventController\n/api/v1/audit/events" as EvCtrl <<REST>>
+  component "ActivityReportController\n/api/v1/reports" as RepCtrl <<REST>>
+
+  component "AuditEventService" as AuditSvc <<service>>
+
+  component "AuditEventRepository" as AuditRepo <<repository>>
+
+  component "SecurityConfig" as SecCfg <<config>>
+  component "IngestionKeyAuthenticationFilter" as IngestFilter <<config>>
+}
+
+database "PostgreSQL\nafya_audit :5439" as DB
+
+Client --> EvCtrl : ingestion + recherche
+Client --> RepCtrl : rapport activité
+
+EvCtrl --> AuditSvc
+RepCtrl --> AuditSvc
+AuditSvc --> AuditRepo
+AuditRepo --> DB
+
+SecCfg --> IngestFilter
+
+note right of EvCtrl
+  Ingestion inter-services :
+  header X-Audit-Ingestion-Key
+  (RestAuditEventPublisher)
+end note
+
+note bottom of AuditSvc
+  Consommé par tous les services
+  métier (événements append-only)
+end note
+
+@enduml

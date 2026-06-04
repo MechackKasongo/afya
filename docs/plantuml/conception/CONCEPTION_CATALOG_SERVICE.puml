@@ -1,0 +1,93 @@
+@startuml CONCEPTION_CATALOG_SERVICE
+title "Conception — catalog-service (:8082)"
+skinparam classAttributeIconSize 0
+
+package "Présentation REST" {
+  class DepartmentController {
+    + list() : List<DepartmentResponse>
+    + getById(Long) : DepartmentResponse
+    + create(DepartmentRequest) : DepartmentResponse
+    + update(Long, DepartmentRequest) : DepartmentResponse
+    + delete(Long) : void
+  }
+  class HospitalServiceController {
+    + list(...) : Page<HospitalServiceResponse>
+    + getById(Long) : HospitalServiceResponse
+    + create(HospitalServiceRequest) : HospitalServiceResponse
+    + update(Long, HospitalServiceRequest) : HospitalServiceResponse
+    + updateStatus(Long, HospitalServiceStatusRequest) : HospitalServiceResponse
+    + delete(Long) : void
+  }
+  class BedController {
+    + listByService(Long) : List<BedResponse>
+    + create(Long, BedRequest) : BedResponse
+    + provisionMissingBeds(Long) : int
+    + updateOccupancy(Long, BedOccupancyRequest) : void
+    + delete(Long, Long) : void
+  }
+  class StatsController {
+    + occupancy() : OccupancyStatsResponse
+    + suggestBed(Long) : BedSuggestionResponse
+  }
+}
+
+package "Application" {
+  class DepartmentService {
+    + listAll() : List<DepartmentResponse>
+    + getById(Long) : DepartmentResponse
+    + create(DepartmentRequest) : DepartmentResponse
+    + update(Long, DepartmentRequest) : DepartmentResponse
+    + delete(Long) : void
+  }
+  class HospitalServiceCatalogService {
+    + list(...) : Page<HospitalServiceResponse>
+    + getById(Long) : HospitalServiceResponse
+    + create(HospitalServiceRequest) : HospitalServiceResponse
+    + update(Long, HospitalServiceRequest) : HospitalServiceResponse
+    + updateStatus(Long, ...) : HospitalServiceResponse
+    + delete(Long) : void
+  }
+  class BedService {
+    + listByService(Long) : List<BedResponse>
+    + create(Long, BedRequest) : BedResponse
+    + provisionMissingBeds(Long) : int
+    + realignFreeBeds(Long) : int
+    + updateOccupancy(Long, BedOccupancyRequest) : void
+    + delete(Long, Long) : void
+  }
+  class CatalogStatsService {
+    + occupancy() : OccupancyStatsResponse
+    + suggestBed(Long) : BedSuggestionResponse
+  }
+  class BedAssignmentSelector {
+    + selectFreeBed(List<Bed>) : Optional<Bed>
+  }
+}
+
+package "Persistance" {
+  interface DepartmentRepository
+  interface HospitalServiceRepository {
+    + findById(Long) : Optional<HospitalService>
+  }
+  interface BedRepository
+  class Department <<Entity>>
+  class HospitalService <<Entity>>
+  class Bed <<Entity>>
+}
+
+DepartmentController --> DepartmentService
+HospitalServiceController --> HospitalServiceCatalogService
+BedController --> BedService
+StatsController --> CatalogStatsService
+DepartmentService --> DepartmentRepository
+HospitalServiceCatalogService --> HospitalServiceRepository
+HospitalServiceCatalogService --> BedService
+BedService --> BedRepository
+CatalogStatsService --> HospitalServiceRepository
+CatalogStatsService --> BedAssignmentSelector
+DepartmentRepository --> Department
+HospitalServiceRepository --> HospitalService
+BedRepository --> Bed
+HospitalService --> Department
+
+@enduml

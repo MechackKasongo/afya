@@ -6,41 +6,47 @@ actor "Réceptionniste" as User
 participant "SPA Web" as Web
 participant "BFF" as BFF
 participant "AdmissionController" as Ctrl
-participant "AdmissionOrchestrationService" as Svc
-participant "PatientRestClient" as PatClient
+participant "AdmissionService" as Svc
+participant "PatientServiceClient" as PatClient
 participant "patient-service" as PatSvc
-participant "CatalogReadClient" as CatClient
+participant "CatalogServiceClient" as CatClient
 participant "catalog-service" as CatSvc
+participant "AdmissionWriter" as Writer
 participant "AdmissionRepository" as Repo
-participant "StayRestClient" as StayClient
+participant "StayServiceClient" as StayClient
 participant "stay-service" as StaySvc
-participant "AuditEventPublisher" as Audit
+participant "RestAuditEventPublisher" as Audit
+participant "audit-service" as AuditSvc
 
 User -> Web : formulaire admission
-Web -> BFF : POST /admissions + JWT
+Web -> BFF : POST /api/v1/admissions + JWT
 BFF -> Ctrl : POST /api/v1/admissions
-Ctrl -> Svc : admit(AdmissionCreateRequest)
+Ctrl -> Svc : admit(request, bearerToken)
 
-Svc -> PatClient : getById(patientId)
+Svc -> PatClient : getPatient(patientId, auth)
 PatClient -> PatSvc : GET /api/v1/patients/{id}
 PatSvc --> PatClient : 200 PatientSummary
 PatClient --> Svc : patient valide
 
-Svc -> CatClient : getService(hospitalServiceId)
+Svc -> CatClient : getHospitalService(serviceId, auth)
 CatClient -> CatSvc : GET /api/v1/hospital-services/{id}
 CatSvc --> CatClient : 200 HospitalServiceSummary
 CatClient --> Svc : service actif
 
-Svc -> Repo : save(Admission)
-Repo --> Svc : Admission persistée
+Svc -> Writer : persist(Admission)
+Writer -> Repo : save(Admission)
+Repo --> Writer : Admission
+Writer --> Svc : admission persistée
 
-Svc -> StayClient : openStay(stayCommand)
+Svc -> StayClient : openStay(StayOpenRequest, auth)
 StayClient -> StaySvc : POST /api/v1/stays
-StaySvc --> StayClient : 201 StayResponse
-StayClient --> Svc : stayId
+StaySvc --> StayClient : 201 StaySummary
+StayClient --> Svc : séjour ouvert
 
 Svc -> Audit : publish(ADMISSION_CREATED)
-Audit --> Svc : ack async
+Audit -> AuditSvc : POST /api/v1/audit/events
+AuditSvc --> Audit : 201 Created
+Audit --> Svc : ok
 
 Svc --> Ctrl : AdmissionResponse
 Ctrl --> BFF : 201 Created

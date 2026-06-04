@@ -26,7 +26,12 @@ Relations et cardinalités (inventaire unique) :
 
 | Fichier | Contenu |
 |---------|---------|
-| [MODELE_DOMAINE_AFYA.puml](MODELE_DOMAINE_AFYA.puml) | Domaine conceptuel par microservice (7 contextes + liens logiques) |
+| [MODELE_DOMAINE_AFYA.puml](MODELE_DOMAINE_AFYA.puml) | Domaine global JPA (attributs + méthodes entités) |
+| [MODELE_DOMAINE_BDD_AFYA.puml](MODELE_DOMAINE_BDD_AFYA.puml) | Domaine global — tables/colonnes Flyway |
+| [domaine/README.md](domaine/README.md) | **Domaine par service** (7 bases) |
+| [conception/README.md](conception/README.md) | **Conception par service** (couches + méthodes) |
+| [CONCEPTION_BDD_AFYA.puml](CONCEPTION_BDD_AFYA.puml) | Conception globale + BDD |
+| [../MERMAID_DOMAINE_AFYA.md](../MERMAID_DOMAINE_AFYA.md) | Même modèle en Mermaid (aperçu GitHub / mémoire) |
 
 ## Classes participantes (analyse — 8 cas d'utilisation)
 
@@ -83,7 +88,9 @@ Diagramme **une colonne par acteur** (4 fichiers) :
 
 | Fichier | Type |
 |---------|------|
-| [CONCEPTION_COUCHE_SERVICE_AFYA.puml](CONCEPTION_COUCHE_SERVICE_AFYA.puml) | Classes de conception — couches (care-entry) |
+| [CONCEPTION_AFYA.puml](CONCEPTION_AFYA.puml) | Conception globale — patron de couches |
+| [../MERMAID_CONCEPTION_AFYA.md](../MERMAID_CONCEPTION_AFYA.md) | Même vue en Mermaid |
+| [CONCEPTION_COUCHE_SERVICE_AFYA.puml](CONCEPTION_COUCHE_SERVICE_AFYA.puml) | Classes de conception — care-entry (détail) |
 | [CONCEPTION_CONSULTATION_AFYA.puml](CONCEPTION_CONSULTATION_AFYA.puml) | Classes — consultation / catalogue maladies |
 | [CONCEPTION_SEQUENCE_AUTHENTIFICATION_AFYA.puml](CONCEPTION_SEQUENCE_AUTHENTIFICATION_AFYA.puml) | Séquence login |
 | [CONCEPTION_SEQUENCE_ADMISSION_AFYA.puml](CONCEPTION_SEQUENCE_ADMISSION_AFYA.puml) | Séquence admission multi-services |
@@ -95,7 +102,9 @@ Diagramme **une colonne par acteur** (4 fichiers) :
 | Fichier | Contenu |
 |---------|---------|
 | [CAS_UTILISATION_AFYA.puml](CAS_UTILISATION_AFYA.puml) | Cas d'utilisation globaux |
-| [COMPOSANTS_AFYA.puml](COMPOSANTS_AFYA.puml) | Composants (BFF, services, persistance) |
+| [COMPOSANTS_AFYA.puml](COMPOSANTS_AFYA.puml) | Composants — vue globale |
+| [composants/README.md](composants/README.md) | **Composants par service** (9 applications) |
+| [../MERMAID_COMPOSANTS_AFYA.md](../MERMAID_COMPOSANTS_AFYA.md) | Vue globale en Mermaid |
 | [DEPLOIEMENT_AFYA.puml](DEPLOIEMENT_AFYA.puml) | Déploiement |
 | [ETAT_ADMISSION_AFYA.puml](ETAT_ADMISSION_AFYA.puml) | États `Admission` |
 | [ETAT_STAY_AFYA.puml](ETAT_STAY_AFYA.puml) | États `Stay` |
