@@ -67,8 +67,8 @@ flowchart LR
 | **MD-05** Admission Service | `admission-service` | `afya_admission` | Partiel |
 | **MD-06** Medical Service | `medical-service` | `afya_medical` | Partiel |
 | **MD-07** Lab Service | `lab-service` | `afya_lab` | Implémenté (schéma complet) |
-| **MD-08** Nursing Service | `nursing-service` | `afya_nursing` | Partiel |
-| **MD-09** Report Service | `report-service` + `audit-service` | `afya_report` + `afya_audit` | Partiel |
+| **MD-08** Nursing Service | `nursing-service` | `afya_nursing` | Partiel — notifications + administrations |
+| **MD-09** Report Service | `report-service` + `audit-service` | `afya_report` + `afya_audit` | Partiel — rapports matérialisés, stats labo/soins |
 
 Tous les modules legacy ont été retirés. ~~`identity-service`~~, ~~`catalog-service`~~, ~~`care-entry-service`~~, ~~`stay-service`~~ et ~~`clinical-record-service`~~ remplacés par la stack cible (9 microservices).
 
@@ -141,10 +141,10 @@ Tous les modules legacy ont été retirés. ~~`identity-service`~~, ~~`catalog-s
 | `DossierMedical` | `MedicalRecord` | Implémenté |
 | `Consultation` | `Consultation` | Partiel — diagnostic dans `ConsultationEvent` / `Diagnosis` |
 | `Prescription` | — (lignes directes) | Partiel — pas d'agrégat `Prescription` |
-| `Medicament` | `PrescriptionLine` | Implémenté (ligne = médicament) |
-| `DecisionMedicale` | `ConsultationEvent` + workflow admission | Partiel |
+| `Medicament` | `PrescriptionLine` | Implémenté (ligne = médicament ; `admission_id` optionnel pour le parcours hospi) |
+| `DecisionMedicale` | `ConsultationEvent` + workflow admission | Partiel — demande labo matérialisée (`exam_request_id` → `ExamRequest`) |
 
-**Extensions Afya :** `ClinicalDocument`, `ClinicalNote`, `DiseaseCatalog`.
+**Extensions Afya :** `ClinicalDocument`, `ClinicalNote`, `DiseaseCatalog`, prescriptions par admission (`GET/POST/PUT /api/v1/admissions/{id}/prescription-lines`).
 
 ---
 
@@ -170,8 +170,8 @@ Tous les modules legacy ont été retirés. ~~`identity-service`~~, ~~`catalog-s
 | `SoinInfirmier` | `NursingCareRecord` | Partiel — lien `medicalRecordId`, pas `prescriptionId` |
 | `ConstanteVitale` | `VitalSignReading` (`nursing-service`) | Implémenté |
 | `AlerteConstante` | `VitalSignAlert` | Implémenté (seuils automatiques) |
-| `NotificationPrescription` | — | **Absent** |
-| *(extension Afya)* | `MedicationAdministration` | Administration prescriptions |
+| `NotificationPrescription` | `PrescriptionNotification` | **Fait** — envoi à la création, statuts ENVOYEE / LUE / EXECUTEE |
+| *(extension Afya)* | `MedicationAdministration` | **Fait** — administrations par date + créneau (MATIN/SOIR/JOURNEE), endpoint admission |
 
 ---
 
@@ -179,11 +179,11 @@ Tous les modules legacy ont été retirés. ~~`identity-service`~~, ~~`catalog-s
 
 | Classe mémoire | Classe / concept Afya | Statut |
 |----------------|----------------------|--------|
-| `Rapport` | `report_definitions` (stub) | Partiel — pas de PDF/Excel persisté |
+| `Rapport` | `GeneratedReport` + export PDF/Excel | **Fait** — persistance `generated_reports`, téléchargement via BFF |
 | `StatistiqueAdmission` | Agrégation via `ActivityReportService` | Partiel |
-| `StatistiqueMedical` | Partiel via audit | Partiel |
-| `StatistiqueLaboratoire` | — | **Absent** |
-| `StatistiqueSoins` | — | **Absent** |
+| `StatistiqueMedical` | Partiel via audit + volumes medical | Partiel |
+| `StatistiqueLaboratoire` | `OperationalStatsService` (lab-service) | **Fait** — KPI demandes, délais, résultats |
+| `StatistiqueSoins` | `OperationalStatsService` (nursing-service) | **Fait** — constantes, alertes, soins |
 | *(transversal)* | `AuditEvent` (`audit-service`) | Ingestion événements |
 
 ---
@@ -203,16 +203,16 @@ Tous les modules legacy ont été retirés. ~~`identity-service`~~, ~~`catalog-s
 
 | Microservice mémoire | Nb classes | Service Afya | Couverture estimée |
 |----------------------|------------|--------------|-------------------|
-| MD-01 Auth | 3 | `auth-service` | ~60 % |
+| MD-01 Auth | 3 | `auth-service` | ~75 % |
 | MD-02 User | 4 | `user-service` | ~75 % |
-| MD-03 Hospital | 3 | `hospital-service` | ~80 % |
+| MD-03 Hospital | 3 | `hospital-service` | ~85 % |
 | MD-04 Patient | 3 | `patient-service` | ~85 % |
 | MD-05 Admission | 5 | `admission-service` | ~85 % |
-| MD-06 Medical | 5 | `medical-service` | ~80 % |
+| MD-06 Medical | 5 | `medical-service` | ~85 % |
 | MD-07 Lab | 6 | `lab-service` | **~100 %** |
-| MD-08 Nursing | 4 | `nursing-service` | ~75 % |
-| MD-09 Report | 5 | `report-service` + `audit-service` | ~30 % |
-| **Total** | **38** | **9 services** | **~65 %** |
+| MD-08 Nursing | 4 | `nursing-service` | ~85 % |
+| MD-09 Report | 5 | `report-service` + `audit-service` | ~70 % |
+| **Total** | **38** | **9 services** | **~82 %** |
 
 ---
 
@@ -241,14 +241,23 @@ Tous les modules legacy ont été retirés. ~~`identity-service`~~, ~~`catalog-s
 | P5 | `AlerteConstante`, `NotificationPrescription` | ~~Règles seuils~~ alertes **Fait** ; notifications **Fait** | `nursing-service` |
 | P6 | `OccupationLit` (MD-03) | ~~Historique occupations~~ **Fait** | `hospital-service` |
 | P7 | `Rapport` PDF/Excel + stats (MD-09) | ~~Persistance agrégats~~ **Fait** | `report-service` |
+| P8 | Prescriptions par admission (MD-06 / MD-08) | ~~`admission_id` + administrations créneau~~ **Fait** | `medical-service`, `nursing-service`, BFF |
 
----
+### Backlog optionnel (non bloquant soutenance)
+
+| Priorité | Écart / fonctionnalité | Action proposée | Service cible |
+|----------|------------------------|-----------------|---------------|
+| P9 | Consultation → `DemandeExamen` labo | ~~Créer `ExamRequest` depuis consultation~~ **Fait** | `medical-service` → `lab-service` |
+| P10 | Admin UI types d'examens | ~~Écran CRUD sur `GET/POST /api/v1/lab/exam-types`~~ **Fait** (`LabExamTypesPage`) | `frontend` |
+| P11 | Table `TokenJWT` (MD-01) | Persistance tokens émis / révoqués (au-delà de `RevokedAccessJti`) | `auth-service` |
+| P12 | Agrégat `Prescription` (MD-06) | Entité parente regroupant plusieurs `PrescriptionLine` | `medical-service` |
+| P13 | `Affectation` dates début/fin (MD-02) | Remplacer `hospitalServiceIds` par entité datée | `user-service` |
 
 ## 7. Références pour le mémoire
 
 **Formulation suggérée (soutenance) :**
 
-> Le modèle d'analyse du mémoire (9 microservices, 38 classes) constitue la **référence officielle du domaine**. Le prototype Afya implémente désormais **9 modules Maven alignés** sur cette découpe ; la couverture fonctionnelle reste partielle (~65 %) avec des écarts documentés (credentials, contacts urgence, notifications, rapports matérialisés). Ce mapping trace la correspondance bidirectionnelle entre analyse et implémentation.
+> Le modèle d'analyse du mémoire (9 microservices, 38 classes) constitue la **référence officielle du domaine**. Le prototype Afya implémente **9 modules Maven alignés** sur cette découpe ; la couverture fonctionnelle est **majoritairement atteinte (~82 %)** avec des écarts documentés (table `TokenJWT`, agrégat `Prescription`, dates d'affectation utilisateur). Ce mapping trace la correspondance bidirectionnelle entre analyse et implémentation.
 
 **Diagrammes à citer :**
 

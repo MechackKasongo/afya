@@ -32,7 +32,7 @@
 
 ## Phases d'implémentation
 
-### Phase 1 — Nouveaux services (en cours)
+### Phase 1 — Nouveaux services (terminée)
 - [x] `lab-service` — MD-07 (port **8092**)
 - [x] `admission-service` — MD-05 fusion `care-entry` + `stay` (port **8084**, base `afya_admission`)
 - [x] `report-service` — MD-09 scission rapports depuis audit (port **8094**, base `afya_report`)
@@ -62,6 +62,35 @@
 - [x] Hospital : historique `OccupationLit` (occupations lit)
 - [x] Auth : `Credential` séparé (tentatives, blocage)
 - [x] Report : `Rapport` PDF/Excel, statistiques labo/soins
+- [x] Medical / Nursing : prescriptions liées à l'admission (`admission_id` sur `PrescriptionLine`, administrations par créneau, BFF + UI)
+- [x] Medical → Lab : demande d'examen depuis consultation (`exam_request_id` sur événement, `LabServiceClient`)
+
+## Vérification smoke
+
+```bash
+./scripts/smoke-api.sh                    # gateway + login + modules + prescriptions admission
+SMOKE_EXTENDED=0 ./scripts/smoke-api.sh   # health + login uniquement
+SMOKE_STRICT=0 ./scripts/smoke-api.sh     # tolérer l'absence de lab/report/admission
+SMOKE_ADMISSION_ID=12 ./scripts/smoke-api.sh  # réutiliser une admission existante
+```
+
+Parcours étendu (`SMOKE_EXTENDED=1`) :
+- `GET /hospital-services`, `/admissions`, `/lab/exam-types`
+- `GET /reports/operational-stats`, `/reports/activity`
+- CRUD prescriptions + administrations par admission
+
+Services requis pour le parcours complet : **admission**, **medical**, **nursing**, **hospital**, **patient**, **lab**, **report** (+ auth, user, bff, gateway).
+
+## Backlog optionnel (post-migration)
+
+| Priorité | Sujet | État | Notes |
+|----------|--------|------|-------|
+| B1 | Consultation → demande labo (`ExamRequest`) | **Fait** | `POST .../orders/exams` crée une `ExamRequest` labo + lien `examRequestId` |
+| B2 | UI admin types d'examens | **Fait** | `LabExamTypesPage` — `GET/POST /api/v1/lab/exam-types`, route `/lab/exam-types` (ADMIN) |
+| B3 | Table `TokenJWT` (MD-01) | Ouvert | JWT stateless + refresh/revocation partielle |
+| B4 | Agrégat `Prescription` (MD-06) | Ouvert | Lignes `PrescriptionLine` sans entête prescription |
+| B5 | `Affectation` utilisateur avec dates (MD-02) | Ouvert | `hospitalServiceIds` sans début/fin |
+| B6 | Déploiement prod | Checklist | [DEPLOIEMENT_PROD.md](DEPLOIEMENT_PROD.md) |
 
 ## Ordre de démarrage (runtime)
 

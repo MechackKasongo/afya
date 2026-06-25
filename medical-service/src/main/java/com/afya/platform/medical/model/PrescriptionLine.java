@@ -27,6 +27,9 @@ public class PrescriptionLine {
     @JoinColumn(name = "medical_record_id", nullable = false)
     private MedicalRecord medicalRecord;
 
+    @Column(name = "admission_id")
+    private Long admissionId;
+
     @Column(nullable = false, length = 120)
     private String drugName;
 
@@ -61,6 +64,14 @@ public class PrescriptionLine {
 
     public void setMedicalRecord(MedicalRecord medicalRecord) {
         this.medicalRecord = medicalRecord;
+    }
+
+    public Long getAdmissionId() {
+        return admissionId;
+    }
+
+    public void setAdmissionId(Long admissionId) {
+        this.admissionId = admissionId;
     }
 
     public String getDrugName() {

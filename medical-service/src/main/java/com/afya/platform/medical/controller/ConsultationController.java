@@ -94,9 +94,14 @@ public class ConsultationController {
     public ConsultationEventResponse addExamOrder(
             @PathVariable Long consultationId,
             Authentication auth,
-            @Valid @RequestBody EventCreateRequest request
+            HttpServletRequest httpRequest,
+            @Valid @RequestBody ExamOrderCreateRequest request
     ) {
-        return consultationService.addExamOrder(consultationId, request, auth.getName());
+        return consultationService.addExamOrder(
+                consultationId,
+                request,
+                auth.getName(),
+                AuthorizationHeaderSupport.requireBearer(httpRequest));
     }
 
     @GetMapping("/patients/{patientId}/clinical-timeline")

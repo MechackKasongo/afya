@@ -3,6 +3,9 @@ package com.afya.platform.medical.service;
 import com.afya.platform.medical.dto.*;
 import com.afya.platform.medical.integration.AdmissionSummary;
 import com.afya.platform.medical.integration.CareEntryServiceClient;
+import com.afya.platform.medical.integration.LabExamRequestCreatePayload;
+import com.afya.platform.medical.integration.LabExamRequestSummary;
+import com.afya.platform.medical.integration.LabServiceClient;
 import com.afya.platform.medical.integration.PatientServiceClient;
 import com.afya.platform.medical.model.Consultation;
 import com.afya.platform.medical.model.ConsultationEvent;
@@ -36,6 +39,7 @@ public class ConsultationService {
     private final MedicalRecordRepository medicalRecordRepository;
     private final PatientServiceClient patientServiceClient;
     private final CareEntryServiceClient careEntryServiceClient;
+    private final LabServiceClient labServiceClient;
     private final AuditEventPublisher auditEventPublisher;
     private final DiseaseCatalogService diseaseCatalogService;
 
@@ -45,6 +49,7 @@ public class ConsultationService {
             MedicalRecordRepository medicalRecordRepository,
             PatientServiceClient patientServiceClient,
             CareEntryServiceClient careEntryServiceClient,
+            LabServiceClient labServiceClient,
             AuditEventPublisher auditEventPublisher,
             DiseaseCatalogService diseaseCatalogService
     ) {
@@ -53,6 +58,7 @@ public class ConsultationService {
         this.medicalRecordRepository = medicalRecordRepository;
         this.patientServiceClient = patientServiceClient;
         this.careEntryServiceClient = careEntryServiceClient;
+        this.labServiceClient = labServiceClient;
         this.auditEventPublisher = auditEventPublisher;
         this.diseaseCatalogService = diseaseCatalogService;
     }
@@ -136,10 +142,46 @@ public class ConsultationService {
     @Transactional
     public ConsultationEventResponse addExamOrder(
             Long consultationId,
-            EventCreateRequest request,
-            String username
+            ExamOrderCreateRequest request,
+            String username,
+            String authHeader
     ) {
-        return addEvent(consultationId, ConsultationEventType.EXAM_ORDER, request, username, "CONSULTATION_EXAM_ORDER_ADDED");
+        Consultation consultation = findConsultation(consultationId);
+        String content = blankToNull(request.content());
+        if (content == null) {
+            content = "Demande d'examen depuis la consultation";
+        }
+        ExamUrgency urgency = request.urgency() != null ? request.urgency() : ExamUrgency.NORMAL;
+
+        LabExamRequestSummary labRequest = labServiceClient.createExamRequest(
+                new LabExamRequestCreatePayload(
+                        consultation.getPatientId(),
+                        request.doctorId(),
+                        consultation.getAdmissionId(),
+                        urgency.name(),
+                        content,
+                        request.examTypeIds()),
+                authHeader);
+        if (labRequest == null || labRequest.id() == null) {
+            throw new BadRequestException("Création de la demande labo impossible");
+        }
+
+        ConsultationEvent event = new ConsultationEvent();
+        event.setConsultation(consultation);
+        event.setPatientId(consultation.getPatientId());
+        event.setEventType(ConsultationEventType.EXAM_ORDER);
+        event.setContent(content);
+        event.setExamRequestId(labRequest.id());
+        ConsultationEvent saved = consultationEventRepository.save(event);
+        auditEventPublisher.publish(
+                "CONSULTATION_EXAM_ORDER_ADDED",
+                "CONSULTATION_EVENT",
+                AuditMetadata.resourceId(saved.getId()),
+                username,
+                AuditMetadata.json(
+                        "patientId", consultation.getPatientId(),
+                        "examRequestId", labRequest.id()));
+        return toEventResponse(saved);
     }
 
     private ConsultationEventResponse addEvent(
@@ -229,6 +271,7 @@ public class ConsultationService {
                 event.getContent(),
                 event.getDiseaseType(),
                 event.getDiseaseName(),
+                event.getExamRequestId(),
                 event.getCreatedAt()
         );
     }

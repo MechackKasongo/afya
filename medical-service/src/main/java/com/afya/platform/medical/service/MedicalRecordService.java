@@ -198,6 +198,7 @@ public class MedicalRecordService {
                 line.getId(),
                 line.getMedicalRecord().getId(),
                 patientId,
+                line.getAdmissionId(),
                 line.getStatus().name(),
                 line.getDrugName());
     }
@@ -289,6 +290,10 @@ public class MedicalRecordService {
     }
 
     public record DownloadedClinicalDocument(InputStream stream, String contentType, String title) {
+    }
+
+    public MedicalRecord ensureRecordForPatient(Long patientId, String username, String authHeader) {
+        return ensurePatient(patientId, authHeader, username);
     }
 
     private MedicalRecord ensurePatient(Long patientId, String authHeader, String actorUsername) {

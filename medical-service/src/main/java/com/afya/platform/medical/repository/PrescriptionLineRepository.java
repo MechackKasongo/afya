@@ -14,4 +14,6 @@ public interface PrescriptionLineRepository extends JpaRepository<PrescriptionLi
             Long medicalRecordId,
             PrescriptionStatus status
     );
+
+    List<PrescriptionLine> findByAdmissionIdOrderByCreatedAtDesc(Long admissionId);
 }

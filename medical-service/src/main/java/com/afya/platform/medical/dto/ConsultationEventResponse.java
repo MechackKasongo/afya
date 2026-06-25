@@ -10,6 +10,7 @@ public record ConsultationEventResponse(
         String content,
         String diseaseType,
         String diseaseName,
+        Long examRequestId,
         Instant createdAt
 ) {
 }

@@ -1,6 +1,8 @@
 package com.afya.platform.bff.client;
 
 import com.afya.platform.bff.config.DownstreamRestClientFactory;
+import com.afya.platform.bff.dto.AdmissionMedicationAdministrationCreateRequest;
+import com.afya.platform.bff.dto.AdmissionMedicationAdministrationResponse;
 import com.afya.platform.bff.dto.VitalSignAlertResponse;
 import com.afya.platform.bff.dto.VitalSignCreateRequest;
 import com.afya.platform.bff.dto.VitalSignResponse;
@@ -110,5 +112,33 @@ public class NursingClient {
                 .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
                 .retrieve()
                 .body(PrescriptionNotificationResponse.class);
+    }
+
+    public List<AdmissionMedicationAdministrationResponse> listAdmissionMedications(
+            Long admissionId,
+            Long lineId,
+            String authorizationHeader
+    ) {
+        return restClient.get()
+                .uri("/api/v1/admissions/{admissionId}/prescription-lines/{lineId}/administrations",
+                        admissionId, lineId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .retrieve()
+                .body(RestClientTypes.list(AdmissionMedicationAdministrationResponse.class));
+    }
+
+    public AdmissionMedicationAdministrationResponse createAdmissionMedication(
+            Long admissionId,
+            Long lineId,
+            AdmissionMedicationAdministrationCreateRequest request,
+            String authorizationHeader
+    ) {
+        return restClient.post()
+                .uri("/api/v1/admissions/{admissionId}/prescription-lines/{lineId}/administrations",
+                        admissionId, lineId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .body(request)
+                .retrieve()
+                .body(AdmissionMedicationAdministrationResponse.class);
     }
 }

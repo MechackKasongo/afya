@@ -100,7 +100,7 @@ public class MedicalClient {
 
     public ConsultationEventResponse addConsultationExamOrder(
             Long consultationId,
-            EventCreateRequest request,
+            ExamOrderCreateRequest request,
             String authorizationHeader
     ) {
         return restClient.post()
@@ -212,6 +212,44 @@ public class MedicalClient {
                 .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
                 .retrieve()
                 .body(RestClientTypes.list(PrescriptionLineResponse.class));
+    }
+
+    public List<AdmissionPrescriptionLineResponse> listAdmissionPrescriptions(
+            Long admissionId,
+            String authorizationHeader
+    ) {
+        return restClient.get()
+                .uri("/api/v1/admissions/{admissionId}/prescription-lines", admissionId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .retrieve()
+                .body(RestClientTypes.list(AdmissionPrescriptionLineResponse.class));
+    }
+
+    public AdmissionPrescriptionLineResponse createAdmissionPrescription(
+            Long admissionId,
+            AdmissionPrescriptionLineCreateRequest request,
+            String authorizationHeader
+    ) {
+        return restClient.post()
+                .uri("/api/v1/admissions/{admissionId}/prescription-lines", admissionId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .body(request)
+                .retrieve()
+                .body(AdmissionPrescriptionLineResponse.class);
+    }
+
+    public AdmissionPrescriptionLineResponse updateAdmissionPrescription(
+            Long admissionId,
+            Long lineId,
+            AdmissionPrescriptionLineUpdateRequest request,
+            String authorizationHeader
+    ) {
+        return restClient.put()
+                .uri("/api/v1/admissions/{admissionId}/prescription-lines/{lineId}", admissionId, lineId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .body(request)
+                .retrieve()
+                .body(AdmissionPrescriptionLineResponse.class);
     }
 
     public ClinicalDocumentResponse addDocument(Long patientId, ClinicalDocumentRequest request, String authorizationHeader) {

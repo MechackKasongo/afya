@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { getApiErrorMessage } from '../api/error';
+import { useAuth } from '../auth/AuthContext';
 import type {
   ClinicalPrescriptionCreateRequest,
   ClinicalPrescriptionResponse,
@@ -9,6 +10,9 @@ import type {
   ConsultationResponse,
   DiseaseCatalogResponse,
   EventCreateRequest,
+  ExamOrderCreateRequest,
+  ExamTypeResponse,
+  ExamUrgency,
 } from '../api/types';
 import { formatClinicalPrescriptionDetails } from '../utils/prescriptionDisplay';
 import {
@@ -70,9 +74,9 @@ const EVENT_ENTRY_CONFIG: Record<
   },
   EXAM_ORDER: {
     pathSuffix: 'orders/exams',
-    successMessage: 'Demande ajoutée.',
-    placeholder: "Préciser l'examen demandé…",
-    submitLabel: 'Ajouter demande',
+    successMessage: 'Demande labo créée.',
+    placeholder: 'Commentaire ou indication clinique (optionnel)…',
+    submitLabel: 'Créer la demande labo',
   },
 };
 
@@ -160,6 +164,7 @@ export function ConsultationDetailView({
   backLabel,
   admissionContextId,
 }: ConsultationDetailViewProps) {
+  const { user } = useAuth();
   const [consultation, setConsultation] = useState<ConsultationResponse | null>(null);
   const [timeline, setTimeline] = useState<ConsultationEventResponse[]>([]);
   const [eventKind, setEventKind] = useState<EventEntryKind>('OBSERVATION');
@@ -191,6 +196,9 @@ export function ConsultationDetailView({
   const [prescriptionSortDir, setPrescriptionSortDir] = useState<TableSortDir>('desc');
   const [rxDrug, setRxDrug] = useState('');
   const [rxDetails, setRxDetails] = useState('');
+  const [examTypes, setExamTypes] = useState<ExamTypeResponse[]>([]);
+  const [examOrderTypeIds, setExamOrderTypeIds] = useState<number[]>([]);
+  const [examOrderUrgency, setExamOrderUrgency] = useState<ExamUrgency>('NORMAL');
 
   const displayedPrescriptions = useMemo(() => {
     const sorted = [...prescriptions];
@@ -313,6 +321,21 @@ export function ConsultationDetailView({
     };
   }, [eventKind, diagnosticDiseaseType]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void api
+      .get<ExamTypeResponse[]>('/api/v1/lab/exam-types')
+      .then((res) => {
+        if (!cancelled) setExamTypes(res.data);
+      })
+      .catch(() => {
+        if (!cancelled) setExamTypes([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function applyTimelineResult(eventsResult: PromiseSettledResult<{ data: ConsultationEventResponse[] }>) {
     if (eventsResult.status === 'fulfilled') {
       setTimeline(eventsResult.value.data);
@@ -413,7 +436,52 @@ export function ConsultationDetailView({
     }
   }
 
+  function toggleExamOrderType(typeId: number) {
+    setExamOrderTypeIds((prev) =>
+      prev.includes(typeId) ? prev.filter((id) => id !== typeId) : [...prev, typeId],
+    );
+  }
+
+  async function postExamOrder() {
+    if (!user?.id) {
+      setError('Utilisateur non connecté.');
+      return;
+    }
+    if (examOrderTypeIds.length === 0) {
+      setError("Sélectionnez au moins un type d'examen.");
+      return;
+    }
+    const payload: ExamOrderCreateRequest = {
+      doctorId: user.id,
+      examTypeIds: examOrderTypeIds,
+      urgency: examOrderUrgency,
+      content: eventDrafts.EXAM_ORDER.trim() || null,
+    };
+    setPending(true);
+    setError(null);
+    setMessage(null);
+    try {
+      await api.post<ConsultationEventResponse>(
+        `/api/v1/consultations/${consultationId}/orders/exams`,
+        payload,
+      );
+      setEventDrafts((prev) => ({ ...prev, EXAM_ORDER: '' }));
+      setExamOrderTypeIds([]);
+      setExamOrderUrgency('NORMAL');
+      setMessage(EVENT_ENTRY_CONFIG.EXAM_ORDER.successMessage);
+      await refreshTimeline();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Impossible de créer la demande labo."));
+    } finally {
+      setPending(false);
+    }
+  }
+
   function onAddTimelineEvent() {
+    if (eventKind === 'EXAM_ORDER') {
+      void postExamOrder();
+      return;
+    }
     const config = EVENT_ENTRY_CONFIG[eventKind];
     const rawContent = eventDrafts[eventKind];
     if (eventKind === 'DIAGNOSTIC') {
@@ -597,6 +665,61 @@ export function ConsultationDetailView({
                             setEventDrafts((prev) => ({ ...prev, [eventKind]: e.target.value }))
                           }
                           placeholder="Observations, évolution, recommandations…"
+                          disabled={pending}
+                        />
+                      </div>
+                    </>
+                  ) : eventKind === 'EXAM_ORDER' ? (
+                    <>
+                      <div className="field">
+                        <label htmlFor="exam-order-urgency">Urgence</label>
+                        <select
+                          id="exam-order-urgency"
+                          value={examOrderUrgency}
+                          onChange={(e) => setExamOrderUrgency(e.target.value as ExamUrgency)}
+                          disabled={pending}
+                        >
+                          <option value="NORMAL">Normale</option>
+                          <option value="URGENT">Urgente</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <span style={{ display: 'block', marginBottom: '0.35rem' }}>
+                          Types d'examen *
+                        </span>
+                        {examTypes.length === 0 ? (
+                          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.9rem' }}>
+                            Catalogue labo indisponible ou vide.
+                          </p>
+                        ) : (
+                          <div style={{ display: 'grid', gap: '0.35rem' }}>
+                            {examTypes.map((type) => (
+                              <label
+                                key={type.id}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={examOrderTypeIds.includes(type.id)}
+                                  onChange={() => toggleExamOrderType(type.id)}
+                                  disabled={pending}
+                                />
+                                <span>{type.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="field">
+                        <label htmlFor="event-content-exam">Commentaire</label>
+                        <textarea
+                          id="event-content-exam"
+                          rows={4}
+                          value={eventDrafts.EXAM_ORDER}
+                          onChange={(e) =>
+                            setEventDrafts((prev) => ({ ...prev, EXAM_ORDER: e.target.value }))
+                          }
+                          placeholder={EVENT_ENTRY_CONFIG.EXAM_ORDER.placeholder}
                           disabled={pending}
                         />
                       </div>
@@ -957,6 +1080,14 @@ export function ConsultationDetailView({
                   {selectedTimelineEvent.diseaseName || '—'}
                 </p>
               </>
+            ) : null}
+            {selectedTimelineEvent.type === 'EXAM_ORDER' && selectedTimelineEvent.examRequestId != null ? (
+              <p className="consultation-timeline-event-detail__meta">
+                <strong>Demande labo</strong>{' '}
+                <Link to={`/lab/requests/${selectedTimelineEvent.examRequestId}`}>
+                  Voir la demande #{selectedTimelineEvent.examRequestId}
+                </Link>
+              </p>
             ) : null}
           </div>
         ) : null}

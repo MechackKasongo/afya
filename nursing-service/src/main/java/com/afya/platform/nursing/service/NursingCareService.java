@@ -97,6 +97,9 @@ public class NursingCareService {
         admin.setPrescriptionLineId(prescriptionLineId);
         admin.setMedicalRecordId(prescription.medicalRecordId());
         admin.setPatientId(prescription.patientId());
+        admin.setAdministrationDate(java.time.LocalDate.now());
+        admin.setSlot(com.afya.platform.nursing.model.VitalSignSlot.JOURNEE);
+        admin.setAdministered(true);
         admin.setDoseGiven(request != null ? request.doseGiven() : null);
         admin.setNurseUsername(nurseUsername);
         admin.setNotes(request != null ? request.notes() : null);

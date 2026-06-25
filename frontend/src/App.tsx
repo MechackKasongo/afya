@@ -26,6 +26,7 @@ import { UrgenceDetailPage } from './pages/UrgenceDetailPage';
 import { UrgencesPage } from './pages/UrgencesPage';
 import { LabRequestsPage } from './pages/LabRequestsPage';
 import { LabRequestDetailPage } from './pages/LabRequestDetailPage';
+import { LabExamTypesPage } from './pages/LabExamTypesPage';
 import { UsersPage } from './pages/UsersPage';
 import { HospitalServicesPage } from './pages/HospitalServicesPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -167,6 +168,19 @@ export default function App() {
                       <PlatformUnavailablePage
                         title="Utilisateurs"
                         description="La gestion des utilisateurs reste sur le service identity ; l'interface d'administration arrive prochainement."
+                      />
+                    )
+                  }
+                />
+                <Route
+                  path="/lab/exam-types"
+                  element={
+                    platformFeatures.labModule && platformFeatures.labExamTypesAdmin ? (
+                      <LabExamTypesPage />
+                    ) : (
+                      <PlatformUnavailablePage
+                        title="Types d'examens"
+                        description="L'administration du catalogue laboratoire n'est pas encore disponible."
                       />
                     )
                   }

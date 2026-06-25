@@ -287,10 +287,14 @@ services:
       STORAGE_PROVIDER: minio
       MINIO_ENDPOINT: http://minio:9000
       ADMISSION_SERVICE_URL: http://admission:8084
+      LAB_SERVICE_URL: http://lab:8092
+      NURSING_SERVICE_BASE_URL: http://nursing:8093
     depends_on:
       medical-db:
         condition: service_healthy
       patient:
+        condition: service_healthy
+      lab:
         condition: service_healthy
       minio:
         condition: service_healthy

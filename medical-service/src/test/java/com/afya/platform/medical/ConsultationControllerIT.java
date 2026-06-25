@@ -2,6 +2,9 @@ package com.afya.platform.medical;
 
 import com.afya.platform.medical.integration.AdmissionSummary;
 import com.afya.platform.medical.integration.CareEntryServiceClient;
+import com.afya.platform.medical.integration.LabExamRequestCreatePayload;
+import com.afya.platform.medical.integration.LabExamRequestSummary;
+import com.afya.platform.medical.integration.LabServiceClient;
 import com.afya.platform.medical.integration.PatientServiceClient;
 import com.afya.platform.medical.integration.PatientSummary;
 import com.afya.platform.medical.support.TestJwtFactory;
@@ -16,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -37,6 +41,52 @@ class ConsultationControllerIT {
 
     @MockitoBean
     private CareEntryServiceClient careEntryServiceClient;
+
+    @MockitoBean
+    private LabServiceClient labServiceClient;
+
+    @Test
+    void examOrderCreatesLabRequest() throws Exception {
+        when(patientServiceClient.getPatient(anyLong(), anyString()))
+                .thenReturn(new PatientSummary(1L, "Jean", "Mukendi", "DOS-2026-AAAA-0001"));
+        when(careEntryServiceClient.getAdmission(anyLong(), anyString()))
+                .thenReturn(new AdmissionSummary(10L, 1L));
+        when(labServiceClient.createExamRequest(any(LabExamRequestCreatePayload.class), anyString()))
+                .thenReturn(new LabExamRequestSummary(99L));
+
+        String consultationJson = mockMvc.perform(post("/api/v1/consultations")
+                        .header("Authorization", "Bearer " + TestJwtFactory.medecinToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "patientId": 1,
+                                  "admissionId": 10,
+                                  "doctorName": "Dr Test"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long consultationId = Long.parseLong(consultationJson.split("\"id\":")[1].split(",")[0]);
+
+        mockMvc.perform(post("/api/v1/consultations/" + consultationId + "/orders/exams")
+                        .header("Authorization", "Bearer " + TestJwtFactory.medecinToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "doctorId": 5,
+                                  "examTypeIds": [1],
+                                  "urgency": "NORMAL",
+                                  "content": "NFS de contrôle"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.type").value("EXAM_ORDER"))
+                .andExpect(jsonPath("$.examRequestId").value(99))
+                .andExpect(jsonPath("$.content").value("NFS de contrôle"));
+    }
 
     @Test
     void consultationLifecycle() throws Exception {

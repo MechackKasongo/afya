@@ -335,6 +335,7 @@ export interface ConsultationEventResponse {
   content: string;
   diseaseType?: string | null;
   diseaseName?: string | null;
+  examRequestId?: number | null;
   createdAt: string;
 }
 
@@ -342,6 +343,13 @@ export interface EventCreateRequest {
   content: string;
   diseaseType?: string | null;
   diseaseName?: string | null;
+}
+
+export interface ExamOrderCreateRequest {
+  doctorId: number;
+  examTypeIds: number[];
+  urgency?: ExamUrgency;
+  content?: string | null;
 }
 
 export interface DiseaseCatalogResponse {
@@ -725,6 +733,13 @@ export interface ExamTypeResponse {
   parameters: string | null;
   active: boolean;
   createdAt: string;
+}
+
+export interface ExamTypeCreateRequest {
+  name: string;
+  description?: string | null;
+  category: ExamCategory;
+  parameters?: string | null;
 }
 
 export interface ExamRequestResponse {

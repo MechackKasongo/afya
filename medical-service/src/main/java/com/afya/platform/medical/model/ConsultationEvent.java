@@ -42,6 +42,9 @@ public class ConsultationEvent {
     @Column(name = "disease_name", length = 255)
     private String diseaseName;
 
+    @Column(name = "exam_request_id")
+    private Long examRequestId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -95,6 +98,14 @@ public class ConsultationEvent {
 
     public void setDiseaseName(String diseaseName) {
         this.diseaseName = diseaseName;
+    }
+
+    public Long getExamRequestId() {
+        return examRequestId;
+    }
+
+    public void setExamRequestId(Long examRequestId) {
+        this.examRequestId = examRequestId;
     }
 
     public Instant getCreatedAt() {

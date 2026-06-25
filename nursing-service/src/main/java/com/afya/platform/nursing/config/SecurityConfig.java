@@ -33,12 +33,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/patients/*/nursing-care",
                                 "/api/v1/patients/*/prescription-notifications").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/admissions/*/vital-signs",
-                                "/api/v1/admissions/*/vital-sign-alerts").authenticated()
+                                "/api/v1/admissions/*/vital-sign-alerts",
+                                "/api/v1/admissions/*/prescription-lines/*/administrations").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/patients/*/prescription-notifications/*/read")
                         .hasAnyRole("ADMIN", "INFIRMIER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/patients/*/nursing-care",
                                 "/api/v1/prescriptions/*/administrations",
-                                "/api/v1/admissions/*/vital-signs")
+                                "/api/v1/admissions/*/vital-signs",
+                                "/api/v1/admissions/*/prescription-lines/*/administrations")
                         .hasAnyRole("ADMIN", "MEDECIN", "INFIRMIER")
                         .anyRequest().denyAll())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))

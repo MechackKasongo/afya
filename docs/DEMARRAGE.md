@@ -672,7 +672,7 @@ Ouvrir **http://localhost:5173**, se connecter avec `admin` / `Admin@Afya2026!`.
 
 ```bash
 ./scripts/check-ports.sh   # 5173, 8090, 8080–8087, 9000
-./scripts/smoke-api.sh     # gateway + login
+./scripts/smoke-api.sh     # gateway + login + prescriptions admission (SMOKE_EXTENDED=0 pour le minimum)
 ```
 
 ### Alternative tmux (fenêtres au lieu de terminaux séparés)

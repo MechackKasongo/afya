@@ -2,6 +2,7 @@ package com.afya.platform.bff.controller;
 
 import com.afya.platform.bff.client.AdmissionClient;
 import com.afya.platform.bff.client.HospitalClient;
+import com.afya.platform.bff.client.MedicalClient;
 import com.afya.platform.bff.client.NursingClient;
 import com.afya.platform.bff.dto.*;
 import com.afya.platform.bff.support.AdmissionCompatMapper;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdmissionBffController {
 
     private final AdmissionClient admissionClient;
+    private final MedicalClient medicalClient;
     private final NursingClient nursingClient;
     private final HospitalClient hospitalClient;
     private final HospitalServiceResolver hospitalServiceResolver;
@@ -26,12 +28,14 @@ public class AdmissionBffController {
 
     public AdmissionBffController(
             AdmissionClient admissionClient,
+            MedicalClient medicalClient,
             NursingClient nursingClient,
             HospitalClient hospitalClient,
             HospitalServiceResolver hospitalServiceResolver,
             AdmissionUiEnricher admissionUiEnricher
     ) {
         this.admissionClient = admissionClient;
+        this.medicalClient = medicalClient;
         this.nursingClient = nursingClient;
         this.hospitalClient = hospitalClient;
         this.hospitalServiceResolver = hospitalServiceResolver;
@@ -181,6 +185,59 @@ public class AdmissionBffController {
     ) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
         return nursingClient.listVitalSignAlerts(id, auth);
+    }
+
+    @GetMapping("/{id}/prescription-lines")
+    public java.util.List<AdmissionPrescriptionLineResponse> listPrescriptionLines(
+            @PathVariable Long id,
+            HttpServletRequest request
+    ) {
+        String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
+        return medicalClient.listAdmissionPrescriptions(id, auth);
+    }
+
+    @PostMapping("/{id}/prescription-lines")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AdmissionPrescriptionLineResponse createPrescriptionLine(
+            @PathVariable Long id,
+            @Valid @RequestBody AdmissionPrescriptionLineCreateRequest body,
+            HttpServletRequest request
+    ) {
+        String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
+        return medicalClient.createAdmissionPrescription(id, body, auth);
+    }
+
+    @PutMapping("/{id}/prescription-lines/{lineId}")
+    public AdmissionPrescriptionLineResponse updatePrescriptionLine(
+            @PathVariable Long id,
+            @PathVariable Long lineId,
+            @Valid @RequestBody AdmissionPrescriptionLineUpdateRequest body,
+            HttpServletRequest request
+    ) {
+        String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
+        return medicalClient.updateAdmissionPrescription(id, lineId, body, auth);
+    }
+
+    @GetMapping("/{id}/prescription-lines/{lineId}/administrations")
+    public java.util.List<AdmissionMedicationAdministrationResponse> listMedicationAdministrations(
+            @PathVariable Long id,
+            @PathVariable Long lineId,
+            HttpServletRequest request
+    ) {
+        String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
+        return nursingClient.listAdmissionMedications(id, lineId, auth);
+    }
+
+    @PostMapping("/{id}/prescription-lines/{lineId}/administrations")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AdmissionMedicationAdministrationResponse createMedicationAdministration(
+            @PathVariable Long id,
+            @PathVariable Long lineId,
+            @Valid @RequestBody AdmissionMedicationAdministrationCreateRequest body,
+            HttpServletRequest request
+    ) {
+        String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
+        return nursingClient.createAdmissionMedication(id, lineId, body, auth);
     }
 
     private static VitalSignCreateRequest withDefaultRecordedAt(VitalSignCreateRequest body) {

@@ -107,7 +107,7 @@ public class ConsultationBffController {
     @ResponseStatus(HttpStatus.CREATED)
     public ConsultationEventResponse addExamOrder(
             @PathVariable Long consultationId,
-            @Valid @RequestBody EventCreateRequest body,
+            @Valid @RequestBody ExamOrderCreateRequest body,
             HttpServletRequest request
     ) {
         return medicalClient.addConsultationExamOrder(

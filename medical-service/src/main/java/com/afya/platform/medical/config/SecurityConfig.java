@@ -35,6 +35,7 @@ public class SecurityConfig {
                                 "/api/v1/patients/*/medical-record/antecedents")
                         .hasAnyRole("ADMIN", "MEDECIN", "INFIRMIER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/patients/*/prescriptions",
+                                "/api/v1/admissions/*/prescription-lines",
                                 "/api/v1/patients/*/medical-record/notes",
                                 "/api/v1/patients/*/medical-record/diagnoses",
                                 "/api/v1/patients/*/documents",
@@ -43,6 +44,8 @@ public class SecurityConfig {
                                 "/api/v1/consultations/*/observations",
                                 "/api/v1/consultations/*/diagnostics",
                                 "/api/v1/consultations/*/orders/exams")
+                        .hasAnyRole("ADMIN", "MEDECIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/admissions/*/prescription-lines/*")
                         .hasAnyRole("ADMIN", "MEDECIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/stats/**").hasRole("ADMIN")
                         .anyRequest().denyAll())

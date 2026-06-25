@@ -225,6 +225,14 @@ export function Layout() {
                     </NavIcon>
                     Reporting
                   </NavLink>
+                  {platformFeatures.labModule && platformFeatures.labExamTypesAdmin && (
+                    <NavLink to="/lab/exam-types">
+                      <NavIcon>
+                        <IconLab />
+                      </NavIcon>
+                      Types d&apos;examens
+                    </NavLink>
+                  )}
                 </>
               )}
             </div>
