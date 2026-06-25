@@ -1,6 +1,7 @@
 package com.afya.platform.bff.client;
 
 import com.afya.platform.bff.config.DownstreamRestClientFactory;
+import com.afya.platform.bff.dto.BedOccupationResponse;
 import com.afya.platform.bff.dto.BedResponse;
 import com.afya.platform.bff.dto.BedSuggestionResponse;
 import com.afya.platform.bff.dto.CatalogOccupancyStatsResponse;
@@ -107,6 +108,31 @@ public class HospitalClient {
     public List<BedResponse> listBeds(Long hospitalServiceId, String authorizationHeader) {
         return restClient.get()
                 .uri("/api/v1/hospital-services/{serviceId}/beds", hospitalServiceId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {});
+    }
+
+    public List<BedOccupationResponse> listBedOccupations(
+            Long hospitalServiceId,
+            Long bedId,
+            Long admissionId,
+            Long patientId,
+            Boolean activeOnly,
+            Integer page,
+            Integer size,
+            String authorizationHeader
+    ) {
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v1/hospital-services/{serviceId}/bed-occupations")
+                        .queryParamIfPresent("bedId", java.util.Optional.ofNullable(bedId))
+                        .queryParamIfPresent("admissionId", java.util.Optional.ofNullable(admissionId))
+                        .queryParamIfPresent("patientId", java.util.Optional.ofNullable(patientId))
+                        .queryParamIfPresent("activeOnly", java.util.Optional.ofNullable(activeOnly))
+                        .queryParamIfPresent("page", java.util.Optional.ofNullable(page))
+                        .queryParamIfPresent("size", java.util.Optional.ofNullable(size))
+                        .build(hospitalServiceId))
                 .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {});

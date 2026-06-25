@@ -7,6 +7,7 @@ import type {
   DepartmentRequest,
   DepartmentResponse,
   HospitalServiceRequest,
+  BedOccupationResponse,
   BedResponse,
   HospitalServiceResponse,
   PageHospitalServiceResponse,
@@ -15,6 +16,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Toast } from '../components/ui/Toast';
 import { departmentCodeFromName, departmentCodeWithSuffix } from '../utils/departmentCode';
 import { LIST_FETCH_PAGE_SIZE } from '../utils/listFetch';
+import { formatAuditDateTime } from '../utils/reporting';
 function servicesForDepartment(services: HospitalServiceResponse[], departmentId: number) {
   return services.filter((s) => s.departmentId === departmentId);
 }
@@ -48,6 +50,9 @@ export function CatalogOrganizationPage() {
   const [editServiceRoomLetter, setEditServiceRoomLetter] = useState('A');
   const [expandedServiceId, setExpandedServiceId] = useState<number | null>(null);
   const [bedsByService, setBedsByService] = useState<Record<number, BedResponse[]>>({});
+  const [occupationsByService, setOccupationsByService] = useState<
+    Record<number, BedOccupationResponse[]>
+  >({});
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -123,6 +128,18 @@ export function CatalogOrganizationPage() {
     }
   }
 
+  async function loadOccupationsForService(serviceId: number) {
+    try {
+      const { data } = await api.get<BedOccupationResponse[]>(
+        `/api/v1/hospital-services/${serviceId}/bed-occupations`,
+        { params: { size: 15 } },
+      );
+      setOccupationsByService((prev) => ({ ...prev, [serviceId]: data }));
+    } catch {
+      setOccupationsByService((prev) => ({ ...prev, [serviceId]: [] }));
+    }
+  }
+
   async function toggleServiceBeds(svc: HospitalServiceResponse) {
     if (expandedServiceId === svc.id) {
       setExpandedServiceId(null);
@@ -131,6 +148,9 @@ export function CatalogOrganizationPage() {
     setExpandedServiceId(svc.id);
     if (!bedsByService[svc.id]) {
       await loadBedsForService(svc.id);
+    }
+    if (!occupationsByService[svc.id]) {
+      await loadOccupationsForService(svc.id);
     }
   }
 
@@ -145,6 +165,7 @@ export function CatalogOrganizationPage() {
       setMessage(`${created} lit(s) créé(s) pour « ${svc.name} ».`);
       await loadAll();
       await loadBedsForService(svc.id);
+      await loadOccupationsForService(svc.id);
       setExpandedServiceId(svc.id);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Impossible de générer les lits.'));
@@ -171,6 +192,7 @@ export function CatalogOrganizationPage() {
       setMessage(`${created} lit(s) recréé(s) pour « ${svc.name} » (format chambre + lit à jour).`);
       await loadAll();
       await loadBedsForService(svc.id);
+      await loadOccupationsForService(svc.id);
       setExpandedServiceId(svc.id);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Impossible de recréer les lits.'));
@@ -752,6 +774,7 @@ export function CatalogOrganizationPage() {
                             const registered = svc.bedCount ?? 0;
                             const needsBeds = registered < svc.bedCapacity;
                             const beds = bedsByService[svc.id];
+                            const occupations = occupationsByService[svc.id];
                             const freeBeds = beds?.filter((b) => !b.occupied).length;
                             return (
                               <Fragment key={svc.id}>
@@ -846,23 +869,84 @@ export function CatalogOrganizationPage() {
                                           Aucun lit enregistré. {isAdmin ? 'Cliquez « Générer lits ».' : ''}
                                         </span>
                                       ) : (
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                                          {beds.map((b) => (
-                                            <span
-                                              key={b.id}
+                                        <div>
+                                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                            {beds.map((b) => (
+                                              <span
+                                                key={b.id}
+                                                style={{
+                                                  fontSize: '0.85rem',
+                                                  padding: '0.2rem 0.5rem',
+                                                  borderRadius: '6px',
+                                                  border: '1px solid var(--border)',
+                                                  background: b.occupied
+                                                    ? 'rgba(220,80,80,0.12)'
+                                                    : 'rgba(61,154,237,0.1)',
+                                                }}
+                                              >
+                                                {b.label} {b.occupied ? '· occupé' : '· libre'}
+                                              </span>
+                                            ))}
+                                          </div>
+                                          {occupations && occupations.length > 0 ? (
+                                            <div style={{ marginTop: '0.85rem' }}>
+                                              <p
+                                                style={{
+                                                  margin: '0 0 0.45rem',
+                                                  fontSize: '0.85rem',
+                                                  fontWeight: 600,
+                                                }}
+                                              >
+                                                Historique récent des occupations
+                                              </p>
+                                              <table className="data-table" style={{ fontSize: '0.85rem' }}>
+                                                <thead>
+                                                  <tr>
+                                                    <th scope="col">Lit</th>
+                                                    <th scope="col">Patient</th>
+                                                    <th scope="col">Admission</th>
+                                                    <th scope="col">Début</th>
+                                                    <th scope="col">Fin</th>
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {occupations.map((row) => (
+                                                    <tr key={row.id}>
+                                                      <td>{row.bedLabel}</td>
+                                                      <td>#{row.patientId}</td>
+                                                      <td>#{row.admissionId}</td>
+                                                      <td>{formatAuditDateTime(row.startedAt)}</td>
+                                                      <td>
+                                                        {row.endedAt
+                                                          ? formatAuditDateTime(row.endedAt)
+                                                          : 'En cours'}
+                                                      </td>
+                                                    </tr>
+                                                  ))}
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                          ) : occupations ? (
+                                            <p
                                               style={{
+                                                margin: '0.75rem 0 0',
                                                 fontSize: '0.85rem',
-                                                padding: '0.2rem 0.5rem',
-                                                borderRadius: '6px',
-                                                border: '1px solid var(--border)',
-                                                background: b.occupied
-                                                  ? 'rgba(220,80,80,0.12)'
-                                                  : 'rgba(61,154,237,0.1)',
+                                                color: 'var(--muted)',
                                               }}
                                             >
-                                              {b.label} {b.occupied ? '· occupé' : '· libre'}
-                                            </span>
-                                          ))}
+                                              Aucune occupation enregistrée pour ce service.
+                                            </p>
+                                          ) : (
+                                            <p
+                                              style={{
+                                                margin: '0.75rem 0 0',
+                                                fontSize: '0.85rem',
+                                                color: 'var(--muted)',
+                                              }}
+                                            >
+                                              Chargement de l’historique…
+                                            </p>
+                                          )}
                                         </div>
                                       )}
                                     </td>

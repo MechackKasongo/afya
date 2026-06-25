@@ -11,4 +11,12 @@ public interface ExamRequestRepository extends JpaRepository<ExamRequest, Long> 
     Page<ExamRequest> findByStatus(ExamRequestStatus status, Pageable pageable);
 
     Page<ExamRequest> findByPatientId(Long patientId, Pageable pageable);
+
+    long countByRequestedAtBetween(java.time.Instant from, java.time.Instant to);
+
+    long countByStatusAndRequestedAtBetween(
+            ExamRequestStatus status,
+            java.time.Instant from,
+            java.time.Instant to
+    );
 }

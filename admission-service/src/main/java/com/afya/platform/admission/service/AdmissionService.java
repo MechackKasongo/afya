@@ -18,6 +18,7 @@ import com.afya.platform.admission.model.TransferRequest;
 import com.afya.platform.admission.repository.AdmissionRepository;
 import com.afya.platform.admission.repository.TransferRequestRepository;
 import com.afya.platform.admission.stay.dto.StayOpenRequest;
+import com.afya.platform.admission.stay.dto.StayRelocateRequest;
 import com.afya.platform.admission.stay.dto.StayResponse;
 import com.afya.platform.admission.stay.service.StayService;
 import com.afya.platform.shared.security.HospitalScopeSupport;
@@ -133,6 +134,8 @@ public class AdmissionService {
                     roomLabel,
                     bedLabel,
                     true,
+                    admission.getPatientId(),
+                    admission.getId(),
                     authorizationHeader);
         } catch (HttpClientErrorException.Conflict ex) {
             log.debug("Séjour déjà ouvert ou conflit pour l'admission {} : {}", admission.getId(), ex.getMessage());
@@ -249,6 +252,20 @@ public class AdmissionService {
         HospitalServiceSummary target = catalogServiceClient.getHospitalService(
                 request.toHospitalServiceId(), authorizationHeader);
         Long fromServiceId = admission.getHospitalServiceId();
+        StayResponse stay = findStayOptional(admission.getId(), authorizationHeader);
+        if (stay != null) {
+            releaseBed(fromServiceId, stay, admission.getId(), authorizationHeader);
+        }
+
+        String roomLabel = null;
+        String bedLabel = null;
+        if (target.bedCapacity() > 0) {
+            CatalogServiceClient.BedAssignment assigned = catalogServiceClient.resolveBedAssignment(
+                    request.toHospitalServiceId(), null, null, authorizationHeader);
+            roomLabel = assigned.roomLabel();
+            bedLabel = assigned.bedLabel();
+        }
+
         TransferRequest transfer = new TransferRequest();
         transfer.setAdmission(admission);
         transfer.setFromServiceId(fromServiceId);
@@ -258,6 +275,21 @@ public class AdmissionService {
         admission.setHospitalServiceId(request.toHospitalServiceId());
         admission.setStatus(AdmissionStatus.TRANSFEREE);
         Admission saved = admissionRepository.save(admission);
+
+        if (stay != null && roomLabel != null && bedLabel != null) {
+            stayService.relocateByAdmissionId(
+                    saved.getId(),
+                    new StayRelocateRequest(roomLabel, bedLabel),
+                    authorizationHeader);
+            occupyBed(
+                    request.toHospitalServiceId(),
+                    roomLabel,
+                    bedLabel,
+                    saved.getPatientId(),
+                    saved.getId(),
+                    authorizationHeader);
+        }
+
         auditEventPublisher.publish(
                 "ADMISSION_TRANSFERRED",
                 "ADMISSION",
@@ -323,6 +355,7 @@ public class AdmissionService {
     public AdmissionResponse cancel(Long id, String authorizationHeader) {
         Admission admission = find(id);
         ensureActive(admission);
+        closeStayAndFreeBed(admission, authorizationHeader);
         admission.setStatus(AdmissionStatus.ANNULEE);
         admission.setDischargedAt(Instant.now());
         Admission saved = admissionRepository.save(admission);
@@ -347,21 +380,61 @@ public class AdmissionService {
     }
 
     private void closeStayAndFreeBed(Admission admission, String authorizationHeader) {
-        StayResponse stay = null;
-        try {
-            stay = stayService.getByAdmissionId(admission.getId(), authorizationHeader);
-        } catch (NotFoundException ex) {
-            log.debug("Pas de séjour pour l'admission {} lors de la sortie", admission.getId());
-        }
+        StayResponse stay = findStayOptional(admission.getId(), authorizationHeader);
         if (stay != null) {
-            catalogServiceClient.updateBedOccupancy(
-                    admission.getHospitalServiceId(),
-                    stay.roomLabel(),
-                    stay.bedLabel(),
-                    false,
-                    authorizationHeader);
+            releaseBed(admission.getHospitalServiceId(), stay, admission.getId(), authorizationHeader);
+            stayService.closeByAdmissionId(admission.getId(), authorizationHeader);
         }
-        stayService.closeByAdmissionId(admission.getId(), authorizationHeader);
+    }
+
+    private StayResponse findStayOptional(Long admissionId, String authorizationHeader) {
+        try {
+            return stayService.getByAdmissionId(admissionId, authorizationHeader);
+        } catch (NotFoundException ex) {
+            log.debug("Pas de séjour pour l'admission {}", admissionId);
+            return null;
+        }
+    }
+
+    private void releaseBed(
+            Long hospitalServiceId,
+            StayResponse stay,
+            Long admissionId,
+            String authorizationHeader
+    ) {
+        if (stay.roomLabel() == null || stay.roomLabel().isBlank()
+                || stay.bedLabel() == null || stay.bedLabel().isBlank()) {
+            return;
+        }
+        catalogServiceClient.updateBedOccupancy(
+                hospitalServiceId,
+                stay.roomLabel(),
+                stay.bedLabel(),
+                false,
+                stay.patientId(),
+                admissionId,
+                authorizationHeader);
+    }
+
+    private void occupyBed(
+            Long hospitalServiceId,
+            String roomLabel,
+            String bedLabel,
+            Long patientId,
+            Long admissionId,
+            String authorizationHeader
+    ) {
+        if (roomLabel == null || roomLabel.isBlank() || bedLabel == null || bedLabel.isBlank()) {
+            return;
+        }
+        catalogServiceClient.updateBedOccupancy(
+                hospitalServiceId,
+                roomLabel,
+                bedLabel,
+                true,
+                patientId,
+                admissionId,
+                authorizationHeader);
     }
 
     private AdmissionResponse enrich(Admission admission, String authorizationHeader) {

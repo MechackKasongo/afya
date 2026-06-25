@@ -6,6 +6,7 @@ import type {
   AuditEventResponse,
   MetricResponse,
   OccupancyStatsValue,
+  OperationalStatsResponse,
   PlatformVolumesValue,
   ServiceOccupancyStats,
   PageAuditEventResponse,
@@ -256,6 +257,260 @@ function resolveRoleLabel(
   return role ? roleLabelFor(rolesCatalog, role) : '—';
 }
 
+function parseDownloadFileName(contentDisposition: string | undefined, fallback: string): string {
+  if (!contentDisposition) return fallback;
+  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1]);
+    } catch {
+      return utf8Match[1];
+    }
+  }
+  const plainMatch = /filename="?([^";]+)"?/i.exec(contentDisposition);
+  return plainMatch?.[1] ?? fallback;
+}
+
+async function downloadActivityExport(format: 'pdf' | 'xlsx', from: string, to: string): Promise<void> {
+  const response = await api.get<Blob>('/api/v1/reports/activity/export', {
+    params: { format, from, to },
+    responseType: 'blob',
+  });
+  const fallback = format === 'pdf' ? 'rapport-activite.pdf' : 'rapport-activite.xlsx';
+  const fileName = parseDownloadFileName(response.headers['content-disposition'], fallback);
+  const blobUrl = URL.createObjectURL(response.data);
+  const anchor = document.createElement('a');
+  anchor.href = blobUrl;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(blobUrl);
+}
+
+function OperationalStatsPanel({
+  period,
+  onPeriodChange,
+  refreshToken,
+  onRefresh,
+}: {
+  period: ReportingPeriod;
+  onPeriodChange: (period: ReportingPeriod) => void;
+  refreshToken: number;
+  onRefresh: () => void;
+}) {
+  const [stats, setStats] = useState<OperationalStatsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<'pdf' | 'xlsx' | null>(null);
+
+  const range = useMemo(() => periodToRange(period), [period]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    void (async () => {
+      try {
+        const { data } = await api.get<OperationalStatsResponse>('/api/v1/reports/operational-stats', {
+          params: { from: range.from, to: range.to },
+        });
+        if (!cancelled) {
+          setStats(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setStats(null);
+          setError(getApiErrorMessage(err, 'Impossible de charger les statistiques opérationnelles.'));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [range.from, range.to, refreshToken]);
+
+  async function handleExport(format: 'pdf' | 'xlsx') {
+    setExporting(format);
+    setError(null);
+    try {
+      await downloadActivityExport(format, range.from, range.to);
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Export du rapport impossible.'));
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  const labRows = stats
+    ? [
+        { label: 'Demandes d’examens', value: stats.lab.examRequests },
+        { label: 'En attente', value: stats.lab.pendingRequests },
+        { label: 'Prélèvements enregistrés', value: stats.lab.specimenCollected },
+        { label: 'Résultats disponibles', value: stats.lab.resultsAvailable },
+        { label: 'Paramètres anormaux', value: stats.lab.abnormalParameters },
+      ]
+    : [];
+
+  const nursingRows = stats
+    ? [
+        { label: 'Relevés de constantes', value: stats.nursing.vitalSignReadings },
+        { label: 'Alertes constantes', value: stats.nursing.vitalSignAlerts },
+        { label: 'Notifications prescription', value: stats.nursing.prescriptionNotifications },
+        { label: 'Prescriptions exécutées', value: stats.nursing.executedPrescriptions },
+      ]
+    : [];
+
+  const activityRows = stats
+    ? [
+        { label: 'Événements audités', value: stats.activity.totalEvents },
+        { label: 'Types d’action distincts', value: stats.activity.byAction.length },
+        { label: 'Services sources', value: stats.activity.bySourceService.length },
+        { label: 'Acteurs actifs', value: stats.activity.topActors.length },
+      ]
+    : [];
+
+  const degradedNotices = [
+    stats?.lab.degraded ? stats.lab.notice : null,
+    stats?.nursing.degraded ? stats.nursing.notice : null,
+    stats?.activity.degraded ? stats.activity.notice : null,
+  ].filter((notice): notice is string => Boolean(notice));
+
+  return (
+    <>
+      <div className="card filter-toolbar reporting-audit-toolbar reporting-audit-toolbar--compact">
+        <div className="filter-toolbar__inner reporting-audit-toolbar__row">
+          <div className="field reporting-audit-toolbar__period">
+            <label htmlFor="stats-period">Période</label>
+            <select
+              id="stats-period"
+              value={period}
+              onChange={(e) => onPeriodChange(e.target.value as ReportingPeriod)}
+            >
+              <option value="7">7 derniers jours</option>
+              <option value="30">30 derniers jours</option>
+              <option value="90">90 derniers jours</option>
+            </select>
+          </div>
+          <p className="reporting-audit-events-count muted-text">
+            {formatInstantRangeFr(range.from, range.to)}
+          </p>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => void handleExport('pdf')}
+            disabled={loading || exporting !== null}
+          >
+            {exporting === 'pdf' ? 'Export PDF…' : 'Export PDF'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => void handleExport('xlsx')}
+            disabled={loading || exporting !== null}
+          >
+            {exporting === 'xlsx' ? 'Export Excel…' : 'Export Excel'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm reporting-audit-toolbar__refresh"
+            onClick={onRefresh}
+            disabled={loading}
+          >
+            Actualiser
+          </button>
+        </div>
+      </div>
+
+      {error ? <div className="error-banner">{error}</div> : null}
+
+      {degradedNotices.length > 0 ? (
+        <div className="reporting-notice">
+          {degradedNotices.map((notice) => (
+            <p key={notice}>{notice}</p>
+          ))}
+        </div>
+      ) : null}
+
+      {loading && !stats ? <LoadingBlock label="Chargement des statistiques…" /> : null}
+
+      {stats ? (
+        <div className="reporting-metrics-grid">
+          <ReportingMetricCard title="Laboratoire" tone="accent">
+            <table className="data-table reporting-metric-table">
+              <thead>
+                <tr>
+                  <th scope="col">Indicateur</th>
+                  <th scope="col" className="num">Nombre</th>
+                </tr>
+              </thead>
+              <tbody>
+                {labRows.map((row) => (
+                  <tr key={row.label}>
+                    <td>{row.label}</td>
+                    <td className="num reporting-metric-table__emphasis">{formatNumberFr(row.value)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ReportingMetricCard>
+
+          <ReportingMetricCard title="Soins infirmiers" tone="success">
+            <table className="data-table reporting-metric-table">
+              <thead>
+                <tr>
+                  <th scope="col">Indicateur</th>
+                  <th scope="col" className="num">Nombre</th>
+                </tr>
+              </thead>
+              <tbody>
+                {nursingRows.map((row) => (
+                  <tr key={row.label}>
+                    <td>{row.label}</td>
+                    <td className="num reporting-metric-table__emphasis">{formatNumberFr(row.value)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ReportingMetricCard>
+
+          <ReportingMetricCard title="Activité auditée" tone="deep">
+            <table className="data-table reporting-metric-table">
+              <thead>
+                <tr>
+                  <th scope="col">Indicateur</th>
+                  <th scope="col" className="num">Nombre</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activityRows.map((row) => (
+                  <tr key={row.label}>
+                    <td>{row.label}</td>
+                    <td className="num reporting-metric-table__emphasis">{formatNumberFr(row.value)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ReportingMetricCard>
+        </div>
+      ) : null}
+
+      {!loading && !stats && !error ? (
+        <EmptyState
+          title="Statistiques indisponibles"
+          description="Les services labo, soins ou audit ne répondent pas."
+        />
+      ) : null}
+    </>
+  );
+}
+
 function AuditJournal({
   period,
   onPeriodChange,
@@ -279,6 +534,7 @@ function AuditJournal({
   const [openFilterCol, setOpenFilterCol] = useState<AuditFilterColumn | null>(null);
   const [filterDraft, setFilterDraft] = useState<AuditColumnFilters>({ ...emptyAuditFilters });
   const [appliedFilters, setAppliedFilters] = useState<AuditColumnFilters>({ ...emptyAuditFilters });
+  const [exporting, setExporting] = useState<'pdf' | 'xlsx' | null>(null);
 
   const range = useMemo(() => periodToRange(period), [period]);
   const apiSortBy = sortBy === 'role' ? 'occurredAt' : sortBy;
@@ -426,6 +682,18 @@ function AuditJournal({
     toggleTableSort(column, sortBy, setSortBy, setSortDir, defaultSortDirForColumn(column));
   }
 
+  async function handleExport(format: 'pdf' | 'xlsx') {
+    setExporting(format);
+    setError(null);
+    try {
+      await downloadActivityExport(format, range.from, range.to);
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Export du journal impossible.'));
+    } finally {
+      setExporting(null);
+    }
+  }
+
   const hasActiveFilters = Object.values(appliedFilters).some((v) => v !== '');
   const filterHint = [
     appliedFilters.actor.trim() ? `acteur « ${appliedFilters.actor.trim()} »` : '',
@@ -465,6 +733,22 @@ function AuditJournal({
               {loading && hasMorePages ? ' · chargement…' : ''}
             </span>
           ) : null}
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => void handleExport('pdf')}
+            disabled={loading || exporting !== null}
+          >
+            {exporting === 'pdf' ? 'Export PDF…' : 'Export PDF'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => void handleExport('xlsx')}
+            disabled={loading || exporting !== null}
+          >
+            {exporting === 'xlsx' ? 'Export Excel…' : 'Export Excel'}
+          </button>
           <button
             type="button"
             className="btn btn-secondary btn-sm reporting-audit-toolbar__refresh"
@@ -757,6 +1041,20 @@ export function ReportingPage() {
                 />
               ) : null}
             </section>
+        </div>
+      ) : null}
+
+      {activeTab === 'stats' ? (
+        <div className="reporting-panel">
+          <section aria-label="Statistiques labo et soins">
+            <OperationalStatsPanel
+              key={period}
+              period={period}
+              onPeriodChange={setPeriod}
+              refreshToken={refreshToken}
+              onRefresh={handleRefresh}
+            />
+          </section>
         </div>
       ) : null}
 

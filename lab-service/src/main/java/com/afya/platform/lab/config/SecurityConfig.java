@@ -21,11 +21,16 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtAuthenticationFilter jwtFilter,
+            InternalServiceKeyAuthenticationFilter internalServiceKeyAuthenticationFilter
+    ) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/api/v1/internal/**").hasRole("SYSTEM")
                         .requestMatchers(HttpMethod.GET, "/api/v1/lab/exam-types").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/lab/exam-types").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/lab/exam-requests")
@@ -38,6 +43,7 @@ public class SecurityConfig {
                         .hasAnyRole("ADMIN", "MEDECIN", "INFIRMIER")
                         .anyRequest().denyAll())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .addFilterBefore(internalServiceKeyAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

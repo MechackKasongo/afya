@@ -1,6 +1,7 @@
 package com.afya.platform.bff.controller;
 
 import com.afya.platform.bff.client.HospitalClient;
+import com.afya.platform.bff.dto.BedOccupationResponse;
 import com.afya.platform.bff.dto.BedResponse;
 import com.afya.platform.bff.dto.HospitalServiceRequest;
 import com.afya.platform.bff.dto.HospitalServiceResponse;
@@ -80,6 +81,28 @@ public class HospitalServiceBffController {
     @GetMapping("/{id}/beds")
     public List<BedResponse> listBeds(@PathVariable Long id, HttpServletRequest request) {
         return hospitalClient.listBeds(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+    }
+
+    @GetMapping("/{id}/bed-occupations")
+    public List<BedOccupationResponse> listBedOccupations(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long bedId,
+            @RequestParam(required = false) Long admissionId,
+            @RequestParam(required = false) Long patientId,
+            @RequestParam(required = false) Boolean activeOnly,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            HttpServletRequest request
+    ) {
+        return hospitalClient.listBedOccupations(
+                id,
+                bedId,
+                admissionId,
+                patientId,
+                activeOnly,
+                page,
+                size,
+                AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @PostMapping("/{id}/beds/provision")

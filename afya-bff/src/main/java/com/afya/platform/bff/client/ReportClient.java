@@ -2,10 +2,12 @@ package com.afya.platform.bff.client;
 
 import com.afya.platform.bff.config.DownstreamRestClientFactory;
 import com.afya.platform.bff.dto.ActivityReportResponse;
+import com.afya.platform.bff.dto.OperationalStatsResponse;
 import com.afya.platform.bff.support.ActivityReportFallback;
 import com.afya.platform.bff.support.AuthorizationSupport;
 import com.afya.platform.bff.support.DownstreamErrors;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
@@ -55,5 +57,45 @@ public class ReportClient {
             }
             throw ex;
         }
+    }
+
+    public OperationalStatsResponse operationalStats(Instant from, Instant to, String authorizationHeader) {
+        return restClient.get()
+                .uri(uriBuilder -> {
+                    var builder = uriBuilder.path("/api/v1/reports/operational-stats");
+                    if (from != null) {
+                        builder.queryParam("from", from);
+                    }
+                    if (to != null) {
+                        builder.queryParam("to", to);
+                    }
+                    return builder.build();
+                })
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .retrieve()
+                .body(OperationalStatsResponse.class);
+    }
+
+    public ResponseEntity<byte[]> exportActivity(
+            Instant from,
+            Instant to,
+            String format,
+            String authorizationHeader
+    ) {
+        return restClient.get()
+                .uri(uriBuilder -> {
+                    var builder = uriBuilder.path("/api/v1/reports/activity/export")
+                            .queryParam("format", format);
+                    if (from != null) {
+                        builder.queryParam("from", from);
+                    }
+                    if (to != null) {
+                        builder.queryParam("to", to);
+                    }
+                    return builder.build();
+                })
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .retrieve()
+                .toEntity(byte[].class);
     }
 }

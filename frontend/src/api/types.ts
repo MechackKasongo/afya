@@ -515,6 +515,16 @@ export interface BedResponse {
   occupied: boolean;
 }
 
+export interface BedOccupationResponse {
+  id: number;
+  bedId: number;
+  bedLabel: string;
+  patientId: number;
+  admissionId: number;
+  startedAt: string;
+  endedAt: string | null;
+}
+
 export interface PageAdmissionResponse {
   content: AdmissionResponse[];
   totalElements: number;
@@ -784,4 +794,33 @@ export interface ExamResultResponse {
   resultedAt: string;
   annotation: string | null;
   parameters: ResultParameterResponse[];
+}
+
+export interface LabStatsResponse {
+  from: string;
+  to: string;
+  examRequests: number;
+  pendingRequests: number;
+  specimenCollected: number;
+  resultsAvailable: number;
+  abnormalParameters: number;
+  degraded: boolean;
+  notice: string | null;
+}
+
+export interface NursingStatsResponse {
+  from: string;
+  to: string;
+  vitalSignReadings: number;
+  vitalSignAlerts: number;
+  prescriptionNotifications: number;
+  executedPrescriptions: number;
+  degraded: boolean;
+  notice: string | null;
+}
+
+export interface OperationalStatsResponse {
+  activity: ActivityReportResponse;
+  lab: LabStatsResponse;
+  nursing: NursingStatsResponse;
 }

@@ -6,6 +6,7 @@ import com.afya.platform.admission.repository.AdmissionRepository;
 import com.afya.platform.admission.stay.dto.HospitalizationFormRequest;
 import com.afya.platform.admission.stay.dto.HospitalizationFormResponse;
 import com.afya.platform.admission.stay.dto.StayOpenRequest;
+import com.afya.platform.admission.stay.dto.StayRelocateRequest;
 import com.afya.platform.admission.stay.dto.StayResponse;
 import com.afya.platform.admission.integration.PatientServiceClient;
 import com.afya.platform.admission.integration.PatientSummary;
@@ -125,6 +126,28 @@ public class StayService {
         Stay stay = stayRepository.findByAdmissionId(admissionId)
                 .orElseThrow(() -> new NotFoundException("Séjour introuvable pour l'admission : " + admissionId));
         return closeStay(stay, authorizationHeader);
+    }
+
+    @Transactional
+    public StayResponse relocateByAdmissionId(
+            Long admissionId,
+            StayRelocateRequest request,
+            String authorizationHeader
+    ) {
+        Stay stay = stayRepository.findByAdmissionId(admissionId)
+                .orElseThrow(() -> new NotFoundException("Séjour introuvable pour l'admission : " + admissionId));
+        ensureStayEditable(stay);
+        stay.setRoomLabel(request.roomLabel().strip());
+        stay.setBedLabel(request.bedLabel().strip());
+        Stay saved = stayRepository.save(stay);
+        auditEventPublisher.publish(
+                "STAY_RELOCATED",
+                "STAY",
+                AuditMetadata.resourceId(saved.getId()),
+                AuditActorResolver.currentUsername(),
+                AuditMetadata.json("admissionId", saved.getAdmissionId(), "roomLabel", saved.getRoomLabel()));
+        PatientSummary patient = patientServiceClient.getPatient(saved.getPatientId(), authorizationHeader);
+        return toResponse(saved, patient);
     }
 
     @Transactional

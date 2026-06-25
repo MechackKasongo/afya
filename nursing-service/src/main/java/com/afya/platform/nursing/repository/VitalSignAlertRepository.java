@@ -24,4 +24,6 @@ public interface VitalSignAlertRepository extends JpaRepository<VitalSignAlert, 
             ORDER BY a.alertAt DESC
             """)
     List<VitalSignAlert> findByAdmissionId(@Param("admissionId") Long admissionId);
+
+    long countByAlertAtBetween(java.time.Instant from, java.time.Instant to);
 }

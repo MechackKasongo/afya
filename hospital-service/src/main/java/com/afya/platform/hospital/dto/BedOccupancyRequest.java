@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotNull;
 public record BedOccupancyRequest(
         String roomLabel,
         String bedLabel,
-        @NotNull Boolean occupied
+        @NotNull Boolean occupied,
+        Long patientId,
+        Long admissionId
 ) {
 }

@@ -99,6 +99,8 @@ public class CatalogServiceClient {
             String roomLabel,
             String bedLabel,
             boolean occupied,
+            Long patientId,
+            Long admissionId,
             String authorizationHeader
     ) {
         if (roomLabel == null || roomLabel.isBlank() || bedLabel == null || bedLabel.isBlank()) {
@@ -108,7 +110,12 @@ public class CatalogServiceClient {
             restClient.patch()
                     .uri("/api/v1/hospital-services/{serviceId}/beds/occupancy", hospitalServiceId)
                     .header("Authorization", authorizationHeader)
-                    .body(new BedOccupancyPayload(roomLabel.strip(), bedLabel.strip(), occupied))
+                    .body(new BedOccupancyPayload(
+                            roomLabel.strip(),
+                            bedLabel.strip(),
+                            occupied,
+                            patientId,
+                            admissionId))
                     .retrieve()
                     .toBodilessEntity();
         } catch (HttpClientErrorException.NotFound e) {
@@ -121,6 +128,12 @@ public class CatalogServiceClient {
     public record BedAssignment(String roomLabel, String bedLabel) {
     }
 
-    private record BedOccupancyPayload(String roomLabel, String bedLabel, boolean occupied) {
+    private record BedOccupancyPayload(
+            String roomLabel,
+            String bedLabel,
+            boolean occupied,
+            Long patientId,
+            Long admissionId
+    ) {
     }
 }

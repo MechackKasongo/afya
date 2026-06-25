@@ -105,7 +105,7 @@ Tous les modules legacy ont été retirés. ~~`identity-service`~~, ~~`catalog-s
 |----------------|----------------------|--------|
 | `ServiceHospitalier` | `HospitalService` + `Department` | Implémenté (+ département parent) |
 | `Lit` | `Bed` | Partiel — `occupied` booléen, pas de type/statut mémoire |
-| `OccupationLit` | `Bed.occupied` + `Stay` (`admission-service`) | Partiel — pas d'entité historique dédiée |
+| `OccupationLit` | `BedOccupation` (`hospital-service`) | **Fait** — historique patient/admission par lit |
 
 ---
 
@@ -238,9 +238,9 @@ Tous les modules legacy ont été retirés. ~~`identity-service`~~, ~~`catalog-s
 | P2 | `ContactUrgence`, `AntecedentMedical` (MD-04) | ~~Entités dédiées patient~~ **Fait** | `patient-service` |
 | P3 | `NotificationAdmission` (MD-05) | ~~Bus événements~~ **Fait** (persisté + lecture) | `admission-service` |
 | P4 | `ConstanteVitale` → nursing (MD-08) | ~~Migrer `VitalSignReading`~~ **Fait** | `nursing-service` |
-| P5 | `AlerteConstante`, `NotificationPrescription` | ~~Règles seuils~~ alertes **Fait** ; notifications à faire | `nursing-service` |
-| P6 | `OccupationLit` (MD-03) | Historique occupations | `hospital-service` |
-| P7 | `Rapport` PDF/Excel + stats (MD-09) | Persistance agrégats | `report-service` |
+| P5 | `AlerteConstante`, `NotificationPrescription` | ~~Règles seuils~~ alertes **Fait** ; notifications **Fait** | `nursing-service` |
+| P6 | `OccupationLit` (MD-03) | ~~Historique occupations~~ **Fait** | `hospital-service` |
+| P7 | `Rapport` PDF/Excel + stats (MD-09) | ~~Persistance agrégats~~ **Fait** | `report-service` |
 
 ---
 

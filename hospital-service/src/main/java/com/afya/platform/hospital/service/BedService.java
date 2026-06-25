@@ -24,15 +24,18 @@ public class BedService {
 
     private final BedRepository bedRepository;
     private final HospitalServiceCatalogService hospitalServiceCatalogService;
+    private final BedOccupationService bedOccupationService;
     private final AuditEventPublisher auditEventPublisher;
 
     public BedService(
             BedRepository bedRepository,
             HospitalServiceCatalogService hospitalServiceCatalogService,
+            BedOccupationService bedOccupationService,
             AuditEventPublisher auditEventPublisher
     ) {
         this.bedRepository = bedRepository;
         this.hospitalServiceCatalogService = hospitalServiceCatalogService;
+        this.bedOccupationService = bedOccupationService;
         this.auditEventPublisher = auditEventPublisher;
     }
 
@@ -126,9 +129,26 @@ public class BedService {
         if (Boolean.FALSE.equals(request.occupied()) && !bed.isOccupied()) {
             return;
         }
-        bed.setOccupied(request.occupied());
-        if (Boolean.FALSE.equals(request.occupied())) {
-            bed.setLastFreedAt(Instant.now());
+        Instant now = Instant.now();
+        if (Boolean.TRUE.equals(request.occupied())) {
+            bed.setOccupied(true);
+            bedOccupationService.recordStart(bed, request.patientId(), request.admissionId(), now);
+            auditEventPublisher.publish(
+                    "BED_OCCUPIED",
+                    "BED_OCCUPATION",
+                    AuditMetadata.resourceId(bed.getId()),
+                    AuditActorResolver.currentUsername(),
+                    AuditMetadata.json("admissionId", request.admissionId(), "patientId", request.patientId()));
+        } else {
+            bedOccupationService.recordEnd(bed, now);
+            bed.setOccupied(false);
+            bed.setLastFreedAt(now);
+            auditEventPublisher.publish(
+                    "BED_RELEASED",
+                    "BED_OCCUPATION",
+                    AuditMetadata.resourceId(bed.getId()),
+                    AuditActorResolver.currentUsername(),
+                    AuditMetadata.json("hospitalServiceId", hospitalServiceId));
         }
         bedRepository.save(bed);
     }

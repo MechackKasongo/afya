@@ -2,6 +2,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 
 const TABS = [
   { id: 'occupation', label: 'Occupation' },
+  { id: 'stats', label: 'Labo & soins' },
   { id: 'audit', label: "Journal d'audit" },
 ] as const;
 
@@ -39,5 +40,8 @@ export function ReportingTabs() {
 }
 
 export function resolveReportingTab(searchParams: URLSearchParams): ReportingTabId {
-  return searchParams.get('tab') === 'audit' ? 'audit' : 'occupation';
+  const tab = searchParams.get('tab');
+  if (tab === 'audit') return 'audit';
+  if (tab === 'stats') return 'stats';
+  return 'occupation';
 }

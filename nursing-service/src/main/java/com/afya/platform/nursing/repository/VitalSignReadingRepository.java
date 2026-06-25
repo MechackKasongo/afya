@@ -8,4 +8,6 @@ import java.util.List;
 public interface VitalSignReadingRepository extends JpaRepository<VitalSignReading, Long> {
 
     List<VitalSignReading> findByAdmissionIdOrderByRecordedAtDesc(Long admissionId);
+
+    long countByRecordedAtBetween(java.time.Instant from, java.time.Instant to);
 }

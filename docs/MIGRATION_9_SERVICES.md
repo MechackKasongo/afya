@@ -59,7 +59,8 @@
 - [x] Admission : `NotificationAdmission`, entité `Sortie` (MD-05)
 - [x] Nursing : `ConstanteVitale`, `AlerteConstante` (MD-08)
 - [x] Nursing : `NotificationPrescription`
-- [ ] Report : `Rapport` PDF/Excel, statistiques labo/soins
+- [x] Hospital : historique `OccupationLit` (occupations lit)
+- [x] Report : `Rapport` PDF/Excel, statistiques labo/soins
 
 ## Ordre de démarrage (runtime)
 
