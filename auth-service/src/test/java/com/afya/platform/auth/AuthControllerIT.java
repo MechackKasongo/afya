@@ -2,6 +2,9 @@ package com.afya.platform.auth;
 
 import com.afya.platform.auth.integration.AuthUserProfile;
 import com.afya.platform.auth.integration.UserServiceClient;
+import com.afya.platform.auth.model.Credential;
+import com.afya.platform.auth.model.CredentialStatus;
+import com.afya.platform.auth.repository.CredentialRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,21 +37,32 @@ class AuthControllerIT {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private CredentialRepository credentialRepository;
+
     @MockitoBean
     private UserServiceClient userServiceClient;
 
     @BeforeEach
     void stubUserService() {
+        credentialRepository.deleteAll();
         AuthUserProfile admin = new AuthUserProfile(
                 1L,
                 "admin",
                 "Administrateur test",
-                passwordEncoder.encode("Admin@Afya2026!"),
                 true,
                 List.of("ADMIN"),
                 List.of());
         when(userServiceClient.findByUsername(eq("admin"))).thenReturn(admin);
         when(userServiceClient.findById(anyLong())).thenReturn(admin);
+
+        Credential credential = new Credential();
+        credential.setUserId(1L);
+        credential.setUsername("admin");
+        credential.setPasswordHash(passwordEncoder.encode("Admin@Afya2026!"));
+        credential.setStatus(CredentialStatus.ACTIF);
+        credential.setFailedAttempts(0);
+        credentialRepository.save(credential);
     }
 
     @Test
@@ -79,6 +93,21 @@ class AuthControllerIT {
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"admin\",\"password\":\"wrong\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loginLocksAccountAfterRepeatedFailures() throws Exception {
+        for (int i = 0; i < 3; i++) {
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"username\":\"admin\",\"password\":\"wrong\"}"))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"admin\",\"password\":\"Admin@Afya2026!\"}"))
                 .andExpect(status().isUnauthorized());
     }
 }

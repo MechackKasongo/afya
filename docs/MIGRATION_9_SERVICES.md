@@ -60,6 +60,7 @@
 - [x] Nursing : `ConstanteVitale`, `AlerteConstante` (MD-08)
 - [x] Nursing : `NotificationPrescription`
 - [x] Hospital : historique `OccupationLit` (occupations lit)
+- [x] Auth : `Credential` séparé (tentatives, blocage)
 - [x] Report : `Rapport` PDF/Excel, statistiques labo/soins
 
 ## Ordre de démarrage (runtime)

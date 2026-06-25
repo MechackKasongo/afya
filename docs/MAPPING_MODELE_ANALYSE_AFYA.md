@@ -80,11 +80,11 @@ Tous les modules legacy ont été retirés. ~~`identity-service`~~, ~~`catalog-s
 
 | Classe mémoire | Classe / concept Afya | Statut |
 |----------------|----------------------|--------|
-| `Credential` | Profil auth dans `user-service` (`AppUser` via API interne) | **Écart** — identifiants hors auth |
+| `Credential` | `Credential` (`auth-service`, table `credentials`) | **Fait** — hash, statut, tentatives, blocage |
 | `TokenJWT` | JWT stateless + `RefreshToken` + `RevokedAccessJti` | Partiel — pas de table `TokenJWT` |
 | `JournalConnexion` | `AuditEvent` (`audit-service`) | Partiel — pas de journal dédié auth |
 
-**Écart principal :** le mémoire sépare `Credential` (auth) et `Utilisateur` (user) ; Afya stocke le hash mot de passe dans `user-service` et `auth-service` ne persiste que refresh tokens + JTI révoqués.
+**Alignement P1 :** le hash mot de passe et le lockout sont dans `auth-service` ; `user-service` gère le profil `Utilisateur` (rôles, affectations, actif).
 
 ---
 
@@ -234,7 +234,7 @@ Tous les modules legacy ont été retirés. ~~`identity-service`~~, ~~`catalog-s
 
 | Priorité | Écart mémoire | Action proposée | Service cible |
 |----------|---------------|-----------------|---------------|
-| P1 | `Credential` séparé de `Utilisateur` | Table credentials + tentatives / blocage | `auth-service` |
+| P1 | `Credential` séparé de `Utilisateur` | ~~Table credentials + tentatives / blocage~~ **Fait** | `auth-service` |
 | P2 | `ContactUrgence`, `AntecedentMedical` (MD-04) | ~~Entités dédiées patient~~ **Fait** | `patient-service` |
 | P3 | `NotificationAdmission` (MD-05) | ~~Bus événements~~ **Fait** (persisté + lecture) | `admission-service` |
 | P4 | `ConstanteVitale` → nursing (MD-08) | ~~Migrer `VitalSignReading`~~ **Fait** | `nursing-service` |

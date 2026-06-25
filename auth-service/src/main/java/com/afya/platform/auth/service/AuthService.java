@@ -4,6 +4,8 @@ import com.afya.platform.auth.dto.MeResponse;
 import com.afya.platform.auth.dto.TokenResponse;
 import com.afya.platform.auth.integration.AuthUserProfile;
 import com.afya.platform.auth.integration.UserServiceClient;
+import com.afya.platform.auth.model.Credential;
+import com.afya.platform.auth.model.CredentialStatus;
 import com.afya.platform.auth.model.RefreshToken;
 import com.afya.platform.auth.model.RevokedAccessJti;
 import com.afya.platform.auth.repository.RefreshTokenRepository;
@@ -13,7 +15,6 @@ import com.afya.platform.shared.exception.NotFoundException;
 import com.afya.platform.shared.exception.UnauthorizedException;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,38 +30,47 @@ import java.util.stream.Collectors;
 public class AuthService {
 
     private final UserServiceClient userServiceClient;
+    private final CredentialService credentialService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final RevokedAccessJtiRepository revokedAccessJtiRepository;
     private final JwtService jwtService;
-    private final PasswordEncoder passwordEncoder;
     private final AuditEventPublisher auditEventPublisher;
 
     public AuthService(
             UserServiceClient userServiceClient,
+            CredentialService credentialService,
             RefreshTokenRepository refreshTokenRepository,
             RevokedAccessJtiRepository revokedAccessJtiRepository,
             JwtService jwtService,
-            PasswordEncoder passwordEncoder,
             AuditEventPublisher auditEventPublisher
     ) {
         this.userServiceClient = userServiceClient;
+        this.credentialService = credentialService;
         this.refreshTokenRepository = refreshTokenRepository;
         this.revokedAccessJtiRepository = revokedAccessJtiRepository;
         this.jwtService = jwtService;
-        this.passwordEncoder = passwordEncoder;
         this.auditEventPublisher = auditEventPublisher;
     }
 
     @Transactional
     public TokenResponse login(String username, String password) {
         String normalizedUsername = username.strip();
-        AuthUserProfile user = findActiveUser(normalizedUsername);
-        if (user == null) {
+        Credential credential = credentialService.findByUsername(normalizedUsername).orElse(null);
+        if (credential == null) {
             auditEventPublisher.publish("LOGIN_FAILED", "USER", normalizedUsername, normalizedUsername, null);
             throw new UnauthorizedException("Identifiants invalides");
         }
-        if (!passwordEncoder.matches(password, user.passwordHash())) {
-            auditEventPublisher.publish("LOGIN_FAILED", "USER", user.username(), user.username(), null);
+        if (credential.getStatus() == CredentialStatus.BLOQUE) {
+            auditEventPublisher.publish("LOGIN_FAILED", "USER", credential.getUsername(), credential.getUsername(), null);
+            throw new UnauthorizedException("Identifiants invalides");
+        }
+        if (!credentialService.verifyPassword(credential, password)) {
+            auditEventPublisher.publish("LOGIN_FAILED", "USER", credential.getUsername(), credential.getUsername(), null);
+            throw new UnauthorizedException("Identifiants invalides");
+        }
+        AuthUserProfile user = findActiveUser(normalizedUsername);
+        if (user == null) {
+            auditEventPublisher.publish("LOGIN_FAILED", "USER", credential.getUsername(), credential.getUsername(), null);
             throw new UnauthorizedException("Identifiants invalides");
         }
         TokenResponse tokens = issueTokens(user);

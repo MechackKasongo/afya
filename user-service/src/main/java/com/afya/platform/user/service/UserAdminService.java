@@ -1,6 +1,7 @@
 package com.afya.platform.user.service;
 
 import com.afya.platform.user.dto.*;
+import com.afya.platform.user.integration.AuthServiceClient;
 import com.afya.platform.user.model.AppUser;
 import com.afya.platform.user.model.Role;
 import com.afya.platform.user.repository.AppUserRepository;
@@ -9,7 +10,6 @@ import com.afya.platform.shared.audit.AuditActorResolver;
 import com.afya.platform.shared.audit.AuditEventPublisher;
 import com.afya.platform.shared.audit.AuditMetadata;
 import com.afya.platform.shared.exception.BadRequestException;
-import com.afya.platform.shared.exception.ConflictException;
 import com.afya.platform.shared.exception.ConflictException;
 import com.afya.platform.shared.exception.NotFoundException;
 import jakarta.persistence.criteria.Join;
@@ -21,7 +21,6 @@ import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.data.jpa.domain.Specification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,20 +34,20 @@ public class UserAdminService {
 
     private final AppUserRepository appUserRepository;
     private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final AuthServiceClient authServiceClient;
     private final CredentialsLogService credentialsLogService;
     private final AuditEventPublisher auditEventPublisher;
 
     public UserAdminService(
             AppUserRepository appUserRepository,
             RoleRepository roleRepository,
-            PasswordEncoder passwordEncoder,
+            AuthServiceClient authServiceClient,
             CredentialsLogService credentialsLogService,
             AuditEventPublisher auditEventPublisher
     ) {
         this.appUserRepository = appUserRepository;
         this.roleRepository = roleRepository;
-        this.passwordEncoder = passwordEncoder;
+        this.authServiceClient = authServiceClient;
         this.credentialsLogService = credentialsLogService;
         this.auditEventPublisher = auditEventPublisher;
     }
@@ -107,11 +106,11 @@ public class UserAdminService {
         user.setUsername(username);
         user.setFullName(fullName);
         user.setEmail(email);
-        user.setPasswordHash(passwordEncoder.encode(plainPassword));
         assignRole(user, role);
         assignHospitalServiceIds(user, request.hospitalServiceIds());
         user.setActive(true);
         AppUser saved = appUserRepository.save(user);
+        authServiceClient.createCredential(saved.getId(), saved.getUsername(), plainPassword);
         try {
             credentialsLogService.append(saved.getUsername(), plainPassword, saved.getFullName());
         } catch (RuntimeException ex) {
@@ -151,7 +150,7 @@ public class UserAdminService {
         String newPlainPassword = null;
         if (request.password() != null && !request.password().isBlank()) {
             newPlainPassword = request.password().trim();
-            user.setPasswordHash(passwordEncoder.encode(newPlainPassword));
+            authServiceClient.updatePassword(user.getId(), newPlainPassword);
         }
         AppUser saved = appUserRepository.save(user);
         if (newPlainPassword != null) {
@@ -175,6 +174,7 @@ public class UserAdminService {
         AppUser user = findUser(id);
         user.setActive(active);
         AppUser saved = appUserRepository.save(user);
+        authServiceClient.syncActive(saved.getId(), active);
         auditEventPublisher.publish(
                 active ? "USER_ACTIVATED" : "USER_DEACTIVATED",
                 "USER",
@@ -190,6 +190,7 @@ public class UserAdminService {
         if ("admin".equalsIgnoreCase(user.getUsername())) {
             throw new BadRequestException("Le compte administrateur bootstrap ne peut pas être supprimé");
         }
+        authServiceClient.deleteCredential(id);
         appUserRepository.delete(user);
         auditEventPublisher.publish(
                 "USER_DELETED",
@@ -235,7 +236,6 @@ public class UserAdminService {
                 user.getId(),
                 user.getUsername(),
                 user.getFullName(),
-                user.getPasswordHash(),
                 user.isActive(),
                 user.getRoles().stream().map(Role::getCode).sorted().toList(),
                 user.getHospitalServiceIds().stream().sorted().toList());

@@ -34,9 +34,6 @@ public class AppUser {
     @Column(nullable = false, length = 120)
     private String fullName;
 
-    @Column(nullable = false, length = 255)
-    private String passwordHash;
-
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",
@@ -84,14 +81,6 @@ public class AppUser {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
     }
 
     public Set<Role> getRoles() {
