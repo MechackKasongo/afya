@@ -70,7 +70,7 @@ export function CatalogOrganizationPage() {
       setError(
         getApiErrorMessage(
           err,
-          'Impossible de charger l’organisation. Redémarrez afya-bff (8080) et catalog-service (8082).'
+          'Impossible de charger l’organisation. Redémarrez afya-bff (8080) et hospital-service (8082).'
         )
       );
     } finally {
@@ -221,7 +221,7 @@ export function CatalogOrganizationPage() {
       setError(
         getApiErrorMessage(
           err,
-          'Impossible de créer le département. Redémarrez catalog-service et afya-bff si le problème persiste.'
+          'Impossible de créer le département. Redémarrez hospital-service et afya-bff si le problème persiste.'
         )
       );
     } finally {

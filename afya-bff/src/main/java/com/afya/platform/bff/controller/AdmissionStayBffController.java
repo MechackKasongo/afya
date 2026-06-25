@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.StayClient;
+import com.afya.platform.bff.client.AdmissionStayClient;
 import com.afya.platform.bff.dto.AdmissionClinicalFormRequest;
 import com.afya.platform.bff.dto.AdmissionClinicalFormResponse;
 import com.afya.platform.bff.dto.StayResponse;
@@ -14,9 +14,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/admissions")
 public class AdmissionStayBffController {
 
-    private final StayClient stayClient;
+    private final AdmissionStayClient stayClient;
 
-    public AdmissionStayBffController(StayClient stayClient) {
+    public AdmissionStayBffController(AdmissionStayClient stayClient) {
         this.stayClient = stayClient;
     }
 

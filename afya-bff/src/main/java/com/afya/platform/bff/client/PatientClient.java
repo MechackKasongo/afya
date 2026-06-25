@@ -2,6 +2,12 @@ package com.afya.platform.bff.client;
 
 import com.afya.platform.bff.config.DownstreamRestClientFactory;
 import com.afya.platform.bff.dto.DeathDeclarationRequest;
+import com.afya.platform.bff.dto.EmergencyContactCreateRequest;
+import com.afya.platform.bff.dto.EmergencyContactResponse;
+import com.afya.platform.bff.dto.EmergencyContactUpdateRequest;
+import com.afya.platform.bff.dto.MedicalAntecedentCreateRequest;
+import com.afya.platform.bff.dto.MedicalAntecedentResponse;
+import com.afya.platform.bff.dto.MedicalAntecedentUpdateRequest;
 import com.afya.platform.bff.dto.PatientCreateRequest;
 import com.afya.platform.bff.dto.PatientVolumesResponse;
 import com.afya.platform.bff.dto.PatientResponse;
@@ -9,10 +15,13 @@ import com.afya.platform.bff.dto.PatientContactsUpdateRequest;
 import com.afya.platform.bff.dto.PatientUpdateRequest;
 import com.afya.platform.bff.support.AuthorizationSupport;
 import com.afya.platform.bff.support.PageRestSupport;
+import com.afya.platform.bff.support.RestClientTypes;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+
+import java.util.List;
 
 @Component
 public class PatientClient {
@@ -98,5 +107,91 @@ public class PatientClient {
                 .body(request != null ? request : new DeathDeclarationRequest(null))
                 .retrieve()
                 .body(PatientResponse.class);
+    }
+
+    public List<MedicalAntecedentResponse> listMedicalAntecedents(Long patientId, String authorizationHeader) {
+        return restClient.get()
+                .uri("/api/v1/patients/{patientId}/medical-antecedents", patientId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .retrieve()
+                .body(RestClientTypes.list(MedicalAntecedentResponse.class));
+    }
+
+    public MedicalAntecedentResponse createMedicalAntecedent(
+            Long patientId,
+            MedicalAntecedentCreateRequest request,
+            String authorizationHeader
+    ) {
+        return restClient.post()
+                .uri("/api/v1/patients/{patientId}/medical-antecedents", patientId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .body(request)
+                .retrieve()
+                .body(MedicalAntecedentResponse.class);
+    }
+
+    public MedicalAntecedentResponse updateMedicalAntecedent(
+            Long patientId,
+            Long antecedentId,
+            MedicalAntecedentUpdateRequest request,
+            String authorizationHeader
+    ) {
+        return restClient.put()
+                .uri("/api/v1/patients/{patientId}/medical-antecedents/{antecedentId}", patientId, antecedentId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .body(request)
+                .retrieve()
+                .body(MedicalAntecedentResponse.class);
+    }
+
+    public void deleteMedicalAntecedent(Long patientId, Long antecedentId, String authorizationHeader) {
+        restClient.delete()
+                .uri("/api/v1/patients/{patientId}/medical-antecedents/{antecedentId}", patientId, antecedentId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    public List<EmergencyContactResponse> listEmergencyContacts(Long patientId, String authorizationHeader) {
+        return restClient.get()
+                .uri("/api/v1/patients/{patientId}/emergency-contacts", patientId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .retrieve()
+                .body(RestClientTypes.list(EmergencyContactResponse.class));
+    }
+
+    public EmergencyContactResponse createEmergencyContact(
+            Long patientId,
+            EmergencyContactCreateRequest request,
+            String authorizationHeader
+    ) {
+        return restClient.post()
+                .uri("/api/v1/patients/{patientId}/emergency-contacts", patientId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .body(request)
+                .retrieve()
+                .body(EmergencyContactResponse.class);
+    }
+
+    public EmergencyContactResponse updateEmergencyContact(
+            Long patientId,
+            Long contactId,
+            EmergencyContactUpdateRequest request,
+            String authorizationHeader
+    ) {
+        return restClient.put()
+                .uri("/api/v1/patients/{patientId}/emergency-contacts/{contactId}", patientId, contactId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .body(request)
+                .retrieve()
+                .body(EmergencyContactResponse.class);
+    }
+
+    public void deleteEmergencyContact(Long patientId, Long contactId, String authorizationHeader) {
+        restClient.delete()
+                .uri("/api/v1/patients/{patientId}/emergency-contacts/{contactId}", patientId, contactId)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .retrieve()
+                .toBodilessEntity();
     }
 }

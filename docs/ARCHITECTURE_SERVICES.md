@@ -1,4 +1,7 @@
-# Architecture — 7 services indépendants
+# Architecture — prototype Afya (7 services)
+
+> **Référence mémoire (9 microservices)** : [MODELE_DOMAINE_MEMOIRE_9_SERVICES.md](MODELE_DOMAINE_MEMOIRE_9_SERVICES.md)  
+> **Mapping mémoire → prototype** : [MAPPING_MODELE_ANALYSE_AFYA.md](MAPPING_MODELE_ANALYSE_AFYA.md)
 
 ## 1. Vue d’ensemble
 

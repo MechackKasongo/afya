@@ -1,32 +1,48 @@
 services:
-  identity-db:
+  auth-db:
     image: docker.io/library/postgres:16-alpine
     environment:
-      POSTGRES_DB: afya_identity
+      POSTGRES_DB: afya_auth
       POSTGRES_USER: afya
       POSTGRES_PASSWORD: afya
     ports:
-      - "5433:5432"
+      - "5443:5432"
     volumes:
-      - identity_pg_data:/var/lib/postgresql/data
+      - auth_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U afya -d afya_identity"]
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_auth"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  catalog-db:
+  user-db:
     image: docker.io/library/postgres:16-alpine
     environment:
-      POSTGRES_DB: afya_catalog
+      POSTGRES_DB: afya_user
       POSTGRES_USER: afya
       POSTGRES_PASSWORD: afya
     ports:
-      - "5434:5432"
+      - "5444:5432"
     volumes:
-      - catalog_pg_data:/var/lib/postgresql/data
+      - user_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U afya -d afya_catalog"]
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  hospital-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_hospital
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    ports:
+      - "5447:5432"
+    volumes:
+      - hospital_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_hospital"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -47,50 +63,50 @@ services:
       timeout: 5s
       retries: 10
 
-  care-entry-db:
+  admission-db:
     image: docker.io/library/postgres:16-alpine
     environment:
-      POSTGRES_DB: afya_care_entry
+      POSTGRES_DB: afya_admission
       POSTGRES_USER: afya
       POSTGRES_PASSWORD: afya
     ports:
-      - "5436:5432"
+      - "5441:5432"
     volumes:
-      - care_entry_pg_data:/var/lib/postgresql/data
+      - admission_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U afya -d afya_care_entry"]
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_admission"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  stay-db:
+  medical-db:
     image: docker.io/library/postgres:16-alpine
     environment:
-      POSTGRES_DB: afya_stay
+      POSTGRES_DB: afya_medical
       POSTGRES_USER: afya
       POSTGRES_PASSWORD: afya
     ports:
-      - "5437:5432"
+      - "5445:5432"
     volumes:
-      - stay_pg_data:/var/lib/postgresql/data
+      - medical_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U afya -d afya_stay"]
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_medical"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  clinical-db:
+  nursing-db:
     image: docker.io/library/postgres:16-alpine
     environment:
-      POSTGRES_DB: afya_clinical
+      POSTGRES_DB: afya_nursing
       POSTGRES_USER: afya
       POSTGRES_PASSWORD: afya
     ports:
-      - "5438:5432"
+      - "5446:5432"
     volumes:
-      - clinical_pg_data:/var/lib/postgresql/data
+      - nursing_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U afya -d afya_clinical"]
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_nursing"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -137,12 +153,47 @@ services:
       timeout: 5s
       retries: 10
 
+  lab-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_lab
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    ports:
+      - "5440:5432"
+    volumes:
+      - lab_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_lab"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  report-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_report
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    ports:
+      - "5442:5432"
+    volumes:
+      - report_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_report"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   minio_data:
-  identity_pg_data:
-  catalog_pg_data:
+  auth_pg_data:
+  user_pg_data:
+  hospital_pg_data:
   patient_pg_data:
-  care_entry_pg_data:
-  stay_pg_data:
-  clinical_pg_data:
+  admission_pg_data:
+  medical_pg_data:
+  nursing_pg_data:
   audit_pg_data:
+  lab_pg_data:
+  report_pg_data:

@@ -1,4 +1,4 @@
-# Stack Afya full conteneurisée (microservices + BFF + gateway TLS + UI).
+# Stack Afya — 9 microservices cible + BFF + gateway + UI (Phase 0 migration).
 # Usage : ./scripts/stack-up.sh   ou   podman compose -f docker-compose.stack.yml up -d --build
 # Prérequis : certificats TLS — ./scripts/generate-tls-certs.sh
 
@@ -7,6 +7,7 @@ x-spring-env: &spring-env
   JWT_ACCESS_SECRET: dev-access-secret-at-least-64-characters-long-for-hs512-signing-key
   JWT_REFRESH_SECRET: dev-refresh-secret-at-least-64-characters-long-for-hs512-signing-key
   AUDIT_INGESTION_KEY: dev-audit-ingestion-key
+  INTERNAL_SERVICE_KEY: dev-internal-service-key
 
 x-spring-health: &spring-health
   interval: 15s
@@ -15,30 +16,44 @@ x-spring-health: &spring-health
   start_period: 120s
 
 services:
-  identity-db:
+  auth-db:
     image: docker.io/library/postgres:16-alpine
     environment:
-      POSTGRES_DB: afya_identity
+      POSTGRES_DB: afya_auth
       POSTGRES_USER: afya
       POSTGRES_PASSWORD: afya
     volumes:
-      - stack_identity_pg:/var/lib/postgresql/data
+      - stack_auth_pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U afya -d afya_identity"]
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_auth"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  catalog-db:
+  user-db:
     image: docker.io/library/postgres:16-alpine
     environment:
-      POSTGRES_DB: afya_catalog
+      POSTGRES_DB: afya_user
       POSTGRES_USER: afya
       POSTGRES_PASSWORD: afya
     volumes:
-      - stack_catalog_pg:/var/lib/postgresql/data
+      - stack_user_pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U afya -d afya_catalog"]
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  hospital-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_hospital
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    volumes:
+      - stack_hospital_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_hospital"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -57,44 +72,72 @@ services:
       timeout: 5s
       retries: 10
 
-  care-entry-db:
+  admission-db:
     image: docker.io/library/postgres:16-alpine
     environment:
-      POSTGRES_DB: afya_care_entry
+      POSTGRES_DB: afya_admission
       POSTGRES_USER: afya
       POSTGRES_PASSWORD: afya
     volumes:
-      - stack_care_entry_pg:/var/lib/postgresql/data
+      - stack_admission_pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U afya -d afya_care_entry"]
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_admission"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  stay-db:
+  medical-db:
     image: docker.io/library/postgres:16-alpine
     environment:
-      POSTGRES_DB: afya_stay
+      POSTGRES_DB: afya_medical
       POSTGRES_USER: afya
       POSTGRES_PASSWORD: afya
     volumes:
-      - stack_stay_pg:/var/lib/postgresql/data
+      - stack_medical_pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U afya -d afya_stay"]
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_medical"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  clinical-db:
+  nursing-db:
     image: docker.io/library/postgres:16-alpine
     environment:
-      POSTGRES_DB: afya_clinical
+      POSTGRES_DB: afya_nursing
       POSTGRES_USER: afya
       POSTGRES_PASSWORD: afya
     volumes:
-      - stack_clinical_pg:/var/lib/postgresql/data
+      - stack_nursing_pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U afya -d afya_clinical"]
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_nursing"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  lab-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_lab
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    volumes:
+      - stack_lab_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_lab"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  report-db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: afya_report
+      POSTGRES_USER: afya
+      POSTGRES_PASSWORD: afya
+    volumes:
+      - stack_report_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afya -d afya_report"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -131,31 +174,50 @@ services:
       retries: 5
       start_period: 15s
 
-  identity:
+  auth:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.spring
       args:
-        MAVEN_MODULE: identity-service
+        MAVEN_MODULE: auth-service
     environment:
       <<: *spring-env
     depends_on:
-      identity-db:
+      auth-db:
+        condition: service_healthy
+      user:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
       <<: *spring-health
 
-  catalog:
+  user:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.spring
       args:
-        MAVEN_MODULE: catalog-service
+        MAVEN_MODULE: user-service
     environment:
       <<: *spring-env
     depends_on:
-      catalog-db:
+      user-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8089/actuator/health"]
+      <<: *spring-health
+
+  hospital:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.spring
+      args:
+        MAVEN_MODULE: hospital-service
+    environment:
+      <<: *spring-env
+    depends_on:
+      hospital-db:
+        condition: service_healthy
+      audit:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
@@ -171,6 +233,8 @@ services:
       <<: *spring-env
     depends_on:
       patient-db:
+        condition: service_healthy
+      audit:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
@@ -191,20 +255,20 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8087/actuator/health"]
       <<: *spring-health
 
-  care-entry:
+  admission:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.spring
       args:
-        MAVEN_MODULE: care-entry-service
+        MAVEN_MODULE: admission-service
     environment:
       <<: *spring-env
     depends_on:
-      care-entry-db:
+      admission-db:
         condition: service_healthy
       patient:
         condition: service_healthy
-      catalog:
+      hospital:
         condition: service_healthy
       audit:
         condition: service_healthy
@@ -212,35 +276,19 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
       <<: *spring-health
 
-  stay:
+  medical:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.spring
       args:
-        MAVEN_MODULE: stay-service
-    environment:
-      <<: *spring-env
-    depends_on:
-      stay-db:
-        condition: service_healthy
-      audit:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
-      <<: *spring-health
-
-  clinical:
-    build:
-      context: .
-      dockerfile: infra/docker/Dockerfile.spring
-      args:
-        MAVEN_MODULE: clinical-record-service
+        MAVEN_MODULE: medical-service
     environment:
       <<: *spring-env
       STORAGE_PROVIDER: minio
       MINIO_ENDPOINT: http://minio:9000
+      ADMISSION_SERVICE_URL: http://admission:8084
     depends_on:
-      clinical-db:
+      medical-db:
         condition: service_healthy
       patient:
         condition: service_healthy
@@ -249,7 +297,63 @@ services:
       audit:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8086/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      <<: *spring-health
+
+  nursing:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.spring
+      args:
+        MAVEN_MODULE: nursing-service
+    environment:
+      <<: *spring-env
+      ADMISSION_SERVICE_BASE_URL: http://admission:8084
+    depends_on:
+      nursing-db:
+        condition: service_healthy
+      medical:
+        condition: service_healthy
+      admission:
+        condition: service_healthy
+      audit:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8093/actuator/health"]
+      <<: *spring-health
+
+  lab:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.spring
+      args:
+        MAVEN_MODULE: lab-service
+    environment:
+      <<: *spring-env
+    depends_on:
+      lab-db:
+        condition: service_healthy
+      report:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8092/actuator/health"]
+      <<: *spring-health
+
+  report:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.spring
+      args:
+        MAVEN_MODULE: report-service
+    environment:
+      <<: *spring-env
+    depends_on:
+      report-db:
+        condition: service_healthy
+      audit:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8094/actuator/health"]
       <<: *spring-health
 
   bff:
@@ -262,17 +366,23 @@ services:
       <<: *spring-env
       CORS_ALLOWED_ORIGINS: http://localhost:8088,http://127.0.0.1:8088,https://localhost:8443,https://127.0.0.1:8443
     depends_on:
-      identity:
+      auth:
         condition: service_healthy
-      catalog:
+      user:
+        condition: service_healthy
+      hospital:
         condition: service_healthy
       patient:
         condition: service_healthy
-      care-entry:
+      admission:
         condition: service_healthy
-      stay:
+      medical:
         condition: service_healthy
-      clinical:
+      nursing:
+        condition: service_healthy
+      lab:
+        condition: service_healthy
+      report:
         condition: service_healthy
       audit:
         condition: service_healthy
@@ -303,11 +413,14 @@ services:
       - api
 
 volumes:
-  stack_identity_pg:
-  stack_catalog_pg:
+  stack_auth_pg:
+  stack_user_pg:
+  stack_hospital_pg:
   stack_patient_pg:
-  stack_care_entry_pg:
-  stack_stay_pg:
-  stack_clinical_pg:
+  stack_admission_pg:
+  stack_medical_pg:
+  stack_nursing_pg:
+  stack_lab_pg:
+  stack_report_pg:
   stack_audit_pg:
   stack_minio_data:

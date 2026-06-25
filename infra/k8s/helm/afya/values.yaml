@@ -1,0 +1,209 @@
+# Valeurs par défaut — ne pas y mettre de secrets réels.
+# Surcharger via values-staging.yaml / values-prod.yaml ou --set-file.
+
+global:
+  imageRegistry: ghcr.io/CHANGE_ME_ORG
+  imageTag: "0.1.0-SNAPSHOT"
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  springProfile: prod
+  dbSslMode: require
+
+namespace:
+  create: true
+  name: afya
+
+secrets:
+  create: false
+  name: afya-secrets
+  jwtAccessSecret: ""
+  jwtRefreshSecret: ""
+  auditIngestionKey: ""
+  minioAccessKey: ""
+  minioSecretKey: ""
+
+databases:
+  audit:
+    host: ""
+    port: 5432
+    name: afya_audit
+    user: afya_audit
+    password: ""
+  auth:
+    host: ""
+    port: 5432
+    name: afya_auth
+    user: afya_auth
+    password: ""
+  user:
+    host: ""
+    port: 5432
+    name: afya_user
+    user: afya_user
+    password: ""
+  hospital:
+    host: ""
+    port: 5432
+    name: afya_hospital
+    user: afya_hospital
+    password: ""
+  patient:
+    host: ""
+    port: 5432
+    name: afya_patient
+    user: afya_patient
+    password: ""
+  admission:
+    host: ""
+    port: 5432
+    name: afya_admission
+    user: afya_admission
+    password: ""
+  medical:
+    host: ""
+    port: 5432
+    name: afya_medical
+    user: afya_medical
+    password: ""
+  nursing:
+    host: ""
+    port: 5432
+    name: afya_nursing
+    user: afya_nursing
+    password: ""
+  lab:
+    host: ""
+    port: 5432
+    name: afya_lab
+    user: afya_lab
+    password: ""
+  report:
+    host: ""
+    port: 5432
+    name: afya_report
+    user: afya_report
+    password: ""
+
+objectStore:
+  provider: minio
+  endpoint: ""
+  bucket: afya-medical
+
+cors:
+  allowedOrigins: "https://afya.example.com"
+
+springServices:
+  - name: audit
+    port: 8087
+    image: afya-audit
+    dbKey: audit
+    dbEnvPrefix: AUDIT
+  - name: auth
+    port: 8081
+    image: afya-auth
+    dbKey: auth
+    dbEnvPrefix: AUTH
+    replicas: 2
+  - name: user
+    port: 8089
+    image: afya-user
+    dbKey: user
+    dbEnvPrefix: USER
+    replicas: 2
+  - name: hospital
+    port: 8082
+    image: afya-hospital
+    dbKey: hospital
+    dbEnvPrefix: HOSPITAL
+  - name: patient
+    port: 8083
+    image: afya-patient
+    dbKey: patient
+    dbEnvPrefix: PATIENT
+    replicas: 2
+  - name: admission
+    port: 8084
+    image: afya-admission
+    dbKey: admission
+    dbEnvPrefix: ADMISSION
+    replicas: 2
+  - name: medical
+    port: 8085
+    image: afya-medical
+    dbKey: medical
+    dbEnvPrefix: MEDICAL
+    replicas: 2
+    extraEnv:
+      - name: STORAGE_PROVIDER
+        value: minio
+  - name: nursing
+    port: 8093
+    image: afya-nursing
+    dbKey: nursing
+    dbEnvPrefix: NURSING
+    replicas: 2
+  - name: lab
+    port: 8092
+    image: afya-lab
+    dbKey: lab
+    dbEnvPrefix: LAB
+  - name: report
+    port: 8094
+    image: afya-report
+    dbKey: report
+    dbEnvPrefix: REPORT
+  - name: bff
+    port: 8080
+    image: afya-bff
+    replicas: 2
+    noDatabase: true
+
+gateway:
+  name: api
+  image: afya-gateway
+  replicas: 2
+  bffUpstream: http://bff:8080
+  servicePort: 80
+
+web:
+  name: web
+  image: afya-web
+  replicas: 2
+  servicePort: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  host: afya.example.com
+  tls:
+    enabled: true
+    secretName: afya-tls
+  annotations: {}
+
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+
+resources:
+  spring:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  bff:
+    requests:
+      cpu: 500m
+      memory: 768Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  edge:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

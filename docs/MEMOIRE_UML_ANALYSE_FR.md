@@ -1,9 +1,12 @@
 # Diagrammes UML — phase d'analyse (avant développement)
 
 Document de **conception fonctionnelle** aligné sur les cas d'utilisation du mémoire (§ II.3.2).  
-Les noms sont **métier** (français), sans référence aux microservices Java ni au BFF.
+Les noms sont **métier** (français), sans référence aux modules Java du prototype.
 
-> **Implémentation réelle** (après développement) : [MERMAID_MEMOIRE_AFYA.md](MERMAID_MEMOIRE_AFYA.md), [MERMAID_CLASSES_PAR_SERVICE.md](MERMAID_CLASSES_PAR_SERVICE.md).
+> **Référence officielle du mémoire — 9 microservices, 38 classes :**  
+> [MODELE_DOMAINE_MEMOIRE_9_SERVICES.md](MODELE_DOMAINE_MEMOIRE_9_SERVICES.md) · PlantUML : [plantuml/memoire/](plantuml/memoire/)
+
+> **Implémentation prototype Afya** (7 services Java) : [MERMAID_MEMOIRE_AFYA.md](MERMAID_MEMOIRE_AFYA.md), [MAPPING_MODELE_ANALYSE_AFYA.md](MAPPING_MODELE_ANALYSE_AFYA.md).
 
 Version anglaise : [MEMOIRE_UML_ANALYSE_EN.md](MEMOIRE_UML_ANALYSE_EN.md).
 

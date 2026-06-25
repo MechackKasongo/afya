@@ -20,12 +20,15 @@
 
     <modules>
         <module>afya-shared</module>
-        <module>identity-service</module>
-        <module>catalog-service</module>
+        <module>auth-service</module>
+        <module>user-service</module>
+        <module>hospital-service</module>
         <module>patient-service</module>
-        <module>care-entry-service</module>
-        <module>stay-service</module>
-        <module>clinical-record-service</module>
+        <module>admission-service</module>
+        <module>medical-service</module>
+        <module>nursing-service</module>
+        <module>lab-service</module>
+        <module>report-service</module>
         <module>audit-service</module>
         <module>afya-bff</module>
     </modules>

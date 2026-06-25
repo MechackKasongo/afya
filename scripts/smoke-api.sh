@@ -30,7 +30,7 @@ if [[ "${BFF_CODE}" != "200" ]]; then
     echo "Le BFF ne répond pas sur ${BFF_DIRECT} (code ${DIRECT_CODE})." >&2
     echo "La gateway proxy vers le BFF (BFF_UPSTREAM) — démarrez-le avant le smoke :" >&2
     echo "  ./mvnw -pl afya-bff spring-boot:run" >&2
-    echo "  (et identity-service pour le login)" >&2
+    echo "  (et auth-service + user-service pour le login)" >&2
     echo "" >&2
     echo "Ou stack complète sans Maven sur l'hôte :" >&2
     echo "  ./scripts/stack-up.sh" >&2

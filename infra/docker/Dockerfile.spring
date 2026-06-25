@@ -1,4 +1,4 @@
-# Image Spring Boot multi-modules Afya — build : MAVEN_MODULE=identity-service
+# Image Spring Boot multi-modules Afya — build : MAVEN_MODULE=auth-service
 # Images Debian (pas Alpine) : évite les échecs apk/TLS dans certains réseaux.
 # syntax=docker/dockerfile:1
 

@@ -1,6 +1,9 @@
 # Diagrammes Mermaid — mémoire Afya (8 cas d'utilisation)
 
+> **Modèle du domaine officiel du mémoire (9 microservices)** : [MODELE_DOMAINE_MEMOIRE_9_SERVICES.md](MODELE_DOMAINE_MEMOIRE_9_SERVICES.md)
+
 Complément de [DIAGRAMMES_UML.md](DIAGRAMMES_UML.md) et des fichiers [plantuml/](plantuml/).  
+Les diagrammes ci-dessous décrivent le **prototype Afya** (implémentation Java). Pour le mémoire, privilégier les modèles MD-01…MD-09 dans [plantuml/memoire/](plantuml/memoire/).  
 Rendu : GitHub, GitLab, VS Code / Cursor (extension Mermaid), ou [mermaid.live](https://mermaid.live).
 
 ## Sommaire

@@ -27,6 +27,10 @@ public final class TestJwtFactory {
         return token(List.of("ADMIN"));
     }
 
+    public static String doctorToken() {
+        return token(List.of("MEDECIN"));
+    }
+
     private static String token(List<String> roles) {
         SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
         Instant now = Instant.now();

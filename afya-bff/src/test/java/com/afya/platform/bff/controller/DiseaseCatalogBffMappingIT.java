@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.ClinicalRecordClient;
+import com.afya.platform.bff.client.MedicalClient;
 import com.afya.platform.bff.dto.DiseaseCatalogResponse;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -36,7 +36,7 @@ class DiseaseCatalogBffMappingIT {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private ClinicalRecordClient clinicalRecordClient;
+    private MedicalClient medicalClient;
 
     @Test
     void diseaseCatalogRequiresAuthentication() throws Exception {
@@ -46,7 +46,7 @@ class DiseaseCatalogBffMappingIT {
 
     @Test
     void diseaseCatalogProxiesClinicalRecordWhenAuthenticated() throws Exception {
-        when(clinicalRecordClient.listSelectableDiseases(eq("Chronique"), org.mockito.ArgumentMatchers.anyString()))
+        when(medicalClient.listSelectableDiseases(eq("Chronique"), org.mockito.ArgumentMatchers.anyString()))
                 .thenReturn(List.of(new DiseaseCatalogResponse(1L, "Chronique", "Diabète type 2", 5, true)));
 
         mockMvc.perform(get("/api/v1/disease-catalog")

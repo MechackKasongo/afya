@@ -176,7 +176,7 @@ export function AdmissionVitalSignsPage() {
       setError(
         getApiErrorMessage(
           err,
-          'Impossible de charger les constantes. Vérifiez que care-entry-service (port 8084) et le BFF sont démarrés.',
+          'Impossible de charger les constantes. Vérifiez que admission-service (port 8084) et le BFF sont démarrés.',
         ),
       );
     } finally {

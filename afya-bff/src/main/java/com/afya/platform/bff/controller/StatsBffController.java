@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.CatalogClient;
+import com.afya.platform.bff.client.HospitalClient;
 import com.afya.platform.bff.dto.CatalogOccupancyStatsResponse;
 import com.afya.platform.bff.dto.MetricResponse;
 import com.afya.platform.bff.dto.OccupancyStatsValue;
@@ -20,11 +20,11 @@ import java.time.Instant;
 @RequestMapping("/api/v1/stats")
 public class StatsBffController {
 
-    private final CatalogClient catalogClient;
+    private final HospitalClient hospitalClient;
     private final PlatformVolumesService platformVolumesService;
 
-    public StatsBffController(CatalogClient catalogClient, PlatformVolumesService platformVolumesService) {
-        this.catalogClient = catalogClient;
+    public StatsBffController(HospitalClient hospitalClient, PlatformVolumesService platformVolumesService) {
+        this.hospitalClient = hospitalClient;
         this.platformVolumesService = platformVolumesService;
     }
 
@@ -32,7 +32,7 @@ public class StatsBffController {
     @PreAuthorize("hasRole('ADMIN')")
     public MetricResponse occupancy(HttpServletRequest request) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
-        CatalogOccupancyStatsResponse stats = catalogClient.occupancyStats(auth);
+        CatalogOccupancyStatsResponse stats = hospitalClient.occupancyStats(auth);
         OccupancyStatsValue value = OccupancyStatsMapper.toValue(stats);
         return new MetricResponse("occupancy", value, Instant.now());
     }

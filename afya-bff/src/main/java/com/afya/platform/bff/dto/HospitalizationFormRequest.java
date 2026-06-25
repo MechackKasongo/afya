@@ -2,7 +2,7 @@ package com.afya.platform.bff.dto;
 
 import jakarta.validation.constraints.Size;
 
-/** Alias aligné sur le formulaire clinique d'admission (proxy stay-service). */
+/** Alias aligné sur le formulaire clinique d'admission (proxy admission-service / séjour). */
 public record HospitalizationFormRequest(
         @Size(max = 16000) String antecedentsText,
         @Size(max = 16000) String anamnesisText,

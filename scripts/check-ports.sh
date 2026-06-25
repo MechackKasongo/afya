@@ -2,18 +2,21 @@
 # Liste les ports habituels des services Afya + indique les conflits.
 set -euo pipefail
 
-PORTS=(5173 8090 8080 8081 8082 8083 8084 8085 8086 8087 9000)
+PORTS=(5173 8090 8080 8081 8082 8083 8084 8085 8087 8089 8092 8093 8094 9000)
 LABELS=(
   "Vite (frontend)"
-  "API Gateway (phase E)"
-  "BFF (interne)"
-  "identity"
-  "catalog"
+  "API Gateway"
+  "BFF"
+  "auth"
+  "hospital"
   "patient"
-  "care-entry"
-  "stay"
-  "clinical-record"
+  "admission"
+  "medical"
   "audit"
+  "user"
+  "lab"
+  "nursing"
+  "report"
   "MinIO"
 )
 
@@ -30,4 +33,4 @@ for i in "${!PORTS[@]}"; do
   fi
 done
 echo ""
-echo "PostgreSQL (compose) : 5433–5439"
+echo "PostgreSQL (compose) : voir ports dans docker-compose.yml (auth 5443, user 5444, …)"

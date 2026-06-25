@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.IdentityClient;
+import com.afya.platform.bff.client.UserClient;
 import com.afya.platform.bff.dto.*;
 import com.afya.platform.bff.support.AuthorizationSupport;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,10 +20,10 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN')")
 public class UserBffController {
 
-    private final IdentityClient identityClient;
+    private final UserClient userClient;
 
-    public UserBffController(IdentityClient identityClient) {
-        this.identityClient = identityClient;
+    public UserBffController(UserClient userClient) {
+        this.userClient = userClient;
     }
 
     @GetMapping
@@ -39,7 +39,7 @@ public class UserBffController {
             @RequestParam(required = false) Integer size,
             HttpServletRequest request
     ) {
-        return identityClient.listUsers(
+        return userClient.listUsers(
                 query,
                 role,
                 active,
@@ -54,7 +54,7 @@ public class UserBffController {
 
     @GetMapping("/roles")
     public List<RoleOptionResponse> listRoles(HttpServletRequest request) {
-        return identityClient.listRoles(AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        return userClient.listRoles(AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @PostMapping("/password-preview")
@@ -62,14 +62,14 @@ public class UserBffController {
             @Valid @RequestBody PasswordPreviewRequest body,
             HttpServletRequest request
     ) {
-        return identityClient.passwordPreview(
+        return userClient.passwordPreview(
                 body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse create(@Valid @RequestBody UserCreateRequest body, HttpServletRequest request) {
-        return identityClient.createUser(
+        return userClient.createUser(
                 body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
@@ -79,7 +79,7 @@ public class UserBffController {
             @Valid @RequestBody UserUpdateRequest body,
             HttpServletRequest request
     ) {
-        return identityClient.updateUser(
+        return userClient.updateUser(
                 id, body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
@@ -89,36 +89,36 @@ public class UserBffController {
             @Valid @RequestBody UserStatusRequest body,
             HttpServletRequest request
     ) {
-        return identityClient.updateUserStatus(
+        return userClient.updateUserStatus(
                 id, body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id, HttpServletRequest request) {
-        identityClient.deleteUser(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        userClient.deleteUser(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @GetMapping("/{id}")
     public UserResponse get(@PathVariable Long id, HttpServletRequest request) {
-        return identityClient.getUser(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        return userClient.getUser(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @GetMapping("/{id}/credentials")
     public UserCredentialsResponse credentialsForUser(@PathVariable Long id, HttpServletRequest request) {
-        return identityClient.credentialsForUser(
+        return userClient.credentialsForUser(
                 id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @GetMapping("/credentials-log/preview")
     public CredentialsLogPreviewResponse credentialsPreview(HttpServletRequest request) {
-        return identityClient.credentialsPreview(
+        return userClient.credentialsPreview(
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @GetMapping(value = "/credentials-log", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<byte[]> credentialsFile(HttpServletRequest request) {
-        byte[] body = identityClient.credentialsFile(
+        byte[] body = userClient.credentialsFile(
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"comptes-utilisateurs-afya.txt\"")
@@ -127,7 +127,7 @@ public class UserBffController {
 
     @GetMapping(value = "/credentials-log.csv", produces = "text/csv")
     public ResponseEntity<byte[]> credentialsCsv(HttpServletRequest request) {
-        byte[] body = identityClient.credentialsCsv(
+        byte[] body = userClient.credentialsCsv(
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"comptes-utilisateurs-afya.csv\"")
@@ -137,6 +137,6 @@ public class UserBffController {
     @DeleteMapping("/credentials-log")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCredentialsLog(HttpServletRequest request) {
-        identityClient.deleteCredentialsLog(AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        userClient.deleteCredentialsLog(AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 }

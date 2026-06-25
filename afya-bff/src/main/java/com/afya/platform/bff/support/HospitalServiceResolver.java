@@ -1,6 +1,6 @@
 package com.afya.platform.bff.support;
 
-import com.afya.platform.bff.client.CatalogClient;
+import com.afya.platform.bff.client.HospitalClient;
 import com.afya.platform.bff.dto.HospitalServiceResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
@@ -8,10 +8,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class HospitalServiceResolver {
 
-    private final CatalogClient catalogClient;
+    private final HospitalClient hospitalClient;
 
-    public HospitalServiceResolver(CatalogClient catalogClient) {
-        this.catalogClient = catalogClient;
+    public HospitalServiceResolver(HospitalClient hospitalClient) {
+        this.hospitalClient = hospitalClient;
     }
 
     public Long resolveIdByName(String serviceName, String authorizationHeader) {
@@ -19,7 +19,7 @@ public class HospitalServiceResolver {
         if (normalized.isEmpty()) {
             throw new IllegalArgumentException("Le nom du service est obligatoire");
         }
-        Page<HospitalServiceResponse> page = catalogClient.listHospitalServices(true, 0, 200, authorizationHeader);
+        Page<HospitalServiceResponse> page = hospitalClient.listHospitalServices(true, 0, 200, authorizationHeader);
         return page.getContent().stream()
                 .filter(s -> s.name().equalsIgnoreCase(normalized))
                 .map(HospitalServiceResponse::id)

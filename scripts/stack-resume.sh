@@ -7,7 +7,7 @@ cd "${ROOT}"
 
 export COMPOSE_PARALLEL_LIMIT="${COMPOSE_PARALLEL_LIMIT:-1}"
 
-SERVICES="${STACK_SERVICES:-identity catalog patient audit care-entry stay clinical bff api web}"
+SERVICES="${STACK_SERVICES:-auth user hospital patient audit admission medical nursing lab report bff api web}"
 echo "Build : ${SERVICES}"
 podman compose -f docker-compose.stack.yml build ${SERVICES}
 

@@ -12,6 +12,10 @@ import type {
 } from '../api/types';
 import { formatClinicalPrescriptionDetails } from '../utils/prescriptionDisplay';
 import {
+  canLinkPrescriptionAdministrations,
+  prescriptionAdministrationsPath,
+} from '../utils/prescriptionRoutes';
+import {
   compareNumbers,
   compareStrings,
   defaultSortDirForColumn,
@@ -25,6 +29,7 @@ import {
   type TableSortDir,
 } from './DataTableColumnHeader';
 import { ScrollTableRegion, TableResultFooter } from './ScrollTableRegion';
+import { PrescriptionNotificationsPanel } from './PrescriptionNotificationsPanel';
 import { Drawer } from './ui/Drawer';
 import { Toast } from './ui/Toast';
 
@@ -317,7 +322,7 @@ export function ConsultationDetailView({
       setTimelineWarning(
         getApiErrorMessage(
           eventsResult.reason,
-          'Chronologie indisponible. Redémarrez le BFF (8080) et clinical-record (8086) après mise à jour.',
+          'Chronologie indisponible. Redémarrez le BFF (8080) et medical-service (8085) après mise à jour.',
         ),
       );
     }
@@ -363,7 +368,7 @@ export function ConsultationDetailView({
       setTimelineWarning(
         getApiErrorMessage(
           err,
-          'Chronologie indisponible. Redémarrez le BFF (8080) et clinical-record (8086) après mise à jour.',
+          'Chronologie indisponible. Redémarrez le BFF (8080) et medical-service (8085) après mise à jour.',
         ),
       );
     }
@@ -479,6 +484,8 @@ export function ConsultationDetailView({
       : consultation
         ? `/admissions/${consultation.admissionId}/consultations`
         : null;
+
+  const administrationAdmissionId = admissionContextId ?? consultation?.admissionId ?? null;
 
   return (
     <div className="consultation-detail-page">
@@ -824,6 +831,13 @@ export function ConsultationDetailView({
               />
             </div>
 
+            {consultation ? (
+              <PrescriptionNotificationsPanel
+                patientId={consultation.patientId}
+                admissionId={administrationAdmissionId}
+              />
+            ) : null}
+
             <div className="card table-wrap consultation-detail-prescriptions clinical-compact-table">
               <div className="clinical-section__head">
                 <h2 className="clinical-section__title" style={{ marginTop: 0 }}>
@@ -874,6 +888,7 @@ export function ConsultationDetailView({
                             onSort={() => onTogglePrescriptionSort('status')}
                           />
                         </th>
+                        <th></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -883,6 +898,18 @@ export function ConsultationDetailView({
                           <td>{p.drugName}</td>
                           <td>{formatClinicalPrescriptionDetails(p.dosage, p.frequency)}</td>
                           <td>{p.status}</td>
+                          <td>
+                            {canLinkPrescriptionAdministrations(administrationAdmissionId) ? (
+                              <Link
+                                to={prescriptionAdministrationsPath(administrationAdmissionId, p.id)}
+                                className="btn btn-ghost btn-sm"
+                              >
+                                {p.administered ? 'Voir administrations' : 'Administrer'}
+                              </Link>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

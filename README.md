@@ -19,51 +19,65 @@ Nouveau système d’information hospitalier orienté **services indépendants**
 | [docs/plantuml/CONCEPTION_AFYA.puml](docs/plantuml/CONCEPTION_AFYA.puml) | Diagramme de conception (couches, BFF, shared) |
 | [docs/MERMAID_CONCEPTION_AFYA.md](docs/MERMAID_CONCEPTION_AFYA.md) | Diagramme de conception (Mermaid) |
 | [docs/MERMAID_DOMAINE_AFYA.md](docs/MERMAID_DOMAINE_AFYA.md) | Modèle du domaine avec attributs (Mermaid) |
+| [docs/MODELE_DOMAINE_MEMOIRE_9_SERVICES.md](docs/MODELE_DOMAINE_MEMOIRE_9_SERVICES.md) | **Mémoire — modèle du domaine officiel (9 microservices)** |
+| [docs/MAPPING_MODELE_ANALYSE_AFYA.md](docs/MAPPING_MODELE_ANALYSE_AFYA.md) | Mapping mémoire (9) → prototype Afya (7) |
+| [docs/plantuml/memoire/](docs/plantuml/memoire/) | PlantUML MD-01…MD-09 (mémoire) |
 
-## Services (cible)
+## Services
 
-1. **identity-service** — authentification, comptes, rôles, périmètres  
-2. **catalog-service** — départements et services hospitaliers  
-3. **patient-service** — référentiel patient, recherche  
-4. **care-entry-service** — urgences, admissions, transferts administratifs  
-5. **stay-service** — séjour, fiche d’hospitalisation  
-6. **clinical-record-service** — dossier médical, prescriptions, soins, documents/images  
-7. **audit-service** — traces et activité système (rapports admin)
+**Mémoire (référence officielle — 9 microservices)** : voir [docs/MODELE_DOMAINE_MEMOIRE_9_SERVICES.md](docs/MODELE_DOMAINE_MEMOIRE_9_SERVICES.md) — Auth, User, Hospital, Patient, Admission, Medical, Lab, Nursing, Report.
 
-Option **6 services** : fusionner **care-entry** + **stay** en **encounter-stay-service**.
+**Prototype Afya (stack cible — 9 microservices + BFF + audit)** :
+1. **auth-service** (8081) + **user-service** (8089) — Auth & Users (MD-01 / MD-02)
+2. **hospital-service** (8082) — Hospital (MD-03)
+3. **patient-service** (8083) — Patient (MD-04)
+4. **admission-service** (8084) — Admission + séjour (MD-05)
+5. **medical-service** (8085) — Medical (MD-06)
+6. **nursing-service** (8093) — Nursing (MD-08)
+7. **lab-service** (8092) — Lab (MD-07)
+8. **report-service** (8094) — Report (MD-09)
+9. **audit-service** (8087) — ingestion audit (transversal)
+
+> Migration legacy terminée — voir [docs/MIGRATION_9_SERVICES.md](docs/MIGRATION_9_SERVICES.md). ~~`identity-service`~~ → auth + user ; ~~`catalog-service`~~ → `hospital-service` ; ~~`care-entry-service`~~ + ~~`stay-service`~~ → `admission-service` ; ~~`clinical-record-service`~~ → `medical-service` + `nursing-service`.
 
 ## Stack envisagée (à confirmer)
 
 - Java 21, Spring Boot 4.x par service  
 - API REST versionnée `/api/v1/`  
-- BDD par service ; stockage objet pour images/PDF (clinical-record)  
+- BDD par service ; stockage objet pour images/PDF (medical-service)  
 - **API Gateway** (Nginx, port **8090**) + **BFF** (agrégation, port **8080**) pour le front web responsive  
 
 ## Démarrage rapide
 
 Voir **[docs/DEMARRAGE.md](docs/DEMARRAGE.md)** — dev Maven + `podman compose`, ou stack complète `./scripts/stack-up.sh` (UI **8088**, API **8090**/**8443**). Smoke : `./scripts/smoke-api.sh`.
 
+Production (Kubernetes + Helm) : **[docs/DEPLOIEMENT_PROD.md](docs/DEPLOIEMENT_PROD.md)** — chart `infra/k8s/helm/afya/`, CD `.github/workflows/cd.yml`.
+
 ## Modules implémentés
 
 | Module | Port | Statut |
 |--------|------|--------|
-| `afya-shared` | — | Exceptions + handler HTTP partagés |
-| `identity-service` | 8081 | Auth JWT (login, refresh, logout, me) |
-| `catalog-service` | 8082 | Départements, services hospitaliers, lits |
-| `patient-service` | 8083 | Registre patient, recherche |
-| `care-entry-service` | 8084 | Admissions, urgences, transferts |
-| `stay-service` | 8085 | Séjour, fiche d'hospitalisation |
-| `clinical-record-service` | 8086 | Dossier médical, prescriptions, soins, documents |
-| `audit-service` | 8087 | Journal d'audit, rapports d'activité (admin) |
-| `afya-bff` | 8080 | BFF : agrégation métier (interne à la gateway) |
-| `infra/gateway` (`api`) | 8090 / 8443 | API Gateway : HTTP + TLS auto-signé |
-| `frontend/` | 5173 (dev) | React + Vite, proxy `/api` → gateway **8090** |
+| `afya-shared` | — | Bibliothèque partagée |
+| `auth-service` | 8081 | Auth JWT (MD-01) |
+| `user-service` | 8089 | Utilisateurs & rôles (MD-02) |
+| `hospital-service` | 8082 | Organisation hospitalière (MD-03) |
+| `patient-service` | 8083 | Registre patient (MD-04) |
+| `admission-service` | 8084 | Admissions, urgences, séjour (MD-05) |
+| `medical-service` | 8085 | Dossier médical, consultations (MD-06) |
+| `nursing-service` | 8093 | Soins, constantes, notifications (MD-08) |
+| `lab-service` | 8092 | Laboratoire (MD-07) |
+| `report-service` | 8094 | Rapports (MD-09) |
+| `audit-service` | 8087 | Journal d'audit |
+| `afya-bff` | 8080 | BFF |
+| `infra/gateway` (`api`) | 8090 / 8443 | API Gateway |
+| `frontend/` | 5173 (dev) | React + Vite |
 
 ## Front + stack API
 
 ```bash
-./mvnw -pl afya-bff spring-boot:run   # après identity, patient, catalog, care-entry, stay, clinical-record, audit
-podman compose up -d api              # gateway → BFF
+# Démarrer les services nécessaires (voir docs/DEMARRAGE.md ou ./scripts/dev-print-terminals.sh)
+./mvnw -pl afya-bff spring-boot:run
+podman compose up -d api
 cd frontend && npm install && npm run dev
 ./scripts/smoke-api.sh
 ```

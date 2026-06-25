@@ -1,0 +1,69 @@
+@startuml MD09_ReportService
+title Modèle du domaine — Report Service (MD-09)
+
+skinparam classBackgroundColor #E8F8F5
+skinparam classBorderColor #0E6655
+skinparam classArrowColor #0E6655
+skinparam classFontStyle bold
+
+class Rapport {
+  - id : Integer
+  - type : {JOURNALIER, HEBDOMADAIRE, MENSUEL}
+  - dateGeneration : DateTime
+  - periodeDebut : Date
+  - periodeFin : Date
+  - serviceId : Integer
+  - genereParId : Integer
+  - format : {PDF, EXCEL}
+  - cheminFichier : String
+}
+
+class StatistiqueAdmission {
+  - id : Integer
+  - rapportId : Integer
+  - serviceId : Integer
+  - periode : String
+  - totalAdmissions : Integer
+  - totalUrgences : Integer
+  - totalSorties : Integer
+  - totalTransferts : Integer
+  - tauxOccupation : Float
+  - dureeMoyenneSejour : Float
+}
+
+class StatistiqueMedical {
+  - id : Integer
+  - rapportId : Integer
+  - periode : String
+  - totalConsultations : Integer
+  - totalPrescriptions : Integer
+  - diagnosticsFrequents : String
+  - totalDecisions : Integer
+}
+
+class StatistiqueLaboratoire {
+  - id : Integer
+  - rapportId : Integer
+  - periode : String
+  - totalDemandes : Integer
+  - totalExamensRealises : Integer
+  - totalResultatsAnormaux : Integer
+  - delaiMoyenResultat : Float
+  - examensParType : String
+}
+
+class StatistiqueSoins {
+  - id : Integer
+  - rapportId : Integer
+  - periode : String
+  - totalSoinsEffectues : Integer
+  - totalConstantesRelevees : Integer
+  - totalAlertes : Integer
+}
+
+Rapport "1" *-- "0..*" StatistiqueAdmission : agrège >
+Rapport "1" *-- "0..*" StatistiqueMedical : agrège >
+Rapport "1" *-- "0..*" StatistiqueLaboratoire : agrège >
+Rapport "1" *-- "0..*" StatistiqueSoins : agrège >
+
+@enduml

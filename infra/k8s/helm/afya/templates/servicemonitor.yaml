@@ -1,0 +1,23 @@
+{{- if .Values.serviceMonitor.enabled }}
+{{- range .Values.springServices }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .name }}
+  namespace: {{ include "afya.namespace" $ }}
+  labels:
+    {{- include "afya.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ .name }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "afya.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ .name }}
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: {{ $.Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ $.Values.serviceMonitor.scrapeTimeout }}
+{{- end }}
+{{- end }}

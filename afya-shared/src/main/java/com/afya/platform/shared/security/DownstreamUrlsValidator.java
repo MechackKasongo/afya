@@ -15,12 +15,15 @@ import java.util.List;
 public class DownstreamUrlsValidator implements ApplicationRunner {
 
     private static final List<String> URL_KEYS = List.of(
-            "app.services.identity-base-url",
-            "app.services.catalog-base-url",
+            "app.services.auth-base-url",
+            "app.services.user-base-url",
+            "app.services.hospital-base-url",
             "app.services.patient-base-url",
-            "app.services.care-entry-base-url",
-            "app.services.stay-base-url",
-            "app.services.clinical-base-url",
+            "app.services.admission-base-url",
+            "app.services.medical-base-url",
+            "app.services.nursing-base-url",
+            "app.services.lab-base-url",
+            "app.services.report-base-url",
             "app.services.audit-base-url"
     );
 

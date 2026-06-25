@@ -1,0 +1,127 @@
+{{- range .Values.springServices }}
+{{- $root := $ }}
+{{- $svc := . }}
+{{- $db := index $root.Values.databases $svc.dbKey }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $svc.name }}
+  namespace: {{ include "afya.namespace" $root }}
+  labels:
+    {{- include "afya.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $svc.name }}
+spec:
+  replicas: {{ $svc.replicas | default $root.Values.global.replicas }}
+  selector:
+    matchLabels:
+      {{- include "afya.selectorLabels" $root | nindent 6 }}
+      app.kubernetes.io/component: {{ $svc.name }}
+  template:
+    metadata:
+      labels:
+        {{- include "afya.selectorLabels" $root | nindent 8 }}
+        app.kubernetes.io/component: {{ $svc.name }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ $svc.port | quote }}
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      containers:
+        - name: {{ $svc.name }}
+          image: {{ include "afya.image" (dict "root" $root "image" $svc.image) }}
+          imagePullPolicy: {{ $root.Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $svc.port }}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: {{ $root.Values.global.springProfile | quote }}
+            - name: DB_SSLMODE
+              value: {{ $root.Values.global.dbSslMode | quote }}
+            - name: JWT_ACCESS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "afya.secretName" $root }}
+                  key: jwt-access-secret
+            {{- if not $svc.noDatabase }}
+            - name: {{ $svc.dbEnvPrefix }}_DB_HOST
+              value: {{ required (printf "databases.%s.host requis" $svc.dbKey) $db.host | quote }}
+            - name: {{ $svc.dbEnvPrefix }}_DB_PORT
+              value: {{ $db.port | default 5432 | quote }}
+            - name: {{ $svc.dbEnvPrefix }}_DB_NAME
+              value: {{ $db.name | quote }}
+            - name: {{ $svc.dbEnvPrefix }}_DB_USER
+              value: {{ $db.user | quote }}
+            - name: {{ $svc.dbEnvPrefix }}_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "afya.secretName" $root }}
+                  key: {{ $svc.dbKey }}-db-password
+            {{- end }}
+            {{- if eq $svc.name "auth" }}
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "afya.secretName" $root }}
+                  key: jwt-refresh-secret
+            - name: AUDIT_INGESTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "afya.secretName" $root }}
+                  key: audit-ingestion-key
+            {{- end }}
+            {{- if eq $svc.name "bff" }}
+            - name: CORS_ALLOWED_ORIGINS
+              value: {{ $root.Values.cors.allowedOrigins | quote }}
+            {{- end }}
+            {{- if eq $svc.name "medical" }}
+            - name: MINIO_ENDPOINT
+              value: {{ required "objectStore.endpoint requis pour medical" $root.Values.objectStore.endpoint | quote }}
+            - name: MINIO_BUCKET
+              value: {{ $root.Values.objectStore.bucket | quote }}
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "afya.secretName" $root }}
+                  key: minio-access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "afya.secretName" $root }}
+                  key: minio-secret-key
+            {{- end }}
+            {{- if and (ne $svc.name "bff") (ne $svc.name "auth") }}
+            - name: AUDIT_INGESTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "afya.secretName" $root }}
+                  key: audit-ingestion-key
+            {{- end }}
+            {{- with $svc.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if eq $svc.name "bff" }}
+          resources:
+            {{- toYaml $root.Values.resources.bff | nindent 12 }}
+          {{- else }}
+          resources:
+            {{- toYaml $root.Values.resources.spring | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+{{- end }}

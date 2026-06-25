@@ -84,7 +84,7 @@ export default function App() {
                   }
                 />
               </Route>
-              <Route element={<RoleRoute allowed={['ROLE_ADMIN', 'ROLE_MEDECIN']} />}>
+              <Route element={<RoleRoute allowed={['ROLE_ADMIN', 'ROLE_MEDECIN', 'ROLE_INFIRMIER']} />}>
                 <Route
                   path="/admissions/:admissionId/prescriptions/:lineId/administrations"
                   element={<MedicationAdministrationsPage />}

@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
-# Une fenêtre tmux par microservice (+ BFF + front Vite).
+# Une fenêtre tmux par microservice (+ BFF + front Vite) — stack cible 9 services.
 # Prérequis : podman compose up -d, tmux, JDK 21, ./mvnw install une fois.
-#
-# Usage :
-#   chmod +x scripts/dev-tmux.sh
-#   ./scripts/dev-tmux.sh              # attache la session
-#   BFF_PORT=8088 ./scripts/dev-tmux.sh
-#
-# Session : afya-platform (TMUX_SESSION_NAME pour changer)
-# Arrêter tout : tmux kill-session -t afya-platform
 
 set -euo pipefail
 
@@ -39,14 +31,16 @@ run_service() {
     "$JWT_ACCESS_SECRET" "$JWT_REFRESH_SECRET" "$module"
 }
 
-# Ordre de démarrage : identity/catalog/patient d'abord, care-entry ensuite, BFF en dernier.
 SERVICES=(
-  "identity:identity-service"
-  "catalog:catalog-service"
+  "auth:auth-service"
+  "user:user-service"
+  "hospital:hospital-service"
   "patient:patient-service"
-  "stay:stay-service"
-  "care:care-entry-service"
-  "clinical:clinical-record-service"
+  "admission:admission-service"
+  "medical:medical-service"
+  "nursing:nursing-service"
+  "lab:lab-service"
+  "report:report-service"
   "audit:audit-service"
 )
 
@@ -71,17 +65,16 @@ if [[ -d "$ROOT/frontend/node_modules" ]] || [[ -f "$ROOT/frontend/package.json"
     bash -c "npm run dev; exec bash"
 fi
 
-echo "Session '$SESSION' créée — une fenêtre par service :"
-echo "  identity(8081) catalog(8082) patient(8083) stay(8085) care(8084)"
-echo "  clinical(8086) audit(8087) bff(${BFF_PORT}) [web(5173)]"
+echo "Session '$SESSION' créée — stack cible 9 services :"
+echo "  auth(8081) user(8089) hospital(8082) patient(8083) admission(8084)"
+echo "  medical(8085) nursing(8093) lab(8092) report(8094) audit(8087) bff(${BFF_PORT}) [web(5173)]"
 echo ""
 echo "Avant le login UI :"
 echo "  podman compose up -d"
-echo "  podman compose up -d api    # gateway 8090 (après le BFF)"
+echo "  podman compose up -d api"
 echo "  ./scripts/check-ports.sh"
 echo ""
 echo "  Attacher : tmux attach -t $SESSION"
-echo "  Raccourcis : Ctrl+b n (suivante) | p (précédente) | d (détacher)"
 echo ""
 
 tmux attach -t "$SESSION"

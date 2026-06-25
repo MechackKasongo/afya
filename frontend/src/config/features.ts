@@ -6,10 +6,10 @@ export const platformFeatures = {
   admissionBedSuggestion: true,
   admissionDeclareDeath: true,
   admissionVitalSigns: true,
-  /** Formulaire hospi : BFF `/api/v1/admissions/{id}/clinical-form` (stay-service). */
+  /** Formulaire hospi : BFF `/api/v1/admissions/{id}/clinical-form` (admission-service / séjour). */
   admissionClinicalForm: true,
   admissionPrescriptionsByAdmission: false,
   urgenceTriageTimeline: true,
-  /** Upload / téléchargement documents via MinIO ou stockage fichier (clinical-record). */
+  /** Upload / téléchargement documents via MinIO ou stockage fichier (medical-service). */
   clinicalDocumentsUpload: true,
 } as const;

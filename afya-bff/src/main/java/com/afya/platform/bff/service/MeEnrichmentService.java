@@ -1,6 +1,6 @@
 package com.afya.platform.bff.service;
 
-import com.afya.platform.bff.client.CatalogClient;
+import com.afya.platform.bff.client.HospitalClient;
 import com.afya.platform.bff.dto.HospitalServiceResponse;
 import com.afya.platform.bff.dto.MeResponse;
 import org.springframework.data.domain.Page;
@@ -13,10 +13,10 @@ import java.util.stream.Collectors;
 @Service
 public class MeEnrichmentService {
 
-    private final CatalogClient catalogClient;
+    private final HospitalClient hospitalClient;
 
-    public MeEnrichmentService(CatalogClient catalogClient) {
-        this.catalogClient = catalogClient;
+    public MeEnrichmentService(HospitalClient hospitalClient) {
+        this.hospitalClient = hospitalClient;
     }
 
     public MeResponse enrich(MeResponse me, String authorizationHeader) {
@@ -50,7 +50,7 @@ public class MeEnrichmentService {
         }
         try {
             Page<HospitalServiceResponse> page =
-                    catalogClient.listHospitalServices(null, 0, 500, authorizationHeader);
+                    hospitalClient.listHospitalServices(null, 0, 500, authorizationHeader);
             Map<Long, String> namesById = page.getContent().stream()
                     .collect(Collectors.toMap(HospitalServiceResponse::id, HospitalServiceResponse::name, (a, b) -> a));
             return ids.stream()

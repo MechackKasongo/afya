@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.CatalogClient;
+import com.afya.platform.bff.client.HospitalClient;
 import com.afya.platform.bff.dto.BedResponse;
 import com.afya.platform.bff.dto.HospitalServiceRequest;
 import com.afya.platform.bff.dto.HospitalServiceResponse;
@@ -18,10 +18,10 @@ import java.util.List;
 @RequestMapping("/api/v1/hospital-services")
 public class HospitalServiceBffController {
 
-    private final CatalogClient catalogClient;
+    private final HospitalClient hospitalClient;
 
-    public HospitalServiceBffController(CatalogClient catalogClient) {
-        this.catalogClient = catalogClient;
+    public HospitalServiceBffController(HospitalClient hospitalClient) {
+        this.hospitalClient = hospitalClient;
     }
 
     @GetMapping
@@ -31,7 +31,7 @@ public class HospitalServiceBffController {
             @RequestParam(required = false) Integer size,
             HttpServletRequest request
     ) {
-        return catalogClient.listHospitalServices(
+        return hospitalClient.listHospitalServices(
                 activeOnly,
                 page,
                 size,
@@ -40,7 +40,7 @@ public class HospitalServiceBffController {
 
     @GetMapping("/{id}")
     public HospitalServiceResponse get(@PathVariable Long id, HttpServletRequest request) {
-        return catalogClient.getById(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        return hospitalClient.getById(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @PostMapping
@@ -49,7 +49,7 @@ public class HospitalServiceBffController {
             @Valid @RequestBody HospitalServiceRequest body,
             HttpServletRequest request
     ) {
-        return catalogClient.create(body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        return hospitalClient.create(body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @PutMapping("/{id}")
@@ -58,7 +58,7 @@ public class HospitalServiceBffController {
             @Valid @RequestBody HospitalServiceRequest body,
             HttpServletRequest request
     ) {
-        return catalogClient.update(id, body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        return hospitalClient.update(id, body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @PatchMapping("/{id}/status")
@@ -67,28 +67,28 @@ public class HospitalServiceBffController {
             @Valid @RequestBody HospitalServiceStatusRequest body,
             HttpServletRequest request
     ) {
-        return catalogClient.updateStatus(
+        return hospitalClient.updateStatus(
                 id, body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id, HttpServletRequest request) {
-        catalogClient.delete(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        hospitalClient.delete(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @GetMapping("/{id}/beds")
     public List<BedResponse> listBeds(@PathVariable Long id, HttpServletRequest request) {
-        return catalogClient.listBeds(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        return hospitalClient.listBeds(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @PostMapping("/{id}/beds/provision")
     public int provisionBeds(@PathVariable Long id, HttpServletRequest request) {
-        return catalogClient.provisionBeds(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        return hospitalClient.provisionBeds(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @PostMapping("/{id}/beds/realign")
     public int realignBeds(@PathVariable Long id, HttpServletRequest request) {
-        return catalogClient.realignBeds(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        return hospitalClient.realignBeds(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 }

@@ -127,18 +127,32 @@ export interface BedSuggestionResponse {
 
 export type VitalSignSlot = 'MATIN' | 'SOIR' | 'JOURNEE';
 
+export interface VitalSignAlertResponse {
+  id: number;
+  parameter: string;
+  measuredValue: string;
+  thresholdLabel: string;
+  alertLevel: 'ATTENTION' | 'CRITIQUE';
+  alertAt: string;
+}
+
 export interface VitalSignResponse {
   id: number;
+  patientId?: number;
   admissionId: number;
+  nurseUsername?: string;
   recordedAt: string;
   slot: VitalSignSlot | null;
   systolicBp: number | null;
   diastolicBp: number | null;
   pulseBpm: number | null;
+  respiratoryRate?: number | null;
   temperatureCelsius: number | null;
   weightKg: number | null;
+  spo2?: number | null;
   diuresisMl: number | null;
   stoolsNote: string | null;
+  alerts?: VitalSignAlertResponse[];
 }
 
 export interface VitalSignCreateRequest {
@@ -147,8 +161,10 @@ export interface VitalSignCreateRequest {
   systolicBp?: number;
   diastolicBp?: number;
   pulseBpm?: number;
+  respiratoryRate?: number;
   temperatureCelsius?: number;
   weightKg?: number;
+  spo2?: number;
   diuresisMl?: number;
   stoolsNote?: string;
 }
@@ -193,6 +209,21 @@ export interface MedicationAdministrationCreateRequest {
   administrationDate: string;
   slot: VitalSignSlot;
   administered: boolean;
+}
+
+export type PrescriptionNotificationStatus = 'ENVOYEE' | 'LUE' | 'EXECUTEE';
+
+export interface PrescriptionNotificationResponse {
+  id: number;
+  prescriptionLineId: number;
+  patientId: number;
+  drugName: string;
+  nurseUsername: string | null;
+  medicationAdministrationId: number | null;
+  sentAt: string;
+  status: PrescriptionNotificationStatus;
+  readAt: string | null;
+  executedAt: string | null;
 }
 
 export interface AdmissionClinicalFormResponse {

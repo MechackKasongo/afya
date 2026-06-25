@@ -1,7 +1,7 @@
 package com.afya.platform.bff.service;
 
-import com.afya.platform.bff.client.AuditClient;
-import com.afya.platform.bff.client.CatalogClient;
+import com.afya.platform.bff.client.ReportClient;
+import com.afya.platform.bff.client.HospitalClient;
 import com.afya.platform.bff.dto.ActivityReportResponse;
 import com.afya.platform.bff.dto.CatalogOccupancyStatsResponse;
 import com.afya.platform.bff.dto.OccupancyStatsValue;
@@ -20,18 +20,18 @@ import java.util.List;
 @Service
 public class PlatformReportService {
 
-    private final CatalogClient catalogClient;
+    private final HospitalClient hospitalClient;
     private final PlatformVolumesService platformVolumesService;
-    private final AuditClient auditClient;
+    private final ReportClient reportClient;
 
     public PlatformReportService(
-            CatalogClient catalogClient,
+            HospitalClient hospitalClient,
             PlatformVolumesService platformVolumesService,
-            AuditClient auditClient
+            ReportClient reportClient
     ) {
-        this.catalogClient = catalogClient;
+        this.hospitalClient = hospitalClient;
         this.platformVolumesService = platformVolumesService;
-        this.auditClient = auditClient;
+        this.reportClient = reportClient;
     }
 
     public PlatformReportOverviewResponse overview(String authorizationHeader, Instant from, Instant to) {
@@ -51,10 +51,10 @@ public class PlatformReportService {
 
     private OccupancyStatsValue loadOccupancy(String authorizationHeader, List<String> warnings) {
         try {
-            CatalogOccupancyStatsResponse stats = catalogClient.occupancyStats(authorizationHeader);
+            CatalogOccupancyStatsResponse stats = hospitalClient.occupancyStats(authorizationHeader);
             return OccupancyStatsMapper.toValue(stats);
         } catch (RestClientResponseException | ResourceAccessException ex) {
-            warnings.add("Occupation des lits indisponible (catalog-service).");
+            warnings.add("Occupation des lits indisponible (hospital-service).");
             return null;
         }
     }
@@ -75,9 +75,9 @@ public class PlatformReportService {
             List<String> warnings
     ) {
         try {
-            return auditClient.activityReport(from, to, authorizationHeader);
+            return reportClient.activityReport(from, to, authorizationHeader);
         } catch (RestClientResponseException | ResourceAccessException ex) {
-            warnings.add("Rapport d'audit indisponible.");
+            warnings.add("Rapport d'activité indisponible (report-service).");
             return ActivityReportFallback.empty(from, to);
         }
     }

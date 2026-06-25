@@ -1,0 +1,20 @@
+{{- range .Values.springServices }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}
+  namespace: {{ include "afya.namespace" $ }}
+  labels:
+    {{- include "afya.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ .name }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "afya.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ .name }}
+  ports:
+    - name: http
+      port: {{ .port }}
+      targetPort: http
+{{- end }}

@@ -6,14 +6,14 @@
 - Maven (wrapper inclus : `./mvnw`)
 - Podman ou Docker (base PostgreSQL)
 
-## 1. Base identity-service
+## 1. Bases PostgreSQL (dev)
 
 ```bash
 cd ~/IdeaProjects/afya
 podman compose up -d
 ```
 
-PostgreSQL écoute sur **localhost:5433** (base `afya_identity`, user/mot de passe `afya`).
+Les bases cible incluent **`afya_auth`** (port **5443**), **`afya_user`** (5444), etc. — voir `docker-compose.yml`.
 
 Voir [§ 1.1](#11-visualiser-les-bases-postgresql-interface-graphique) pour explorer toutes les bases avec un outil graphique.
 
@@ -23,12 +23,15 @@ Après `podman compose up -d`, **chaque microservice** a sa propre base PostgreS
 
 | Microservice | Base de données | Port (hôte) | Utilisateur | Mot de passe |
 |--------------|-----------------|-------------|-------------|--------------|
-| identity-service | `afya_identity` | **5433** | `afya` | `afya` |
-| catalog-service | `afya_catalog` | **5434** | `afya` | `afya` |
+| auth-service | `afya_auth` | **5443** | `afya` | `afya` |
+| user-service | `afya_user` | **5444** | `afya` | `afya` |
+| hospital-service | `afya_hospital` | **5447** | `afya` | `afya` |
 | patient-service | `afya_patient` | **5435** | `afya` | `afya` |
-| care-entry-service | `afya_care_entry` | **5436** | `afya` | `afya` |
-| stay-service | `afya_stay` | **5437** | `afya` | `afya` |
-| clinical-record-service | `afya_clinical` | **5438** | `afya` | `afya` |
+| admission-service | `afya_admission` | **5441** | `afya` | `afya` |
+| medical-service | `afya_medical` | **5445** | `afya` | `afya` |
+| nursing-service | `afya_nursing` | **5446** | `afya` | `afya` |
+| lab-service | `afya_lab` | **5440** | `afya` | `afya` |
+| report-service | `afya_report` | **5442** | `afya` | `afya` |
 | audit-service | `afya_audit` | **5439** | `afya` | `afya` |
 
 Hôte : **`127.0.0.1`**. Vérifier que les conteneurs tournent :
@@ -53,21 +56,21 @@ Créer **une connexion par port** (5433–5439), ou un dossier « Afya » regrou
 #### Exemple DBeaver / pgAdmin
 
 - **Host** : `127.0.0.1`
-- **Port** : `5438` (ex. dossier clinique)
-- **Database** : `afya_clinical`
+- **Port** : `5445` (ex. dossier médical)
+- **Database** : `afya_medical`
 - **Username** : `afya`
 - **Password** : `afya`
 
 Bases les plus utiles pour inspection visuelle :
 
-- **`afya_clinical`** (5438) — consultations, événements, catalogue maladies, prescriptions, dossier médical
-- **`afya_identity`** (5433) — utilisateurs, rôles, sessions
-- **`afya_care_entry`** (5436) — admissions, urgences
+- **`afya_medical`** (5445) — consultations, événements, catalogue maladies, prescriptions, dossier médical
+- **`afya_auth`** (5443) / **`afya_user`** (5444) — auth & utilisateurs
+- **`afya_admission`** (5441) — admissions, urgences, séjours
 
 #### Test en ligne de commande
 
 ```bash
-psql -h 127.0.0.1 -p 5438 -U afya -d afya_clinical
+psql -h 127.0.0.1 -p 5445 -U afya -d afya_medical
 # mot de passe : afya
 \dt
 \q
@@ -80,23 +83,24 @@ Si `psql` n’est pas installé : `sudo dnf install postgresql`.
 | Symptôme | Action |
 |----------|--------|
 | Connexion refusée | `podman compose up -d` puis `podman compose ps` |
-| Base vide (aucune table) | Démarrer le microservice une fois : `./mvnw -pl clinical-record-service spring-boot:run` |
+| Base vide (aucune table) | Démarrer le microservice une fois : `./mvnw -pl medical-service spring-boot:run` |
 | Mauvais port | Voir les mappings `543x:5432` dans `docker-compose.yml` à la racine du projet |
 
 ## 2. Lancer les services
 
-**identity-service** (port 8081) :
+**auth-service** (8081) et **user-service** (8089) :
 
 ```bash
-./mvnw -pl identity-service spring-boot:run
+./mvnw -pl auth-service spring-boot:run
+./mvnw -pl user-service spring-boot:run
 ```
 
 Observabilité résilience (Actuator metrics, Prometheus, alertes) : voir [OBSERVABILITE_RESILIENCE.md](OBSERVABILITE_RESILIENCE.md).
 
-**catalog-service** (port 8082) :
+**hospital-service** (port 8082) :
 
 ```bash
-./mvnw -pl catalog-service spring-boot:run
+./mvnw -pl hospital-service spring-boot:run
 ```
 
 **patient-service** (port 8083) :
@@ -105,18 +109,18 @@ Observabilité résilience (Actuator metrics, Prometheus, alertes) : voir [OBSER
 ./mvnw -pl patient-service spring-boot:run
 ```
 
-- Identity : **http://localhost:8081**
-- Catalog : **http://localhost:8082**
+- Auth : **http://localhost:8081**
+- Hospital : **http://localhost:8082**
 - Patient : **http://localhost:8083**
-- Care-entry : **http://localhost:8084**
-- Stay : **http://localhost:8085**
-- Clinical : **http://localhost:8086**
+- Admission : **http://localhost:8084**
+- Medical : **http://localhost:8085**
 - Audit : **http://localhost:8087**
+- Nursing : **http://localhost:8093**
 
-**care-entry-service** (nécessite patient + catalog démarrés pour les appels inter-services) :
+**admission-service** (port 8084 — nécessite patient + hospital démarrés pour les appels inter-services) :
 
 ```bash
-./mvnw -pl care-entry-service spring-boot:run
+./mvnw -pl admission-service spring-boot:run
 ```
 - Santé : **http://localhost:8081/actuator/health**
 - Login : `POST http://localhost:8081/api/v1/auth/login`
@@ -162,7 +166,7 @@ L’ancienne route `/departments` redirige vers `/hospital-services`.
 **Erreur « Impossible de créer le département »** : le frontend appelle `POST /api/v1/departments` via le BFF. Après ajout de cette API, **redémarrer obligatoirement** :
 
 ```bash
-./mvnw -pl catalog-service spring-boot:run    # 8082 — génération auto du code
+./mvnw -pl hospital-service spring-boot:run    # 8082 — génération auto du code
 ./mvnw -pl afya-bff spring-boot:run           # 8080 — proxy /api/v1/departments
 ```
 
@@ -222,15 +226,15 @@ curl -s -X POST http://localhost:8085/api/v1/stays \
   -d '{"admissionId":1,"patientId":1,"roomLabel":"A12","bedLabel":"LIT-1"}' | jq .
 ```
 
-Lors d'une **sortie** (`POST .../admissions/{id}/discharge`), care-entry appelle automatiquement la clôture du séjour.
+Lors d'une **sortie** (`POST .../admissions/{id}/discharge`), admission-service clôture automatiquement le séjour.
 
-## 8. Exemple dossier clinique
+## 8. Exemple dossier médical
 
 ```bash
-curl -s http://localhost:8086/api/v1/patients/1/medical-record \
+curl -s http://localhost:8085/api/v1/patients/1/medical-record \
   -H "Authorization: Bearer $TOKEN" | jq .
 
-curl -s -X POST http://localhost:8086/api/v1/patients/1/prescriptions \
+curl -s -X POST http://localhost:8085/api/v1/patients/1/prescriptions \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"drugName":"Paracétamol","dosage":"500mg","frequency":"3x/jour","startDate":"2026-05-15"}' | jq .
@@ -238,7 +242,7 @@ curl -s -X POST http://localhost:8086/api/v1/patients/1/prescriptions \
 
 ### Consultations, diagnostics et catalogue maladies
 
-Migrations Flyway **clinical-record** : `V6__consultation_event_disease_type.sql` (`consultation_events.disease_type`), `V7__disease_catalog.sql` (`consultation_events.disease_name`, table `disease_catalog`).
+Migrations Flyway **medical-service** : catalogue maladies (`disease_catalog`), types de maladie sur les événements de consultation.
 
 Sur une **fiche consultation**, un diagnostic exige `diseaseType` et `diseaseName` (détails optionnels dans `content`). Chaque saisie incrémente le catalogue ; après **5** utilisations identiques (même type + libellé normalisé), la maladie apparaît dans la liste sélectionnable.
 
@@ -282,7 +286,7 @@ Ingestion (JWT utilisateur — `actorUsername` optionnel, déduit du token) :
 curl -s -X POST http://localhost:8087/api/v1/audit/events \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
-  -d '{"action":"ADMISSION_CREATED","resourceType":"ADMISSION","resourceId":"10","sourceService":"care-entry-service"}' | jq .
+  -d '{"action":"ADMISSION_CREATED","resourceType":"ADMISSION","resourceId":"10","sourceService":"admission-service"}' | jq .
 ```
 
 Le publisher d’audit est centralisé dans **`afya-shared`** (`AuditEventPublisher`, config auto si `app.audit.enabled`).
@@ -290,7 +294,7 @@ Le publisher d’audit est centralisé dans **`afya-shared`** (`AuditEventPublis
 En dev, les services publient vers l’audit (clé `dev-audit-ingestion-key`, désactivable via `AUDIT_ENABLED=false`) :
 - **identity** : `LOGIN_SUCCESS`, `LOGIN_FAILED`, `LOGOUT_SUCCESS` ; admin utilisateurs : `USER_CREATED`, `USER_UPDATED`, `USER_ACTIVATED`, `USER_DEACTIVATED`, `USER_DELETED`
 - **patient** : `PATIENT_CREATED`, `PATIENT_UPDATED`, `PATIENT_CONTACTS_UPDATED`, `APPOINTMENT_CREATED`, `APPOINTMENT_CANCELLED`
-- **care-entry** : `ADMISSION_CREATED`, `ADMISSION_TRANSFERRED`, `ADMISSION_DISCHARGED`, `ADMISSION_CANCELLED`, `EMERGENCY_VISIT_CREATED`, `EMERGENCY_VISIT_CLOSED`
+- **admission-service** : `ADMISSION_CREATED`, `ADMISSION_TRANSFERRED`, `ADMISSION_DISCHARGED`, `ADMISSION_CANCELLED`, `EMERGENCY_VISIT_CREATED`, `EMERGENCY_VISIT_CLOSED`
 - **stay** : `STAY_OPENED`, `STAY_CLOSED`, `HOSPITALIZATION_FORM_UPDATED`
 - **clinical** : `MEDICAL_RECORD_OPENED`, `CLINICAL_NOTE_ADDED`, `DIAGNOSIS_ADDED`, `PRESCRIPTION_CREATED`, `MEDICATION_ADMINISTERED`, `NURSING_CARE_RECORDED`, `CLINICAL_DOCUMENT_ADDED`
 - **catalog** (admin) : `DEPARTMENT_*`, `HOSPITAL_SERVICE_*`, `BED_CREATED`, `BED_DELETED`
@@ -346,7 +350,7 @@ Le module **`afya-bff`** agrège auth, patients, admissions, urgences, séjours,
 ./mvnw -pl afya-bff spring-boot:run
 ```
 
-Prérequis pour le tableau de bord : **identity**, **patient**, **catalog**, **care-entry**, **stay**, **clinical-record** (et **audit** pour le rapport admin).
+Prérequis pour le tableau de bord : **auth**, **user**, **patient**, **hospital**, **admission**, **medical**, **nursing** (et **audit** pour le rapport admin).
 
 Login (via la **gateway**, recommandé) :
 
@@ -375,7 +379,7 @@ Réponse attendue : `roles` (ex. `ROLE_ADMIN`), `hospitalServiceIds`, `hospitalS
 
 ### Administration utilisateurs (rôle ADMIN)
 
-Exposé par le BFF (`/api/v1/users/**` → **identity-service**). Réservé au rôle **ADMIN** (côté BFF et identity).
+Exposé par le BFF (`/api/v1/users/**` → **user-service**). Réservé au rôle **ADMIN**.
 
 ```bash
 # Liste paginée
@@ -400,7 +404,7 @@ curl -s -X POST http://localhost:8080/api/v1/users \
   }' | jq .
 ```
 
-Journal des identifiants créés (fichier `./data/credentials-log.txt` dans le répertoire de travail d’**identity-service**) :
+Journal des identifiants créés (fichier configurable, défaut `user-service` : `~/.afya/credentials-log.txt`) :
 
 - Aperçu : `GET /api/v1/users/credentials-log/preview`
 - Téléchargement : `GET /api/v1/users/credentials-log` ou `.csv`
@@ -411,7 +415,7 @@ Chaque utilisateur peut être affecté à un ou plusieurs **services hospitalier
 
 | Comportement | Détail |
 |--------------|--------|
-| **ADMIN** | Voit toutes les admissions (care-entry) ; accès admin utilisateurs, audit, catalogue complet. |
+| **ADMIN** | Voit toutes les admissions (admission-service) ; accès admin utilisateurs, audit, catalogue complet. |
 | **Autres rôles** | Liste des admissions filtrée sur les `hospitalServiceIds` du token ; sans affectation → liste vide. |
 | **Profil `/auth/me`** | IDs + noms de services (noms enrichis par le BFF via catalog). |
 
@@ -426,7 +430,7 @@ curl -s "http://localhost:8080/api/v1/urgences?page=0&size=20&sortBy=createdAt&s
   -H "Authorization: Bearer $TOKEN" | jq .
 ```
 
-Triage et orientation (care-entry, proxifiés si besoin côté BFF ultérieurement) :
+Triage et orientation (admission-service, proxifiés si besoin côté BFF ultérieurement) :
 
 ```bash
 curl -s -X POST "http://localhost:8084/api/v1/urgences/1/triage" \
@@ -460,10 +464,10 @@ Le catalog crée automatiquement une ligne `beds` par lit. Modèle : **chambre**
 À **chaque admission** d’un patient (capacité > 0) :
 
 1. Si chambre/lit ne sont pas saisis, le système propose le **premier lit libre** (chambres dans l’ordre A1, A2, …).
-2. Ces valeurs sont enregistrées sur le **séjour** (stay-service).
+2. Ces valeurs sont enregistrées sur le **séjour** (admission-service).
 3. Le lit catalog passe à **occupé** ; à la **sortie**, `last_freed_at` est mis à jour et le lit redevient libre.
 
-L’interface remplit chambre/lit dès que vous choisissez le service ; l’attribution est aussi garantie côté **care-entry** et **BFF** si les champs sont vides.
+L’interface remplit chambre/lit dès que vous choisissez le service ; l’attribution est aussi garantie côté **admission-service** et **BFF** si les champs sont vides.
 
 Suggestion de lit libre pour un service (nom catalog) :
 
@@ -472,7 +476,7 @@ curl -s "http://localhost:8080/api/v1/admissions/suggestions/bed?serviceName=Mé
   -H "Authorization: Bearer $TOKEN" | jq .
 ```
 
-Admin : **Organisation** → service → **Voir lits** / **Générer lits** si besoin. Redémarrer `catalog-service`, `care-entry-service` et `afya-bff` après mise à jour du code.
+Admin : **Organisation** → service → **Voir lits** / **Générer lits** si besoin. Redémarrer `hospital-service`, `admission-service` et `afya-bff` après mise à jour du code.
 
 ### Documents cliniques et statistiques volumes (phase D)
 
@@ -483,18 +487,18 @@ podman compose up -d minio
 # Console : http://localhost:9001 — identifiants minio / minio123
 ```
 
-Activer MinIO côté **clinical-record-service** :
+Activer MinIO côté **medical-service** :
 
 ```bash
 export STORAGE_PROVIDER=minio
 export MINIO_ENDPOINT=http://127.0.0.1:9000
 export MINIO_ACCESS_KEY=minio
 export MINIO_SECRET_KEY=minio123
-export MINIO_BUCKET=afya-clinical
-./mvnw -pl clinical-record-service spring-boot:run
+export MINIO_BUCKET=afya-medical
+./mvnw -pl medical-service spring-boot:run
 ```
 
-Sans MinIO, le service utilise par défaut le **filesystem** (`./data/clinical-object-store`).
+Sans MinIO, le service utilise par défaut le **filesystem** (`./data/medical-object-store`).
 
 Upload via le BFF :
 
@@ -552,13 +556,13 @@ Configuration proxy : `frontend/vite.config.ts` (cible `127.0.0.1`, pas `localho
 | Consultations (fiche, chronologie, diagnostics type+maladie, catalogue, prescriptions) | OK — menu **Consultations** ; BFF `/api/v1/consultations`, `/api/v1/disease-catalog` |
 | Signes vitaux admission, déclaration décès, fil d’événements urgences | Masqués — voir `frontend/src/config/features.ts` |
 
-**Backend (phase A)** : à l’admission, **care-entry** ouvre automatiquement un **séjour** (stay-service). Chambre/lit optionnels via `roomLabel` / `bedLabel` à la création d’admission.
+**Backend (phase A)** : à l’admission, **admission-service** ouvre automatiquement un **séjour**. Chambre/lit optionnels via `roomLabel` / `bedLabel` à la création d’admission.
 
 **Backend (phase B)** : CRUD utilisateurs et rôles dans **identity-service** ; proxy BFF + profil enrichi (`hospitalServiceNames`) ; filtrage des **admissions** par `hospitalServiceIds` du JWT pour les non-admins (`afya-shared` : `JwtAuthDetails`, `HospitalScopeSupport`).
 
-**Backend (phase C)** : **care-entry** — urgences enrichies (`priority`, `triageLevel`, `orientation`, statuts `EN_ATTENTE_TRIAGE` / `EN_COURS` / `ORIENTE` / `CLOTURE`, liste paginée, `POST .../triage`, `POST .../orientation`) ; **catalog** — `GET /api/v1/stats/occupancy`, `GET /api/v1/hospital-services/{id}/bed-suggestion` ; **BFF** — `GET /api/v1/stats/occupancy`, `GET /api/v1/admissions/suggestions/bed?serviceName=`.
+**Backend (phase C)** : **admission-service** — urgences enrichies (`priority`, `triageLevel`, `orientation`, statuts `EN_ATTENTE_TRIAGE` / `EN_COURS` / `ORIENTE` / `CLOTURE`, liste paginée, `POST .../triage`, `POST .../orientation`) ; **hospital-service** — `GET /api/v1/stats/occupancy`, `GET /api/v1/hospital-services/{id}/bed-suggestion` ; **BFF** — `GET /api/v1/stats/occupancy`, `GET /api/v1/admissions/suggestions/bed?serviceName=`.
 
-**Backend (phase D)** : **MinIO** (docker-compose port 9000) ou stockage fichier local (`STORAGE_PROVIDER=filesystem`) ; **clinical-record** — `POST .../documents/upload` (multipart), `GET .../documents/{id}/download` ; **BFF** — mêmes routes + `GET /api/v1/stats/volumes` (agrégat admin : patients, admissions, urgences, séjours ouverts, documents).
+**Backend (phase D)** : **MinIO** (docker-compose port 9000) ou stockage fichier local (`STORAGE_PROVIDER=filesystem`) ; **medical-service** — `POST .../documents/upload` (multipart), `GET .../documents/{id}/download` ; **BFF** — mêmes routes + `GET /api/v1/stats/volumes` (agrégat admin : patients, admissions, urgences, séjours ouverts, documents).
 
 **Backend (phase E)** : **API Gateway** Nginx (`infra/gateway`, service compose **`api`**, port **8090**) devant le BFF ; `server.forward-headers-strategy=framework` sur le BFF ; scripts `scripts/smoke-api.sh`, `.env.example` ; observabilité BFF : `actuator/health`, `metrics`.
 
@@ -625,21 +629,24 @@ Ordre recommandé (dépendances inter-services) :
 
 | Terminal | Service | Port | Commande |
 |----------|---------|------|----------|
-| 1 | identity-service | 8081 | `./mvnw -pl identity-service spring-boot:run` |
-| 2 | catalog-service | 8082 | `./mvnw -pl catalog-service spring-boot:run` |
-| 3 | patient-service | 8083 | `./mvnw -pl patient-service spring-boot:run` |
-| 4 | stay-service | 8085 | `./mvnw -pl stay-service spring-boot:run` |
-| 5 | care-entry-service | 8084 | `./mvnw -pl care-entry-service spring-boot:run` |
-| 6 | clinical-record-service | 8086 | `./mvnw -pl clinical-record-service spring-boot:run` |
-| 7 | audit-service | 8087 | `./mvnw -pl audit-service spring-boot:run` |
+| 1 | auth-service | 8081 | `./mvnw -pl auth-service spring-boot:run` |
+| 2 | user-service | 8089 | `./mvnw -pl user-service spring-boot:run` |
+| 3 | hospital-service | 8082 | `./mvnw -pl hospital-service spring-boot:run` |
+| 4 | patient-service | 8083 | `./mvnw -pl patient-service spring-boot:run` |
+| 5 | admission-service | 8084 | `./mvnw -pl admission-service spring-boot:run` |
+| 6 | medical-service | 8085 | `./mvnw -pl medical-service spring-boot:run` |
+| 7 | nursing-service | 8093 | `./mvnw -pl nursing-service spring-boot:run` |
+| 8 | lab-service | 8092 | `./mvnw -pl lab-service spring-boot:run` |
+| 9 | report-service | 8094 | `./mvnw -pl report-service spring-boot:run` |
+| 10 | audit-service | 8087 | `./mvnw -pl audit-service spring-boot:run` |
 
-Liste complète à copier-coller : `./scripts/dev-print-terminals.sh`
+Liste complète : `./scripts/dev-print-terminals.sh`
 
-**care-entry** appelle patient + catalog : démarrer les terminaux 2 et 3 avant le 5.
+**admission** appelle patient + hospital : démarrer les terminaux 3 et 4 avant le 5.
 
 ### Étape 2 — BFF (1 terminal)
 
-Quand identity et catalog répondent (8081, 8082) :
+Quand auth, user et hospital répondent (8081, 8089, 8082) :
 
 ```bash
 ./mvnw -pl afya-bff spring-boot:run    # port 8080
@@ -748,7 +755,7 @@ La première construction Maven dans les images peut prendre **10–20 minutes**
 | `registry-1.docker.io` / `connection reset by peer` | Réseau ou Docker Hub indisponible — relancer `./scripts/pull-stack-images.sh` puis `./scripts/stack-up.sh` |
 | `apk add bash` / TLS Alpine dans le build | Images Spring passées en **Debian** (`eclipse-temurin:21-jdk`, pas `-alpine`) — refaire `pull-stack-images.sh` puis `stack-up.sh` |
 | Contexte build ~450 Mo | Normal sans `.dockerignore` ; avec `.dockerignore` à la racine, le contexte est bien plus petit |
-| Smoke 502 après échec `stack-up` | Seule la gateway **dev** (`docker-compose.yml`) tourne encore → BFF sur l’hôte absent ; soit relancer la stack, soit `./mvnw -pl identity-service,afya-bff spring-boot:run` |
+| Smoke 502 après échec `stack-up` | Relancer la stack ou `./mvnw -pl auth-service,user-service,afya-bff spring-boot:run` |
 | `COMPOSE_PARALLEL_LIMIT=1 ./scripts/stack-up.sh` | Builds Maven un par un (connexion instable) |
 
 Ne lancer le smoke **qu’après** `stack-wait` OK ou `podman compose -f docker-compose.stack.yml ps` montrant `bff` et `api` healthy.

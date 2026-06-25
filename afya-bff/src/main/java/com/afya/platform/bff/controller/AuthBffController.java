@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.IdentityClient;
+import com.afya.platform.bff.client.AuthClient;
 import com.afya.platform.bff.dto.LoginRequest;
 import com.afya.platform.bff.dto.MeResponse;
 import com.afya.platform.bff.dto.RefreshRequest;
@@ -20,36 +20,36 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth")
 public class AuthBffController {
 
-    private final IdentityClient identityClient;
+    private final AuthClient authClient;
     private final MeEnrichmentService meEnrichmentService;
 
-    public AuthBffController(IdentityClient identityClient, MeEnrichmentService meEnrichmentService) {
-        this.identityClient = identityClient;
+    public AuthBffController(AuthClient authClient, MeEnrichmentService meEnrichmentService) {
+        this.authClient = authClient;
         this.meEnrichmentService = meEnrichmentService;
     }
 
     @PostMapping("/login")
     public TokenResponse login(@Valid @RequestBody LoginRequest request) {
-        TokenResponse tokens = identityClient.login(request);
+        TokenResponse tokens = authClient.login(request);
         return meEnrichmentService.enrichToken(tokens, "Bearer " + tokens.accessToken());
     }
 
     @PostMapping("/refresh")
     public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
-        TokenResponse tokens = identityClient.refresh(request);
+        TokenResponse tokens = authClient.refresh(request);
         return meEnrichmentService.enrichToken(tokens, "Bearer " + tokens.accessToken());
     }
 
     @GetMapping("/me")
     public MeResponse me(HttpServletRequest request) {
         String bearer = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
-        MeResponse me = identityClient.me(bearer);
+        MeResponse me = authClient.me(bearer);
         return meEnrichmentService.enrich(me, bearer);
     }
 
     @PostMapping("/logout")
     @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
     public void logout(HttpServletRequest request) {
-        identityClient.logout(AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        authClient.logout(AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 }

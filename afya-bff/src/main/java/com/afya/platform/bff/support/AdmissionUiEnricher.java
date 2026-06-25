@@ -1,6 +1,6 @@
 package com.afya.platform.bff.support;
 
-import com.afya.platform.bff.client.StayClient;
+import com.afya.platform.bff.client.AdmissionStayClient;
 import com.afya.platform.bff.dto.AdmissionResponse;
 import com.afya.platform.bff.dto.StayResponse;
 import org.springframework.data.domain.Page;
@@ -10,9 +10,9 @@ import org.springframework.web.client.HttpClientErrorException;
 @Component
 public class AdmissionUiEnricher {
 
-    private final StayClient stayClient;
+    private final AdmissionStayClient stayClient;
 
-    public AdmissionUiEnricher(StayClient stayClient) {
+    public AdmissionUiEnricher(AdmissionStayClient stayClient) {
         this.stayClient = stayClient;
     }
 

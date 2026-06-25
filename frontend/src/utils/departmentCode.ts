@@ -1,6 +1,6 @@
 const MAX_LENGTH = 40;
 
-/** Code technique dérivé du nom (aligné sur catalog-service DepartmentCodeGenerator). */
+/** Code technique dérivé du nom (aligné sur hospital-service DepartmentCodeGenerator). */
 export function departmentCodeFromName(name: string): string {
   const trimmed = name.trim();
   if (!trimmed) {

@@ -22,7 +22,7 @@ if [[ "${STACK_SKIP_PULL:-}" != "1" ]]; then
     echo "Impossible de télécharger les images. Solutions :" >&2
     echo "  • Réessayer dans quelques minutes (erreur réseau Docker Hub fréquente)" >&2
     echo "  • Vérifier proxy / VPN / pare-feu" >&2
-    echo "  • Dev sans stack : podman compose up -d && ./mvnw -pl identity-service,afya-bff spring-boot:run" >&2
+    echo "  • Dev sans stack : podman compose up -d && ./mvnw -pl auth-service,user-service,afya-bff spring-boot:run" >&2
     exit 1
   }
 fi

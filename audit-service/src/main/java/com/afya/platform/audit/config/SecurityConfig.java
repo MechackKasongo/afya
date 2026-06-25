@@ -32,7 +32,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/info", "/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/audit/events").authenticated()
-                        .requestMatchers("/api/v1/audit/**", "/api/v1/reports/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/audit/internal/**").hasRole("SYSTEM")
+                        .requestMatchers("/api/v1/audit/**").hasRole("ADMIN")
                         .anyRequest().denyAll())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

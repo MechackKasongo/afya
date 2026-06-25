@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.CatalogClient;
+import com.afya.platform.bff.client.HospitalClient;
 import com.afya.platform.bff.dto.DepartmentRequest;
 import com.afya.platform.bff.dto.DepartmentResponse;
 import com.afya.platform.bff.support.AuthorizationSupport;
@@ -15,20 +15,20 @@ import java.util.List;
 @RequestMapping("/api/v1/departments")
 public class DepartmentBffController {
 
-    private final CatalogClient catalogClient;
+    private final HospitalClient hospitalClient;
 
-    public DepartmentBffController(CatalogClient catalogClient) {
-        this.catalogClient = catalogClient;
+    public DepartmentBffController(HospitalClient hospitalClient) {
+        this.hospitalClient = hospitalClient;
     }
 
     @GetMapping
     public List<DepartmentResponse> list(HttpServletRequest request) {
-        return catalogClient.listDepartments(AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        return hospitalClient.listDepartments(AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @GetMapping("/{id}")
     public DepartmentResponse get(@PathVariable Long id, HttpServletRequest request) {
-        return catalogClient.getDepartment(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        return hospitalClient.getDepartment(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @PostMapping
@@ -37,7 +37,7 @@ public class DepartmentBffController {
             @Valid @RequestBody DepartmentRequest body,
             HttpServletRequest request
     ) {
-        return catalogClient.createDepartment(body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        return hospitalClient.createDepartment(body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @PutMapping("/{id}")
@@ -46,13 +46,13 @@ public class DepartmentBffController {
             @Valid @RequestBody DepartmentRequest body,
             HttpServletRequest request
     ) {
-        return catalogClient.updateDepartment(
+        return hospitalClient.updateDepartment(
                 id, body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id, HttpServletRequest request) {
-        catalogClient.deleteDepartment(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+        hospitalClient.deleteDepartment(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 }

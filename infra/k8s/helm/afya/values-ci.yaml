@@ -1,0 +1,46 @@
+# Valeurs factices pour helm lint / tests CI (ne pas utiliser en déploiement).
+global:
+  imageRegistry: ghcr.io/ci-example
+
+databases:
+  audit:
+    host: ci-db.example.com
+    password: ci
+  auth:
+    host: ci-db.example.com
+    password: ci
+  user:
+    host: ci-db.example.com
+    password: ci
+  hospital:
+    host: ci-db.example.com
+    password: ci
+  patient:
+    host: ci-db.example.com
+    password: ci
+  admission:
+    host: ci-db.example.com
+    password: ci
+  medical:
+    host: ci-db.example.com
+    password: ci
+  nursing:
+    host: ci-db.example.com
+    password: ci
+  lab:
+    host: ci-db.example.com
+    password: ci
+  report:
+    host: ci-db.example.com
+    password: ci
+
+objectStore:
+  endpoint: https://s3.ci.example.com
+
+secrets:
+  create: true
+  jwtAccessSecret: ci-jwt-access-secret-at-least-64-characters-long-for-hs512-signing-key-xx
+  jwtRefreshSecret: ci-jwt-refresh-secret-at-least-64-characters-long-for-hs512-signing-key-xx
+  auditIngestionKey: ci-audit-ingestion-key
+  minioAccessKey: ci-minio
+  minioSecretKey: ci-minio-secret

@@ -53,8 +53,8 @@ class AuditEventControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].resourceId").value("42"));
 
-        mockMvc.perform(get("/api/v1/reports/activity")
-                        .header("Authorization", "Bearer " + TestJwtFactory.adminToken()))
+        mockMvc.perform(get("/api/v1/audit/internal/reports/activity")
+                        .header(IngestionKeyAuthenticationFilter.INGESTION_HEADER, "test-ingestion-key"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalEvents").value(1))
                 .andExpect(jsonPath("$.byAction[0].key").value("PATIENT_CREATED"));

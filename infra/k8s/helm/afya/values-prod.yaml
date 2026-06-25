@@ -1,0 +1,118 @@
+global:
+  imageRegistry: ghcr.io/CHANGE_ME_ORG
+  imageTag: ""
+
+namespace:
+  name: afya-prod
+
+ingress:
+  host: afya.example.com
+  tls:
+    secretName: afya-prod-tls
+
+cors:
+  allowedOrigins: "https://afya.example.com"
+
+springServices:
+  - name: audit
+    port: 8087
+    image: afya-audit
+    dbKey: audit
+    dbEnvPrefix: AUDIT
+    replicas: 2
+  - name: auth
+    port: 8081
+    image: afya-auth
+    dbKey: auth
+    dbEnvPrefix: AUTH
+    replicas: 2
+  - name: user
+    port: 8089
+    image: afya-user
+    dbKey: user
+    dbEnvPrefix: USER
+    replicas: 2
+  - name: hospital
+    port: 8082
+    image: afya-hospital
+    dbKey: hospital
+    dbEnvPrefix: HOSPITAL
+    replicas: 2
+  - name: patient
+    port: 8083
+    image: afya-patient
+    dbKey: patient
+    dbEnvPrefix: PATIENT
+    replicas: 2
+  - name: admission
+    port: 8084
+    image: afya-admission
+    dbKey: admission
+    dbEnvPrefix: ADMISSION
+    replicas: 2
+  - name: medical
+    port: 8085
+    image: afya-medical
+    dbKey: medical
+    dbEnvPrefix: MEDICAL
+    replicas: 2
+    extraEnv:
+      - name: STORAGE_PROVIDER
+        value: minio
+  - name: nursing
+    port: 8093
+    image: afya-nursing
+    dbKey: nursing
+    dbEnvPrefix: NURSING
+    replicas: 2
+  - name: lab
+    port: 8092
+    image: afya-lab
+    dbKey: lab
+    dbEnvPrefix: LAB
+    replicas: 2
+  - name: report
+    port: 8094
+    image: afya-report
+    dbKey: report
+    dbEnvPrefix: REPORT
+    replicas: 2
+  - name: bff
+    port: 8080
+    image: afya-bff
+    replicas: 2
+    noDatabase: true
+
+gateway:
+  replicas: 2
+
+web:
+  replicas: 2
+
+databases:
+  audit:
+    host: CHANGE_ME_PROD_DB_HOST
+  auth:
+    host: CHANGE_ME_PROD_DB_HOST
+  user:
+    host: CHANGE_ME_PROD_DB_HOST
+  hospital:
+    host: CHANGE_ME_PROD_DB_HOST
+  patient:
+    host: CHANGE_ME_PROD_DB_HOST
+  admission:
+    host: CHANGE_ME_PROD_DB_HOST
+  medical:
+    host: CHANGE_ME_PROD_DB_HOST
+  nursing:
+    host: CHANGE_ME_PROD_DB_HOST
+  lab:
+    host: CHANGE_ME_PROD_DB_HOST
+  report:
+    host: CHANGE_ME_PROD_DB_HOST
+
+objectStore:
+  endpoint: https://s3.CHANGE_ME_REGION.amazonaws.com
+
+serviceMonitor:
+  enabled: true

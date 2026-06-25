@@ -10,6 +10,7 @@ import type {
   VitalSignSlot,
 } from '../api/types';
 import { ADMISSION_CLOSED_MESSAGE, isAdmissionClosed } from '../utils/admissionStatus';
+import { PrescriptionNotificationsPanel } from '../components/PrescriptionNotificationsPanel';
 import { ScrollTableRegion, TableResultFooter } from '../components/ScrollTableRegion';
 
 const slotLabels: Record<VitalSignSlot, string> = {
@@ -116,6 +117,16 @@ export function MedicationAdministrationsPage() {
           <strong>Séjour clôturé</strong>
           <p style={{ margin: '0.35rem 0 0', color: 'var(--muted)' }}>{ADMISSION_CLOSED_MESSAGE}</p>
         </div>
+      ) : null}
+
+      {admission?.patientId != null ? (
+        <PrescriptionNotificationsPanel
+          patientId={admission.patientId}
+          admissionId={numericAdmissionId}
+          prescriptionLineId={numericLineId}
+          autoMarkReadForLine
+          title="Notification prescription"
+        />
       ) : null}
 
       <div className="card" style={{ marginBottom: '1rem' }}>

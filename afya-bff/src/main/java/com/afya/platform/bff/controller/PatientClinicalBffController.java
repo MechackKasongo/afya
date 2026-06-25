@@ -1,6 +1,7 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.ClinicalRecordClient;
+import com.afya.platform.bff.client.MedicalClient;
+import com.afya.platform.bff.client.NursingClient;
 import com.afya.platform.bff.dto.ConsultationEventResponse;
 import com.afya.platform.bff.dto.clinical.*;
 import com.afya.platform.bff.support.AuthorizationSupport;
@@ -17,10 +18,12 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/patients/{patientId}")
 public class PatientClinicalBffController {
 
-    private final ClinicalRecordClient clinicalRecordClient;
+    private final MedicalClient medicalClient;
+    private final NursingClient nursingClient;
 
-    public PatientClinicalBffController(ClinicalRecordClient clinicalRecordClient) {
-        this.clinicalRecordClient = clinicalRecordClient;
+    public PatientClinicalBffController(MedicalClient medicalClient, NursingClient nursingClient) {
+        this.medicalClient = medicalClient;
+        this.nursingClient = nursingClient;
     }
 
     @GetMapping("/consultation-events")
@@ -28,7 +31,7 @@ public class PatientClinicalBffController {
             @PathVariable Long patientId,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.patientClinicalTimeline(
+        return medicalClient.patientClinicalTimeline(
                 patientId,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
@@ -38,7 +41,7 @@ public class PatientClinicalBffController {
             @PathVariable Long patientId,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.patientClinicalTimeline(
+        return medicalClient.patientClinicalTimeline(
                 patientId,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
@@ -49,7 +52,7 @@ public class PatientClinicalBffController {
             @Valid @RequestBody MedicalRecordAllergiesUpdateRequest body,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.updateAllergies(
+        return medicalClient.updateAllergies(
                 patientId,
                 body,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
@@ -61,7 +64,7 @@ public class PatientClinicalBffController {
             @Valid @RequestBody MedicalRecordAntecedentsUpdateRequest body,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.updateAntecedents(
+        return medicalClient.updateAntecedents(
                 patientId,
                 body,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
@@ -73,7 +76,7 @@ public class PatientClinicalBffController {
             @RequestParam(required = false, defaultValue = "false") boolean activePrescriptionsOnly,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.getMedicalRecord(
+        return medicalClient.getMedicalRecord(
                 patientId,
                 activePrescriptionsOnly,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
@@ -86,7 +89,7 @@ public class PatientClinicalBffController {
             @Valid @RequestBody ClinicalNoteRequest body,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.addNote(
+        return medicalClient.addNote(
                 patientId, body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
@@ -97,7 +100,7 @@ public class PatientClinicalBffController {
             @Valid @RequestBody DiagnosisRequest body,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.addDiagnosis(
+        return medicalClient.addDiagnosis(
                 patientId, body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
@@ -108,7 +111,7 @@ public class PatientClinicalBffController {
             @Valid @RequestBody PrescriptionCreateRequest body,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.addPrescription(
+        return medicalClient.addPrescription(
                 patientId, body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
@@ -119,7 +122,7 @@ public class PatientClinicalBffController {
             @Valid @RequestBody NursingCareRequest body,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.addNursingCare(
+        return nursingClient.addNursingCare(
                 patientId, body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
@@ -129,7 +132,7 @@ public class PatientClinicalBffController {
             @RequestParam(required = false) Boolean activeOnly,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.listPrescriptions(
+        return medicalClient.listPrescriptions(
                 patientId,
                 activeOnly,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
@@ -140,8 +143,29 @@ public class PatientClinicalBffController {
             @PathVariable Long patientId,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.listNursingCare(
+        return nursingClient.listNursingCare(
                 patientId, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+    }
+
+    @GetMapping("/prescription-notifications")
+    public java.util.List<PrescriptionNotificationResponse> listPrescriptionNotifications(
+            @PathVariable Long patientId,
+            HttpServletRequest request
+    ) {
+        return nursingClient.listPrescriptionNotifications(
+                patientId, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+    }
+
+    @PatchMapping("/prescription-notifications/{notificationId}/read")
+    public PrescriptionNotificationResponse markPrescriptionNotificationRead(
+            @PathVariable Long patientId,
+            @PathVariable Long notificationId,
+            HttpServletRequest request
+    ) {
+        return nursingClient.markPrescriptionNotificationRead(
+                patientId,
+                notificationId,
+                AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
     @PostMapping("/documents")
@@ -151,7 +175,7 @@ public class PatientClinicalBffController {
             @Valid @RequestBody ClinicalDocumentRequest body,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.addDocument(
+        return medicalClient.addDocument(
                 patientId, body, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 
@@ -163,7 +187,7 @@ public class PatientClinicalBffController {
             @RequestPart(value = "title", required = false) String title,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.uploadDocument(
+        return medicalClient.uploadDocument(
                 patientId,
                 file,
                 title,
@@ -176,7 +200,7 @@ public class PatientClinicalBffController {
             @PathVariable Long documentId,
             HttpServletRequest request
     ) {
-        byte[] body = clinicalRecordClient.downloadDocument(
+        byte[] body = medicalClient.downloadDocument(
                 patientId, documentId, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"document-" + documentId + "\"")

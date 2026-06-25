@@ -1,0 +1,8 @@
+{{- if .Values.namespace.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "afya.namespace" . }}
+  labels:
+    {{- include "afya.labels" . | nindent 4 }}
+{{- end }}

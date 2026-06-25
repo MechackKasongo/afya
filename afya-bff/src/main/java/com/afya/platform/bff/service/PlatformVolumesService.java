@@ -1,9 +1,9 @@
 package com.afya.platform.bff.service;
 
-import com.afya.platform.bff.client.CareEntryClient;
-import com.afya.platform.bff.client.ClinicalRecordClient;
+import com.afya.platform.bff.client.AdmissionClient;
+import com.afya.platform.bff.client.AdmissionStayClient;
+import com.afya.platform.bff.client.MedicalClient;
 import com.afya.platform.bff.client.PatientClient;
-import com.afya.platform.bff.client.StayClient;
 import com.afya.platform.bff.dto.PlatformVolumesValue;
 import org.springframework.stereotype.Service;
 
@@ -11,36 +11,36 @@ import org.springframework.stereotype.Service;
 public class PlatformVolumesService {
 
     private final PatientClient patientClient;
-    private final CareEntryClient careEntryClient;
-    private final StayClient stayClient;
-    private final ClinicalRecordClient clinicalRecordClient;
+    private final AdmissionClient admissionClient;
+    private final AdmissionStayClient admissionStayClient;
+    private final MedicalClient medicalClient;
 
     public PlatformVolumesService(
             PatientClient patientClient,
-            CareEntryClient careEntryClient,
-            StayClient stayClient,
-            ClinicalRecordClient clinicalRecordClient
+            AdmissionClient admissionClient,
+            AdmissionStayClient admissionStayClient,
+            MedicalClient medicalClient
     ) {
         this.patientClient = patientClient;
-        this.careEntryClient = careEntryClient;
-        this.stayClient = stayClient;
-        this.clinicalRecordClient = clinicalRecordClient;
+        this.admissionClient = admissionClient;
+        this.admissionStayClient = admissionStayClient;
+        this.medicalClient = medicalClient;
     }
 
     public PlatformVolumesValue aggregate(String authorizationHeader) {
         var patients = patientClient.volumes(authorizationHeader);
-        var careEntry = careEntryClient.volumes(authorizationHeader);
-        var stays = stayClient.volumes(authorizationHeader);
-        var clinical = clinicalRecordClient.volumes(authorizationHeader);
+        var admissions = admissionClient.volumes(authorizationHeader);
+        var stays = admissionStayClient.volumes(authorizationHeader);
+        var clinical = medicalClient.volumes(authorizationHeader);
         return new PlatformVolumesValue(
                 patients.patients(),
-                careEntry.admissions(),
-                careEntry.activeAdmissions(),
-                careEntry.transferredAdmissions(),
-                careEntry.dischargedAdmissions(),
-                careEntry.deceasedAdmissions(),
-                careEntry.emergencyVisits(),
-                careEntry.activeEmergencyVisits(),
+                admissions.admissions(),
+                admissions.activeAdmissions(),
+                admissions.transferredAdmissions(),
+                admissions.dischargedAdmissions(),
+                admissions.deceasedAdmissions(),
+                admissions.emergencyVisits(),
+                admissions.activeEmergencyVisits(),
                 stays.openStays(),
                 clinical.consultations(),
                 clinical.clinicalDocuments());

@@ -1,0 +1,42 @@
+global:
+  imageRegistry: ghcr.io/CHANGE_ME_ORG
+  imageTag: staging
+
+namespace:
+  name: afya-staging
+
+ingress:
+  host: staging.afya.example.com
+  tls:
+    secretName: afya-staging-tls
+
+cors:
+  allowedOrigins: "https://staging.afya.example.com"
+
+databases:
+  audit:
+    host: CHANGE_ME_STAGING_DB_HOST
+  auth:
+    host: CHANGE_ME_STAGING_DB_HOST
+  user:
+    host: CHANGE_ME_STAGING_DB_HOST
+  hospital:
+    host: CHANGE_ME_STAGING_DB_HOST
+  patient:
+    host: CHANGE_ME_STAGING_DB_HOST
+  admission:
+    host: CHANGE_ME_STAGING_DB_HOST
+  medical:
+    host: CHANGE_ME_STAGING_DB_HOST
+  nursing:
+    host: CHANGE_ME_STAGING_DB_HOST
+  lab:
+    host: CHANGE_ME_STAGING_DB_HOST
+  report:
+    host: CHANGE_ME_STAGING_DB_HOST
+
+objectStore:
+  endpoint: https://s3.CHANGE_ME_REGION.amazonaws.com
+
+serviceMonitor:
+  enabled: true

@@ -99,14 +99,14 @@ Ce runbook couvre les incidents liés aux métriques :
 
 ```bash
 curl -s http://localhost:8080/actuator/health | jq
-curl -s http://localhost:8086/actuator/health | jq
+curl -s http://localhost:8085/actuator/health | jq
 ```
 
 ### Vérification métrique précise
 
 ```bash
 curl -s "http://localhost:8080/actuator/metrics/afya.http.resilience.circuit_reject_total" | jq
-curl -s "http://localhost:8080/actuator/metrics/afya.http.resilience.downstream_io_failure_total?tag=target:http://localhost:8086" | jq
+curl -s "http://localhost:8080/actuator/metrics/afya.http.resilience.downstream_io_failure_total?tag=target:http://localhost:8085" | jq
 ```
 
 ---

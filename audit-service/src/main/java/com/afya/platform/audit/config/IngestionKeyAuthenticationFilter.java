@@ -29,9 +29,7 @@ public class IngestionKeyAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        if (ingestionKey.isEmpty()
-                || !HttpMethod.POST.matches(request.getMethod())
-                || !"/api/v1/audit/events".equals(request.getRequestURI())) {
+        if (ingestionKey.isEmpty() || !requiresIngestionKey(request)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -47,5 +45,13 @@ public class IngestionKeyAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private boolean requiresIngestionKey(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        if (HttpMethod.POST.matches(request.getMethod()) && "/api/v1/audit/events".equals(uri)) {
+            return true;
+        }
+        return uri.startsWith("/api/v1/audit/internal/");
     }
 }

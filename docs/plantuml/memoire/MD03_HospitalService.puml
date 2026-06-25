@@ -1,0 +1,37 @@
+@startuml MD03_HospitalService
+title Modèle du domaine — Hospital Service (MD-03)
+
+skinparam classBackgroundColor #FDEBD0
+skinparam classBorderColor #9C640C
+skinparam classArrowColor #9C640C
+skinparam classFontStyle bold
+
+class ServiceHospitalier {
+  - id : Integer
+  - nom : String
+  - description : String
+  - capaciteTotale : Integer
+  - responsableId : Integer
+  - statut : {ACTIF, INACTIF}
+}
+
+class Lit {
+  - id : Integer
+  - numero : String
+  - type : {STANDARD, REANIMATION, ISOLEMENT}
+  - statut : {LIBRE, OCCUPE, EN_NETTOYAGE, HORS_SERVICE}
+}
+
+class OccupationLit {
+  - id : Integer
+  - litId : Integer
+  - patientId : Integer
+  - admissionId : Integer
+  - dateDebut : DateTime
+  - dateFin : DateTime
+}
+
+ServiceHospitalier "1" *-- "1..*" Lit : contient >
+Lit "1" -- "0..*" OccupationLit : enregistre >
+
+@enduml

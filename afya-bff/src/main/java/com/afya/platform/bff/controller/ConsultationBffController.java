@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.ClinicalRecordClient;
+import com.afya.platform.bff.client.MedicalClient;
 import com.afya.platform.bff.dto.*;
 import com.afya.platform.bff.support.AuthorizationSupport;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/consultations")
 public class ConsultationBffController {
 
-    private final ClinicalRecordClient clinicalRecordClient;
+    private final MedicalClient medicalClient;
 
-    public ConsultationBffController(ClinicalRecordClient clinicalRecordClient) {
-        this.clinicalRecordClient = clinicalRecordClient;
+    public ConsultationBffController(MedicalClient medicalClient) {
+        this.medicalClient = medicalClient;
     }
 
     @GetMapping("/patient-timeline")
@@ -24,7 +24,7 @@ public class ConsultationBffController {
             @RequestParam Long patientId,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.patientClinicalTimeline(
+        return medicalClient.patientClinicalTimeline(
                 patientId,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
@@ -39,7 +39,7 @@ public class ConsultationBffController {
             @RequestParam(required = false) String sortDir,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.listConsultations(
+        return medicalClient.listConsultations(
                 patientId,
                 admissionId,
                 page,
@@ -51,7 +51,7 @@ public class ConsultationBffController {
 
     @GetMapping("/{consultationId:\\d+}")
     public ConsultationResponse getById(@PathVariable Long consultationId, HttpServletRequest request) {
-        return clinicalRecordClient.getConsultation(
+        return medicalClient.getConsultation(
                 consultationId,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
@@ -61,7 +61,7 @@ public class ConsultationBffController {
             @PathVariable Long consultationId,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.consultationEvents(
+        return medicalClient.consultationEvents(
                 consultationId,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
@@ -72,7 +72,7 @@ public class ConsultationBffController {
             @Valid @RequestBody ConsultationCreateRequest body,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.createConsultation(
+        return medicalClient.createConsultation(
                 body,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
@@ -84,7 +84,7 @@ public class ConsultationBffController {
             @Valid @RequestBody EventCreateRequest body,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.addConsultationObservation(
+        return medicalClient.addConsultationObservation(
                 consultationId,
                 body,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
@@ -97,7 +97,7 @@ public class ConsultationBffController {
             @Valid @RequestBody EventCreateRequest body,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.addConsultationDiagnostic(
+        return medicalClient.addConsultationDiagnostic(
                 consultationId,
                 body,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
@@ -110,7 +110,7 @@ public class ConsultationBffController {
             @Valid @RequestBody EventCreateRequest body,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.addConsultationExamOrder(
+        return medicalClient.addConsultationExamOrder(
                 consultationId,
                 body,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));

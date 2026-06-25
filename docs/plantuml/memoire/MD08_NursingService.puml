@@ -1,0 +1,60 @@
+@startuml MD08_NursingService
+title Modèle du domaine — Nursing Service (MD-08)
+
+skinparam classBackgroundColor #F3E5F5
+skinparam classBorderColor #6C3483
+skinparam classArrowColor #6C3483
+skinparam classFontStyle bold
+
+class SoinInfirmier {
+  - id : Integer
+  - patientId : Integer
+  - infirmiereId : Integer
+  - prescriptionId : Integer
+  - type : String
+  - date : Date
+  - heure : Time
+  - observations : String
+  - statut : {EFFECTUE, EN_ATTENTE}
+}
+
+class ConstanteVitale {
+  - id : Integer
+  - patientId : Integer
+  - infirmiereId : Integer
+  - admissionId : Integer
+  - temperature : Float
+  - tensionSystolique : Integer
+  - tensionDiastolique : Integer
+  - pouls : Integer
+  - freqRespiratoire : Integer
+  - poids : Float
+  - spO2 : Float
+  - date : Date
+  - heure : Time
+}
+
+class AlerteConstante {
+  - id : Integer
+  - constanteVitaleId : Integer
+  - parametre : String
+  - valeurMesuree : String
+  - seuilAlerte : String
+  - niveau : {ATTENTION, CRITIQUE}
+  - dateHeure : DateTime
+}
+
+class NotificationPrescription {
+  - id : Integer
+  - prescriptionId : Integer
+  - patientId : Integer
+  - infirmiereId : Integer
+  - dateEnvoi : DateTime
+  - statut : {ENVOYEE, LUE, EXECUTEE}
+}
+
+SoinInfirmier "1" -- "0..*" AlerteConstante : peut déclencher >
+ConstanteVitale "1" *-- "0..*" AlerteConstante : génère >
+NotificationPrescription "1" -- "0..1" SoinInfirmier : déclenche >
+
+@enduml

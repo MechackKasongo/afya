@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.CareEntryClient;
+import com.afya.platform.bff.client.AdmissionClient;
 import com.afya.platform.bff.dto.EmergencyCreateRequest;
 import com.afya.platform.bff.dto.EmergencyOrientationRequest;
 import com.afya.platform.bff.dto.EmergencyResponse;
@@ -23,10 +23,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/urgences")
 public class EmergencyBffController {
 
-    private final CareEntryClient careEntryClient;
+    private final AdmissionClient admissionClient;
 
-    public EmergencyBffController(CareEntryClient careEntryClient) {
-        this.careEntryClient = careEntryClient;
+    public EmergencyBffController(AdmissionClient admissionClient) {
+        this.admissionClient = admissionClient;
     }
 
     @PostMapping
@@ -35,13 +35,13 @@ public class EmergencyBffController {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
         String priority = body.priority() != null && !body.priority().isBlank() ? body.priority() : "P2";
         EmergencyCreateRequest payload = new EmergencyCreateRequest(body.patientId(), null, body.motif(), priority);
-        return UrgenceCompatMapper.toCompat(careEntryClient.createEmergency(payload, auth));
+        return UrgenceCompatMapper.toCompat(admissionClient.createEmergency(payload, auth));
     }
 
     @GetMapping("/{id}")
     public UrgenceCompatResponse getById(@PathVariable Long id, HttpServletRequest request) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
-        return UrgenceCompatMapper.toCompat(careEntryClient.getEmergencyById(id, auth));
+        return UrgenceCompatMapper.toCompat(admissionClient.getEmergencyById(id, auth));
     }
 
     @GetMapping
@@ -57,7 +57,7 @@ public class EmergencyBffController {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
         int safePage = page == null ? 0 : page;
         int safeSize = size == null || size <= 0 ? 50 : size;
-        Page<EmergencyResponse> result = careEntryClient.listEmergencies(
+        Page<EmergencyResponse> result = admissionClient.listEmergencies(
                 status, priority, sortBy, sortDir, safePage, safeSize, auth);
         return new PageUrgenceCompatResponse(
                 false,
@@ -71,7 +71,7 @@ public class EmergencyBffController {
     @GetMapping("/{id}/timeline")
     public List<EmergencyTimelineEventResponse> timeline(@PathVariable Long id, HttpServletRequest request) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
-        return careEntryClient.listEmergencyTimeline(id, auth);
+        return admissionClient.listEmergencyTimeline(id, auth);
     }
 
     @PostMapping("/{id}/triage")
@@ -81,7 +81,7 @@ public class EmergencyBffController {
             HttpServletRequest request
     ) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
-        return UrgenceCompatMapper.toCompat(careEntryClient.triageEmergency(id, body, auth));
+        return UrgenceCompatMapper.toCompat(admissionClient.triageEmergency(id, body, auth));
     }
 
     @PostMapping("/{id}/orientation")
@@ -91,13 +91,13 @@ public class EmergencyBffController {
             HttpServletRequest request
     ) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
-        return UrgenceCompatMapper.toCompat(careEntryClient.orientEmergency(id, body, auth));
+        return UrgenceCompatMapper.toCompat(admissionClient.orientEmergency(id, body, auth));
     }
 
     @PostMapping("/{id}/close")
     public UrgenceCompatResponse close(@PathVariable Long id, HttpServletRequest request) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
-        return UrgenceCompatMapper.toCompat(careEntryClient.closeEmergency(id, auth));
+        return UrgenceCompatMapper.toCompat(admissionClient.closeEmergency(id, auth));
     }
 
     @PutMapping("/{id}/close")

@@ -1,7 +1,8 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.CareEntryClient;
-import com.afya.platform.bff.client.CatalogClient;
+import com.afya.platform.bff.client.AdmissionClient;
+import com.afya.platform.bff.client.HospitalClient;
+import com.afya.platform.bff.client.NursingClient;
 import com.afya.platform.bff.dto.*;
 import com.afya.platform.bff.support.AdmissionCompatMapper;
 import com.afya.platform.bff.support.AdmissionUiEnricher;
@@ -17,19 +18,22 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/admissions")
 public class AdmissionBffController {
 
-    private final CareEntryClient careEntryClient;
-    private final CatalogClient catalogClient;
+    private final AdmissionClient admissionClient;
+    private final NursingClient nursingClient;
+    private final HospitalClient hospitalClient;
     private final HospitalServiceResolver hospitalServiceResolver;
     private final AdmissionUiEnricher admissionUiEnricher;
 
     public AdmissionBffController(
-            CareEntryClient careEntryClient,
-            CatalogClient catalogClient,
+            AdmissionClient admissionClient,
+            NursingClient nursingClient,
+            HospitalClient hospitalClient,
             HospitalServiceResolver hospitalServiceResolver,
             AdmissionUiEnricher admissionUiEnricher
     ) {
-        this.careEntryClient = careEntryClient;
-        this.catalogClient = catalogClient;
+        this.admissionClient = admissionClient;
+        this.nursingClient = nursingClient;
+        this.hospitalClient = hospitalClient;
         this.hospitalServiceResolver = hospitalServiceResolver;
         this.admissionUiEnricher = admissionUiEnricher;
     }
@@ -41,7 +45,7 @@ public class AdmissionBffController {
     ) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
         Long serviceId = hospitalServiceResolver.resolveIdByName(serviceName, auth);
-        return catalogClient.bedSuggestion(serviceId, auth);
+        return hospitalClient.bedSuggestion(serviceId, auth);
     }
 
     @GetMapping
@@ -53,13 +57,13 @@ public class AdmissionBffController {
             HttpServletRequest request
     ) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
-        return admissionUiEnricher.enrichPage(careEntryClient.list(patientId, status, page, size, auth), auth);
+        return admissionUiEnricher.enrichPage(admissionClient.list(patientId, status, page, size, auth), auth);
     }
 
     @GetMapping("/{id}")
     public AdmissionCompatMapper.AdmissionUiResponse getById(@PathVariable Long id, HttpServletRequest request) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
-        return admissionUiEnricher.enrich(careEntryClient.getById(id, auth), auth);
+        return admissionUiEnricher.enrich(admissionClient.getById(id, auth), auth);
     }
 
     @PostMapping
@@ -72,9 +76,9 @@ public class AdmissionBffController {
         Long hospitalServiceId = hospitalServiceResolver.resolveIdByName(body.serviceName(), auth);
         String room = body.room();
         String bed = body.bed();
-        var service = catalogClient.getById(hospitalServiceId, auth);
+        var service = hospitalClient.getById(hospitalServiceId, auth);
         if (service.bedCapacity() > 0 && (room == null || room.isBlank() || bed == null || bed.isBlank())) {
-            BedSuggestionResponse suggestion = catalogClient.bedSuggestion(hospitalServiceId, auth);
+            BedSuggestionResponse suggestion = hospitalClient.bedSuggestion(hospitalServiceId, auth);
             if (!suggestion.available() || suggestion.room() == null || suggestion.bed() == null) {
                 String msg = suggestion.message() != null && !suggestion.message().isBlank()
                         ? suggestion.message()
@@ -92,7 +96,7 @@ public class AdmissionBffController {
                 room,
                 bed,
                 body.reason());
-        return admissionUiEnricher.enrich(careEntryClient.create(payload, auth), auth);
+        return admissionUiEnricher.enrich(admissionClient.create(payload, auth), auth);
     }
 
     @PostMapping("/{id}/transfer")
@@ -113,7 +117,7 @@ public class AdmissionBffController {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
         Long toHospitalServiceId = hospitalServiceResolver.resolveIdByName(body.toService(), auth);
         TransferRequest payload = new TransferRequest(toHospitalServiceId, body.note());
-        return admissionUiEnricher.enrich(careEntryClient.transfer(id, payload, auth), auth);
+        return admissionUiEnricher.enrich(admissionClient.transfer(id, payload, auth), auth);
     }
 
     @PostMapping("/{id}/discharge")
@@ -133,7 +137,7 @@ public class AdmissionBffController {
     ) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
         String note = body != null ? body.note() : null;
-        return admissionUiEnricher.enrich(careEntryClient.discharge(id, new DischargeRequest(note), auth), auth);
+        return admissionUiEnricher.enrich(admissionClient.discharge(id, new DischargeRequest(note), auth), auth);
     }
 
     @PutMapping("/{id}/declare-death")
@@ -144,19 +148,19 @@ public class AdmissionBffController {
     ) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
         String note = body != null ? body.note() : null;
-        return admissionUiEnricher.enrich(careEntryClient.declareDeath(id, new DischargeRequest(note), auth), auth);
+        return admissionUiEnricher.enrich(admissionClient.declareDeath(id, new DischargeRequest(note), auth), auth);
     }
 
     @PostMapping("/{id}/cancel")
     public AdmissionCompatMapper.AdmissionUiResponse cancel(@PathVariable Long id, HttpServletRequest request) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
-        return admissionUiEnricher.enrich(careEntryClient.cancel(id, auth), auth);
+        return admissionUiEnricher.enrich(admissionClient.cancel(id, auth), auth);
     }
 
     @GetMapping("/{id}/vital-signs")
     public java.util.List<VitalSignResponse> listVitalSigns(@PathVariable Long id, HttpServletRequest request) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
-        return careEntryClient.listVitalSigns(id, auth);
+        return nursingClient.listVitalSigns(id, auth);
     }
 
     @PostMapping("/{id}/vital-signs")
@@ -167,7 +171,16 @@ public class AdmissionBffController {
             HttpServletRequest request
     ) {
         String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
-        return careEntryClient.createVitalSign(id, withDefaultRecordedAt(body), auth);
+        return nursingClient.createVitalSign(id, withDefaultRecordedAt(body), auth);
+    }
+
+    @GetMapping("/{id}/vital-sign-alerts")
+    public java.util.List<VitalSignAlertResponse> listVitalSignAlerts(
+            @PathVariable Long id,
+            HttpServletRequest request
+    ) {
+        String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
+        return nursingClient.listVitalSignAlerts(id, auth);
     }
 
     private static VitalSignCreateRequest withDefaultRecordedAt(VitalSignCreateRequest body) {
@@ -180,9 +193,36 @@ public class AdmissionBffController {
                 body.systolicBp(),
                 body.diastolicBp(),
                 body.pulseBpm(),
+                body.respiratoryRate(),
                 body.temperatureCelsius(),
                 body.weightKg(),
+                body.spo2(),
                 body.diuresisMl(),
                 body.stoolsNote());
+    }
+
+    @GetMapping("/{id}/discharge")
+    public DischargeRecordResponse getDischarge(@PathVariable Long id, HttpServletRequest request) {
+        String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
+        return admissionClient.getDischarge(id, auth);
+    }
+
+    @GetMapping("/{id}/notifications")
+    public java.util.List<AdmissionNotificationResponse> listNotifications(
+            @PathVariable Long id,
+            HttpServletRequest request
+    ) {
+        String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
+        return admissionClient.listNotifications(id, auth);
+    }
+
+    @PatchMapping("/{id}/notifications/{notificationId}/read")
+    public AdmissionNotificationResponse markNotificationRead(
+            @PathVariable Long id,
+            @PathVariable Long notificationId,
+            HttpServletRequest request
+    ) {
+        String auth = AuthorizationSupport.requireBearer(request.getHeader("Authorization"));
+        return admissionClient.markNotificationRead(id, notificationId, auth);
     }
 }

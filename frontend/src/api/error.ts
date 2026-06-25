@@ -21,7 +21,7 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
       return data?.message?.trim() || 'Conflit : cette valeur est déjà utilisée.';
     }
     if (status === 502 || status === 503) {
-      return 'Service indisponible (gateway ou BFF). Vérifiez que afya-bff et catalog-service sont démarrés.';
+      return 'Service indisponible (gateway ou BFF). Vérifiez que afya-bff et hospital-service sont démarrés.';
     }
   }
   return fallback;

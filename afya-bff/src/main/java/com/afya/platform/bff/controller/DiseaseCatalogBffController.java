@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.ClinicalRecordClient;
+import com.afya.platform.bff.client.MedicalClient;
 import com.afya.platform.bff.dto.DiseaseCatalogResponse;
 import com.afya.platform.bff.support.AuthorizationSupport;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,10 +15,10 @@ import java.util.List;
 @RequestMapping("/api/v1/disease-catalog")
 public class DiseaseCatalogBffController {
 
-    private final ClinicalRecordClient clinicalRecordClient;
+    private final MedicalClient medicalClient;
 
-    public DiseaseCatalogBffController(ClinicalRecordClient clinicalRecordClient) {
-        this.clinicalRecordClient = clinicalRecordClient;
+    public DiseaseCatalogBffController(MedicalClient medicalClient) {
+        this.medicalClient = medicalClient;
     }
 
     @GetMapping
@@ -26,7 +26,7 @@ public class DiseaseCatalogBffController {
             @RequestParam String diseaseType,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.listSelectableDiseases(
+        return medicalClient.listSelectableDiseases(
                 diseaseType,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }

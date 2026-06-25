@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.ClinicalRecordClient;
+import com.afya.platform.bff.client.NursingClient;
 import com.afya.platform.bff.dto.clinical.MedicationAdministrationRequest;
 import com.afya.platform.bff.dto.clinical.MedicationAdministrationResponse;
 import com.afya.platform.bff.support.AuthorizationSupport;
@@ -12,10 +12,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/prescriptions")
 public class PrescriptionBffController {
 
-    private final ClinicalRecordClient clinicalRecordClient;
+    private final NursingClient nursingClient;
 
-    public PrescriptionBffController(ClinicalRecordClient clinicalRecordClient) {
-        this.clinicalRecordClient = clinicalRecordClient;
+    public PrescriptionBffController(NursingClient nursingClient) {
+        this.nursingClient = nursingClient;
     }
 
     @PostMapping("/{prescriptionLineId}/administrations")
@@ -25,7 +25,7 @@ public class PrescriptionBffController {
             @RequestBody(required = false) MedicationAdministrationRequest body,
             HttpServletRequest request
     ) {
-        return clinicalRecordClient.administer(
+        return nursingClient.administer(
                 prescriptionLineId,
                 body,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));

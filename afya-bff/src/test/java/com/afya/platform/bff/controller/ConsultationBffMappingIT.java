@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.ClinicalRecordClient;
+import com.afya.platform.bff.client.MedicalClient;
 import com.afya.platform.bff.dto.ConsultationEventResponse;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -44,7 +44,7 @@ class ConsultationBffMappingIT {
     private RequestMappingHandlerMapping handlerMapping;
 
     @MockitoBean
-    private ClinicalRecordClient clinicalRecordClient;
+    private MedicalClient medicalClient;
 
     @Test
     void consultationTimelineMappingsAreRegistered() {
@@ -70,7 +70,7 @@ class ConsultationBffMappingIT {
 
     @Test
     void consultationEventsReturnsTimelineWhenAuthenticated() throws Exception {
-        when(clinicalRecordClient.consultationEvents(anyLong(), anyString()))
+        when(medicalClient.consultationEvents(anyLong(), anyString()))
                 .thenReturn(List.of(new ConsultationEventResponse(
                         1L, 1L, 6L, "OBSERVATION", "Stable", null, null, Instant.parse("2026-05-26T10:00:00Z"))));
 

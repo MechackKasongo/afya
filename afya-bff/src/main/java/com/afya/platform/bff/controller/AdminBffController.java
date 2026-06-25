@@ -1,6 +1,6 @@
 package com.afya.platform.bff.controller;
 
-import com.afya.platform.bff.client.AuditClient;
+import com.afya.platform.bff.client.ReportClient;
 import com.afya.platform.bff.dto.ActivityReportResponse;
 import com.afya.platform.bff.dto.PlatformReportOverviewResponse;
 import com.afya.platform.bff.service.PlatformReportService;
@@ -19,11 +19,11 @@ import java.time.Instant;
 @RequestMapping("/api/v1/reports")
 public class AdminBffController {
 
-    private final AuditClient auditClient;
+    private final ReportClient reportClient;
     private final PlatformReportService platformReportService;
 
-    public AdminBffController(AuditClient auditClient, PlatformReportService platformReportService) {
-        this.auditClient = auditClient;
+    public AdminBffController(ReportClient reportClient, PlatformReportService platformReportService) {
+        this.reportClient = reportClient;
         this.platformReportService = platformReportService;
     }
 
@@ -47,7 +47,7 @@ public class AdminBffController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             HttpServletRequest request
     ) {
-        return auditClient.activityReport(
+        return reportClient.activityReport(
                 from,
                 to,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
