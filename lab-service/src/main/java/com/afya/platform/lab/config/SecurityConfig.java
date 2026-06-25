@@ -33,9 +33,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/lab/exam-requests/**")
                         .hasAnyRole("ADMIN", "MEDECIN", "INFIRMIER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/lab/exam-requests/*/specimen")
-                        .hasAnyRole("ADMIN", "MEDECIN")
+                        .hasAnyRole("ADMIN", "MEDECIN", "INFIRMIER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/lab/exam-requests/*/result")
-                        .hasAnyRole("ADMIN", "MEDECIN")
+                        .hasAnyRole("ADMIN", "MEDECIN", "INFIRMIER")
                         .anyRequest().denyAll())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

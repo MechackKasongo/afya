@@ -68,6 +68,14 @@ function IconConsultation() {
   );
 }
 
+function IconLab() {
+  return (
+    <svg viewBox="0 0 24 24" width={18} height={18} fill="currentColor">
+      <path d="M7 2v2h1v8.5c0 1.93-1.57 3.5-3.5 3.5S1 14.43 1 12.5 2.57 9 4.5 9c.46 0 .9.09 1.3.25V4H7V2zm10 0h2v6h2v2h-2v6.5c0 1.93-1.57 3.5-3.5 3.5S12 18.43 12 16.5 13.57 13 15.5 13c.46 0 .9.09 1.3.25V2z" />
+    </svg>
+  );
+}
+
 function IconFolder() {
   return (
     <svg viewBox="0 0 24 24" width={18} height={18} fill="currentColor">
@@ -175,6 +183,14 @@ export function Layout() {
                 <IconConsultation />
               </NavIcon>
               Consultations
+            </NavLink>
+          )}
+          {platformFeatures.labModule && (isAdmin || isMedecin || isInfirmier) && (
+            <NavLink to="/lab/requests">
+              <NavIcon>
+                <IconLab />
+              </NavIcon>
+              Laboratoire
             </NavLink>
           )}
           {(isAdmin || isMedecin || isInfirmier) && (

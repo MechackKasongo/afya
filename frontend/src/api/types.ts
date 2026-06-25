@@ -694,3 +694,94 @@ export interface PlatformReportOverviewResponse {
   activity: ActivityReportResponse;
   warnings: string[];
 }
+
+export type ExamCategory = 'BIOLOGY' | 'IMAGING' | 'BACTERIOLOGY' | 'OTHER';
+
+export type ExamRequestStatus = 'PENDING' | 'SPECIMEN_COLLECTED' | 'RESULTS_AVAILABLE' | 'POSTPONED';
+
+export type ExamUrgency = 'NORMAL' | 'URGENT';
+
+export interface ExamTypeSummary {
+  id: number;
+  name: string;
+  category: ExamCategory;
+}
+
+export interface ExamTypeResponse {
+  id: number;
+  name: string;
+  description: string | null;
+  category: ExamCategory;
+  parameters: string | null;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface ExamRequestResponse {
+  id: number;
+  patientId: number;
+  doctorId: number;
+  admissionId: number | null;
+  requestedAt: string;
+  urgency: ExamUrgency;
+  status: ExamRequestStatus;
+  comment: string | null;
+  examTypes: ExamTypeSummary[];
+}
+
+export interface PageExamRequestResponse {
+  content: ExamRequestResponse[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+export interface ExamRequestCreateRequest {
+  patientId: number;
+  doctorId: number;
+  admissionId?: number | null;
+  urgency: ExamUrgency;
+  comment?: string | null;
+  examTypeIds: number[];
+}
+
+export interface SpecimenCollectionRequest {
+  labTechnicianId: number;
+  sampleType: string;
+}
+
+export interface ResultParameterRequest {
+  parameterName: string;
+  value: string;
+  unit?: string | null;
+  referenceMin?: string | null;
+  referenceMax?: string | null;
+  abnormal: boolean;
+}
+
+export interface ResultParameterResponse {
+  id: number;
+  parameterName: string;
+  value: string;
+  unit: string | null;
+  referenceMin: string | null;
+  referenceMax: string | null;
+  abnormal: boolean;
+}
+
+export interface ExamResultRequest {
+  labTechnicianId: number;
+  annotation?: string | null;
+  parameters: ResultParameterRequest[];
+}
+
+export interface ExamResultResponse {
+  id: number;
+  requestId: number;
+  patientId: number;
+  labTechnicianId: number;
+  resultedAt: string;
+  annotation: string | null;
+  parameters: ResultParameterResponse[];
+}

@@ -24,6 +24,8 @@ import { PatientsPage } from './pages/PatientsPage';
 import { ReportingPage } from './pages/ReportingPage';
 import { UrgenceDetailPage } from './pages/UrgenceDetailPage';
 import { UrgencesPage } from './pages/UrgencesPage';
+import { LabRequestsPage } from './pages/LabRequestsPage';
+import { LabRequestDetailPage } from './pages/LabRequestDetailPage';
 import { UsersPage } from './pages/UsersPage';
 import { HospitalServicesPage } from './pages/HospitalServicesPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -88,6 +90,34 @@ export default function App() {
                 <Route
                   path="/admissions/:admissionId/prescriptions/:lineId/administrations"
                   element={<MedicationAdministrationsPage />}
+                />
+              </Route>
+              <Route element={<RoleRoute allowed={['ROLE_ADMIN', 'ROLE_MEDECIN', 'ROLE_INFIRMIER']} />}>
+                <Route
+                  path="/lab/requests"
+                  element={
+                    platformFeatures.labModule ? (
+                      <LabRequestsPage />
+                    ) : (
+                      <PlatformUnavailablePage
+                        title="Laboratoire"
+                        description="Le module laboratoire n'est pas encore disponible."
+                      />
+                    )
+                  }
+                />
+                <Route
+                  path="/lab/requests/:id"
+                  element={
+                    platformFeatures.labModule ? (
+                      <LabRequestDetailPage />
+                    ) : (
+                      <PlatformUnavailablePage
+                        title="Demande d'examen"
+                        description="Le détail laboratoire n'est pas encore disponible."
+                      />
+                    )
+                  }
                 />
               </Route>
               <Route element={<RoleRoute allowed={['ROLE_ADMIN', 'ROLE_MEDECIN', 'ROLE_INFIRMIER']} />}>

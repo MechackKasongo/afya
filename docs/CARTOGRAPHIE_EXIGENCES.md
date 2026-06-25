@@ -128,7 +128,7 @@ Le prototype logiciel regroupe certains microservices du mémoire :
 | ADM | `admission-service` |
 | MED | `medical-service` |
 | NUR | `nursing-service` |
-| LAB | *non implémenté* |
+| LAB | `lab-service` (+ BFF `/api/v1/lab`) |
 | RPT (partiel) | `audit-service` + `afya-bff` |
 
 Détail : [MAPPING_MODELE_ANALYSE_AFYA.md](MAPPING_MODELE_ANALYSE_AFYA.md) · Architecture Java : [ARCHITECTURE_SERVICES.md](ARCHITECTURE_SERVICES.md).

@@ -12,4 +12,6 @@ export const platformFeatures = {
   urgenceTriageTimeline: true,
   /** Upload / téléchargement documents via MinIO ou stockage fichier (medical-service). */
   clinicalDocumentsUpload: true,
+  /** Demandes d'examens laboratoire (lab-service via BFF). */
+  labModule: true,
 } as const;
