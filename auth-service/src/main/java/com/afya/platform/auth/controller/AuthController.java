@@ -26,8 +26,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public TokenResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request.username(), request.password());
+    public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        String ipAddress = extractClientIp(httpRequest);
+        return authService.login(request.username(), request.password(), ipAddress);
     }
 
     @PostMapping("/refresh")
@@ -49,5 +50,18 @@ public class AuthController {
     @GetMapping("/me")
     public MeResponse me(Authentication authentication) {
         return authService.me(authentication.getName());
+    }
+
+    /** Extrait l'IP réelle du client en tenant compte des proxies. */
+    private static String extractClientIp(HttpServletRequest request) {
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return xff.split(",")[0].trim();
+        }
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
+        }
+        return request.getRemoteAddr();
     }
 }

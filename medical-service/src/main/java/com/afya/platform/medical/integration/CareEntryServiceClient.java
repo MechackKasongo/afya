@@ -9,6 +9,10 @@ import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
 
+/**
+ * Client HTTP vers {@code admission-service} — remplace l'ancien {@code CareEntryServiceClient}.
+ * Utilisé pour récupérer les informations d'une admission depuis medical-service.
+ */
 @Component
 public class CareEntryServiceClient {
 

@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -91,9 +92,10 @@ class AdmissionServiceAuditTest {
         when(admissionRepository.existsByPatientIdAndStatusIn(eq(1L), any())).thenReturn(false);
         when(admissionWriter.persist(any(Admission.class))).thenAnswer(invocation -> {
             Admission admission = invocation.getArgument(0);
-            admission.getClass(); // keep mutation path
+            setAdmissionId(admission, 100L);
             return admission;
         });
+        when(admissionRepository.save(any(Admission.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AdmissionCreateRequest request = new AdmissionCreateRequest(1L, 2L, null, null, null, null);
         admissionService.admit(request, "Bearer token");
@@ -103,7 +105,7 @@ class AdmissionServiceAuditTest {
         verify(auditEventPublisher).publish(
                 eq("ADMISSION_CREATED"),
                 eq("ADMISSION"),
-                isNull(),
+                eq("100"),
                 eq("reception1"),
                 org.mockito.ArgumentMatchers.contains("patientId"));
     }
@@ -141,5 +143,15 @@ class AdmissionServiceAuditTest {
         verify(catalogServiceClient).updateBedOccupancy(
                 eq(3L), eq("B2"), eq("02"), eq(true), eq(1L), eq(10L), any());
         verify(admissionLifecycleService).notifyTransfer(10L);
+    }
+
+    private static void setAdmissionId(Admission admission, Long id) {
+        try {
+            Field field = Admission.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(admission, id);
+        } catch (ReflectiveOperationException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 }

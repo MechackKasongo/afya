@@ -189,6 +189,7 @@ public class MedicalRecordService {
         return new InternalMedicalRecordSummary(record.getId(), record.getPatientId());
     }
 
+    @Transactional(readOnly = true)
     public InternalPrescriptionSummary internalPrescription(Long prescriptionLineId, String authHeader) {
         PrescriptionLine line = prescriptionLineRepository.findById(prescriptionLineId)
                 .orElseThrow(() -> new NotFoundException("Prescription introuvable : " + prescriptionLineId));

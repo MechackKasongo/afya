@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { getApiErrorMessage } from '../api/error';
 import { useAuth } from '../auth/AuthContext';
-import { hasRole } from '../auth/roles';
+import { hasRole, isAdminPortalUser } from '../auth/roles';
 import type {
   DepartmentRequest,
   DepartmentResponse,
@@ -12,6 +12,7 @@ import type {
   HospitalServiceResponse,
   PageHospitalServiceResponse,
 } from '../api/types';
+import { AdminPageHeader } from '../components/admin/AdminPageHeader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Toast } from '../components/ui/Toast';
 import { departmentCodeFromName, departmentCodeWithSuffix } from '../utils/departmentCode';
@@ -24,6 +25,7 @@ function servicesForDepartment(services: HospitalServiceResponse[], departmentId
 export function CatalogOrganizationPage() {
   const { user } = useAuth();
   const isAdmin = hasRole(user, 'ROLE_ADMIN');
+  const adminPortal = isAdminPortalUser(user);
 
   const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
   const [services, setServices] = useState<HospitalServiceResponse[]>([]);
@@ -452,7 +454,14 @@ export function CatalogOrganizationPage() {
 
   return (
     <>
-      <PageHeader title="Organisation hospitalière" />
+      {adminPortal ? (
+        <AdminPageHeader
+          title="Organisation hospitalière"
+          subtitle="départements, services et provision des lits"
+        />
+      ) : (
+        <PageHeader title="Services hôpitaux" subtitle="Consultation du référentiel des services" />
+      )}
 
       <Toast message={message} onDismiss={() => setMessage(null)} />
       {error && <div className="error-banner">{error}</div>}

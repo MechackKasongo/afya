@@ -23,7 +23,7 @@ import { ScrollTableRegion, TableResultFooter } from '../components/ScrollTableR
 import { Drawer } from '../components/ui/Drawer';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
-import { PageHeader } from '../components/ui/PageHeader';
+import { AdminPageHeader } from '../components/admin/AdminPageHeader';
 import { Toast } from '../components/ui/Toast';
 import { LIST_FETCH_PAGE_SIZE } from '../utils/listFetch';
 import { defaultSortDirForColumn, toggleTableSort, type TableSortDir } from '../utils/tableSort';
@@ -618,9 +618,9 @@ export function UsersPage() {
 
   return (
     <>
-      <PageHeader
+      <AdminPageHeader
         title="Utilisateurs"
-        subtitle="Comptes, rôles et périmètre des services hospitaliers (administration)."
+        subtitle="comptes, rôles et périmètre des services hospitaliers"
       />
 
       <div className="card filter-toolbar">

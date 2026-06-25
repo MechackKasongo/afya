@@ -1,8 +1,11 @@
 package com.afya.platform.user.service;
 
-import java.security.SecureRandom;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.Normalizer;
 import java.util.Locale;
+import java.util.Random;
 
 public final class PasswordGenerator {
 
@@ -17,7 +20,7 @@ public final class PasswordGenerator {
     public static String suggest(String firstName, String lastName, String postName, int length, int variation) {
         int safeLength = length <= 0 ? 16 : Math.min(Math.max(length, 12), 24);
         String seed = slug(firstName) + "." + slug(lastName) + "." + slug(postName) + "." + variation;
-        SecureRandom random = new SecureRandom(seed.getBytes());
+        Random random = seededRandom(seed);
         StringBuilder password = new StringBuilder(safeLength);
         password.append(pick(random, UPPER));
         password.append(pick(random, LOWER));
@@ -30,7 +33,21 @@ public final class PasswordGenerator {
         return password.toString();
     }
 
-    private static char pick(SecureRandom random, String alphabet) {
+    private static Random seededRandom(String seed) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(seed.getBytes(StandardCharsets.UTF_8));
+            long seedLong = 0;
+            for (int i = 0; i < 8; i++) {
+                seedLong = (seedLong << 8) | (hash[i] & 0xffL);
+            }
+            return new Random(seedLong);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static char pick(Random random, String alphabet) {
         return alphabet.charAt(random.nextInt(alphabet.length()));
     }
 

@@ -31,3 +31,15 @@ export function hasRole(user: MeResponse | null, role: AppRole): boolean {
 export function hasAnyRole(user: MeResponse | null, roles: AppRole[]): boolean {
   return roles.some((role) => hasRole(user, role));
 }
+
+/** Rôles opérationnels (accueil, soins) — exclus du portail admin. */
+export const CLINICAL_STAFF_ROLES: AppRole[] = ['ROLE_RECEPTION', 'ROLE_MEDECIN', 'ROLE_INFIRMIER'];
+
+/** Compte administrateur plateforme : interface dédiée, sans parcours clinique. */
+export function isAdminPortalUser(user: MeResponse | null): boolean {
+  return hasRole(user, 'ROLE_ADMIN');
+}
+
+export function isClinicalStaffUser(user: MeResponse | null): boolean {
+  return hasAnyRole(user, CLINICAL_STAFF_ROLES);
+}

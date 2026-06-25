@@ -13,6 +13,7 @@ import com.afya.platform.admission.integration.PatientServiceClient;
 import com.afya.platform.admission.integration.PatientSummary;
 import com.afya.platform.admission.model.Admission;
 import com.afya.platform.admission.model.AdmissionStatus;
+import com.afya.platform.admission.model.AdmissionType;
 import com.afya.platform.admission.model.DischargeType;
 import com.afya.platform.admission.model.TransferRequest;
 import com.afya.platform.admission.repository.AdmissionRepository;
@@ -100,8 +101,14 @@ public class AdmissionService {
         admission.setHospitalServiceId(request.hospitalServiceId());
         admission.setAdmittedAt(request.admittedAt() != null ? request.admittedAt() : Instant.now());
         admission.setStatus(AdmissionStatus.OUVERTE);
+        admission.setAdmissionType(AdmissionType.NORMALE);
         admission.setAdmissionReason(trimToNull(request.admissionReason()));
         Admission saved = admissionWriter.persist(admission);
+        // Génération du numéro lisible après sauvegarde (on connaît l'ID)
+        if (saved.getAdmissionNumber() == null) {
+            saved.setAdmissionNumber(generateAdmissionNumber(saved));
+            saved = admissionRepository.save(saved);
+        }
         openStayForAdmission(saved, roomLabel, bedLabel, authorizationHeader);
         String actor = AuditActorResolver.currentUsername();
         auditEventPublisher.publish(
@@ -452,6 +459,8 @@ public class AdmissionService {
         String patientName = patient.firstName() + " " + patient.lastName();
         return new AdmissionResponse(
                 admission.getId(),
+                admission.getAdmissionNumber(),
+                admission.getAdmissionType() != null ? admission.getAdmissionType().name() : AdmissionType.NORMALE.name(),
                 admission.getPatientId(),
                 patientName,
                 patient.dossierNumber(),
@@ -461,7 +470,8 @@ public class AdmissionService {
                 admission.getDischargedAt(),
                 admission.getStatus().name(),
                 admission.getAdmissionReason(),
-                admission.getDischargeReason()
+                admission.getDischargeReason(),
+                admission.getUpdatedAt()
         );
     }
 
@@ -471,5 +481,14 @@ public class AdmissionService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /**
+     * Génère le numéro d'admission lisible — MD-05 (numAdmission).
+     * Format : {@code ADM-AAAA-NNNNN} (ex: {@code ADM-2026-00001}).
+     */
+    private static String generateAdmissionNumber(Admission admission) {
+        int year = java.time.LocalDate.now().getYear();
+        return String.format("ADM-%04d-%05d", year, admission.getId());
     }
 }

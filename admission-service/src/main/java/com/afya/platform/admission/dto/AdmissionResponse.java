@@ -4,6 +4,8 @@ import java.time.Instant;
 
 public record AdmissionResponse(
         Long id,
+        String admissionNumber,
+        String admissionType,
         Long patientId,
         String patientName,
         String dossierNumber,
@@ -13,6 +15,7 @@ public record AdmissionResponse(
         Instant dischargedAt,
         String status,
         String admissionReason,
-        String dischargeReason
+        String dischargeReason,
+        Instant updatedAt
 ) {
 }

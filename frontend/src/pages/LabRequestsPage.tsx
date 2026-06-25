@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { getApiErrorMessage } from '../api/error';
 import { useAuth } from '../auth/AuthContext';
 import { hasRole } from '../auth/roles';
-import { platformFeatures } from '../config/features';
 import type {
   ExamRequestCreateRequest,
   ExamRequestResponse,
@@ -53,11 +52,7 @@ const statusFilterOptions: { value: '' | ExamRequestStatus; label: string }[] = 
 export function LabRequestsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canCreate = hasRole(user, 'ROLE_ADMIN') || hasRole(user, 'ROLE_MEDECIN');
-  const canManageExamTypes =
-    hasRole(user, 'ROLE_ADMIN') &&
-    platformFeatures.labModule &&
-    platformFeatures.labExamTypesAdmin;
+  const canCreate = hasRole(user, 'ROLE_MEDECIN');
 
   const [page, setPage] = useState<PageExamRequestResponse | null>(null);
   const [patientsById, setPatientsById] = useState<Record<number, PatientResponse>>({});
@@ -250,11 +245,6 @@ export function LabRequestsPage() {
   return (
     <div className="page-stack">
       <PageHeader title="Laboratoire" subtitle="Demandes d'examens — prescription, prélèvement et résultats">
-        {canManageExamTypes ? (
-          <Link to="/lab/exam-types" className="btn btn-ghost">
-            Types d&apos;examens
-          </Link>
-        ) : null}
         {canCreate ? (
           <button type="button" className="btn btn-primary" onClick={openCreateDrawer}>
             Nouvelle demande

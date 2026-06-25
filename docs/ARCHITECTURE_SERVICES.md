@@ -1,112 +1,162 @@
-# Architecture — prototype Afya (7 services)
+# Architecture — Afya Platform (9 services)
 
 > **Référence mémoire (9 microservices)** : [MODELE_DOMAINE_MEMOIRE_9_SERVICES.md](MODELE_DOMAINE_MEMOIRE_9_SERVICES.md)  
-> **Mapping mémoire → prototype** : [MAPPING_MODELE_ANALYSE_AFYA.md](MAPPING_MODELE_ANALYSE_AFYA.md)
+> **Mapping mémoire → implémentation** : [MAPPING_MODELE_ANALYSE_AFYA.md](MAPPING_MODELE_ANALYSE_AFYA.md)
 
-## 1. Vue d’ensemble
+## 1. Vue d'ensemble
 
-Architecture **multi-services** (microservices modérés) : chaque service est **déployable séparément**, possède **sa persistance**, expose une **API REST** versionnée, et communique avec les autres par **HTTP** (synchrone) et **événements** (asynchrone, surtout pour l’audit).
+Architecture **microservices** : chaque service est **déployable séparément**, possède **sa propre base PostgreSQL**, expose une **API REST versionnée** (`/api/v1/…`), et communique avec les autres par **HTTP** synchrone (avec circuit breaker) et **événements asynchrones** (audit-service).
 
 ```
-                    [ Navigateur web responsive ]
-                                │
-                                ▼
-                      [ BFF (afya-bff) ]
-                                │
-    ┌───────────┬───────────┬───┴───┬───────────┬───────────┬───────────┐
-    ▼           ▼           ▼       ▼           ▼           ▼           ▼
- identity    catalog     patient  care-entry   stay    clinical-    audit
-                                              record
-    │           │           │       │           │           │           ▲
-    └───────────┴───────────┴───────┴───────────┴───────────┴───────────┘
-                          événements métier (qui / quoi / quand)
+                    [ Navigateur web responsive (SPA React) ]
+                                      │
+                                      ▼
+                    [ API Gateway (infra/gateway — port 8090) ]
+                                      │
+                                      ▼
+                           [ BFF (afya-bff — port 8080) ]
+                                      │
+        ┌──────┬───────┬──────┬───────┼───────┬──────┬──────┬──────┐
+        ▼      ▼       ▼      ▼       ▼       ▼      ▼      ▼      ▼
+      AUTH    USER    HOSP   PAT     ADM     MED    LAB    NUR    RPT
+       │       │       │      │       │       │      │      │      │
+       └───────┴───────┴──────┴───────┴───────┴──────┴──────┴──────┘
+                          événements audit (AUDIT-SERVICE)
 ```
 
-Le **BFF** (`afya-bff`) n’est pas un service métier : il agrège les appels pour le SPA React et évite d’exposer 7 URLs au navigateur.
+## 2. Les 9 services métier
 
-> **Décision d’architecture** : une **API Gateway** dédiée (routage, TLS, rate limiting, accès multi-clients) est **prévue en fin de projet** ; en attendant, le **BFF seul** constitue le point d’entrée API pour le front. Lors de l’introduction de la gateway, le BFF restera en général **derrière** elle (la gateway ne remplace pas l’agrégation métier du BFF).
-
-## 2. Les 7 services
-
-### 2.1 identity-service
+### 2.1 auth-service (MD-01)
 
 | Élément | Détail |
 |---------|--------|
-| **Responsabilité** | Authentification, comptes utilisateurs, rôles (Admin, Réceptionniste, Médecin, Infirmier), périmètre (services hospitaliers assignés). |
-| **Données** | `users`, `roles`, `assignments`, tokens / sessions. |
-| **API exemple** | `POST /api/v1/auth/login`, `GET /api/v1/users`, CRUD comptes (Admin). |
-| **Acteurs** | Tous (s’authentifier) ; Admin (gérer comptes). |
+| **Port** | 8081 |
+| **Responsabilité** | Authentification, JWT stateless, refresh tokens, journal connexions, traçabilité tokens émis. |
+| **Base** | `afya_auth` |
+| **Entités** | `Credential`, `RefreshToken`, `RevokedAccessJti`, `IssuedToken` (MD-01 TokenJWT), `LoginJournalEntry` (MD-01 JournalConnexion) |
+| **API** | `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`, `GET /api/v1/auth/login-journal` |
+| **Acteurs** | Tous (s'authentifier) |
 
-### 2.2 catalog-service
-
-| Élément | Détail |
-|---------|--------|
-| **Responsabilité** | Départements, services hospitaliers, capacités (lits si besoin). |
-| **Données** | Catalogue référentiel, peu volatile. |
-| **API exemple** | `GET /api/v1/hospital-services`, CRUD (Admin). |
-| **Acteurs** | Admin ; lecture par réception, affectation patient. |
-
-### 2.3 patient-service
+### 2.2 user-service (MD-02)
 
 | Élément | Détail |
 |---------|--------|
-| **Responsabilité** | Enregistrement patient, recherche, identifiant stable `patientId`. |
-| **Données** | Identité administrative (nom, contacts, etc.) — pas le détail clinique complet. |
-| **API exemple** | `POST /api/v1/patients`, `GET /api/v1/patients?query=`. |
-| **Acteurs** | Réceptionniste, Médecin, Infirmier (recherche). |
+| **Port** | 8082 |
+| **Responsabilité** | Comptes utilisateurs, rôles, affectations datées aux services hospitaliers. |
+| **Base** | `afya_user` |
+| **Entités** | `AppUser`, `Role`, `UserAssignment` (MD-02 Affectation — dates début/fin) |
+| **API** | `GET/POST/PUT/DELETE /api/v1/users`, `GET /api/v1/users/{id}/assignments` |
+| **Acteurs** | Admin |
 
-### 2.4 care-entry-service
-
-| Élément | Détail |
-|---------|--------|
-| **Responsabilité** | Passages **urgences**, **admissions**, affectation à un service, **transferts administratifs**, historique des admissions. |
-| **Données** | Liens `patientId`, `hospitalServiceId`, statuts de passage. |
-| **API exemple** | `POST /api/v1/admissions`, `POST /api/v1/urgences`, `POST /api/v1/transfers`. |
-| **Acteurs** | Réceptionniste ; Médecin (décision sortie/transfert côté parcours). |
-
-### 2.5 stay-service
+### 2.3 hospital-service (MD-03)
 
 | Élément | Détail |
 |---------|--------|
-| **Responsabilité** | **Séjour** d’hospitalisation, **fiche d’hospitalisation** (données structurées du séjour). |
-| **Données** | Chambre/lit, dates, lien admission / `stayId`. |
-| **API exemple** | `GET/PUT /api/v1/stays/{id}/hospitalization-form`. |
-| **Acteurs** | Réceptionniste, Médecin, Infirmier (consultation fiche séjour). |
+| **Port** | 8083 |
+| **Responsabilité** | Référentiel hospitalier : départements, services hospitaliers, lits, historique occupation. |
+| **Base** | `afya_hospital` |
+| **Entités** | `Department`, `HospitalService`, `Bed`, `BedOccupation` (MD-03 OccupationLit) |
+| **API** | `GET/POST/PUT /api/v1/departments`, `GET/POST/PUT /api/v1/hospital-services`, `PATCH /api/v1/hospital-services/{id}/beds/occupancy` |
+| **Acteurs** | Admin (CRUD), Réception (lecture) |
 
-> **Variante 6 services** : fusionner **care-entry** + **stay** → **encounter-stay-service**.
-
-### 2.6 clinical-record-service
-
-| Élément | Détail |
-|---------|--------|
-| **Responsabilité** | **Dossier médical** : diagnostics, observations, **prescriptions**, **soins infirmiers**, exécution / marquage, **documents et images** (métadonnées + stockage objet). |
-| **Données** | Entrées cliniques ; fichiers dans **MinIO/S3** (pas en BLOB lourd en Oracle/Postgres). |
-| **API exemple** | `GET /api/v1/patients/{id}/medical-record`, prescriptions, nursing-care, `POST /api/v1/documents`. |
-| **Acteurs** | Médecin, Infirmier. |
-
-### 2.7 audit-service
+### 2.4 patient-service (MD-04)
 
 | Élément | Détail |
 |---------|--------|
-| **Responsabilité** | **Traces** : qui a fait quoi, quand, sur quelle ressource ; **rapports d’activité** et **statistiques** pour l’Admin. |
-| **Données** | Journal append-only ; pas de contenu clinique sensible dans le message si possible. |
-| **API exemple** | `GET /api/v1/audit/events`, `GET /api/v1/reports/activity`. |
-| **Acteurs** | Admin (rapports, stats) ; alimentation automatique par tous les services. |
+| **Port** | 8084 |
+| **Responsabilité** | Identité patient, antécédents médicaux, contacts d'urgence. |
+| **Base** | `afya_patient` |
+| **Entités** | `Patient`, `MedicalAntecedent` (MD-04 AntecedentMedical), `EmergencyContact` (MD-04 ContactUrgence) |
+| **API** | `GET/POST/PUT /api/v1/patients`, `GET/POST /api/v1/patients/{id}/antecedents`, `GET/POST /api/v1/patients/{id}/emergency-contacts` |
+| **Acteurs** | Réception (création), Médecin, Infirmier (lecture) |
 
-## 3. Règles transverses
+### 2.5 admission-service (MD-05)
 
-- **Pas de JOIN cross-service** en SQL : références par identifiants (`patientId`, `stayId`, `admissionId`).  
-- **Sécurité** : JWT émis par **identity** ; chaque service valide le token et les rôles.  
-- **Audit** : chaque service publie un événement (`UserX created PatientY`) vers **audit** (file ou HTTP asynchrone).  
-- **Rendez-vous** : **hors périmètre** Afya Platform (pas de planification RDV ; la table `appointments` dans `patient-service` n’est pas exposée ni maintenue fonctionnellement).
+| Élément | Détail |
+|---------|--------|
+| **Port** | 8085 |
+| **Responsabilité** | Admissions (normale/urgence), passages urgences, transferts, sorties, notifications. |
+| **Base** | `afya_admission` |
+| **Entités** | `Admission` (+`admissionNumber`, `admissionType`), `EmergencyVisit`, `TransferRequest`, `DischargeRecord`, `AdmissionNotification` |
+| **API** | `GET/POST /api/v1/admissions`, `GET/POST /api/v1/urgences`, `POST /api/v1/admissions/{id}/discharge`, `POST /api/v1/admissions/{id}/transfer` |
+| **Acteurs** | Réception, Médecin |
 
-## 4. Ordre de réalisation suggéré
+### 2.6 medical-service (MD-06)
 
-1. identity-service  
-2. catalog-service  
-3. patient-service  
-4. care-entry-service + stay-service (ou fusion encounter-stay)  
-5. clinical-record-service (+ stockage objet)  
-6. audit-service + branchement événements  
-7. BFF + front web responsive  
-8. API Gateway (phase E — `infra/gateway`, port **8090**, devant le BFF, sans logique métier)  
+| Élément | Détail |
+|---------|--------|
+| **Port** | 8086 |
+| **Responsabilité** | Dossier médical, consultations, prescriptions, diagnostics, documents cliniques, catalogue maladies. |
+| **Base** | `afya_medical` |
+| **Entités** | `MedicalRecord`, `Consultation`, `ConsultationEvent`, `Diagnosis`, `PrescriptionLine`, `ClinicalNote`, `ClinicalDocument`, `DiseaseCatalog` |
+| **API** | `GET/POST /api/v1/medical-records`, `GET/POST /api/v1/consultations`, `GET/POST /api/v1/admissions/{id}/prescription-lines` |
+| **Acteurs** | Médecin |
+
+### 2.7 lab-service (MD-07) ✅ 100 %
+
+| Élément | Détail |
+|---------|--------|
+| **Port** | 8087 |
+| **Responsabilité** | Examens de laboratoire : types, demandes, prélèvements, résultats, paramètres. |
+| **Base** | `afya_lab` |
+| **Entités** | `ExamType`, `ExamRequest`, `ExamRequestLine`, `SpecimenCollection`, `ExamResult`, `ResultParameter` |
+| **API** | `GET/POST /api/v1/lab/exam-types`, `GET/POST /api/v1/lab/exam-requests`, `POST /api/v1/lab/exam-requests/{id}/specimen`, `POST /api/v1/lab/exam-requests/{id}/results` |
+| **Acteurs** | Médecin (demande), Laborantin (prélèvement + résultats) |
+
+### 2.8 nursing-service (MD-08)
+
+| Élément | Détail |
+|---------|--------|
+| **Port** | 8088 |
+| **Responsabilité** | Soins infirmiers, constantes vitales, alertes, notifications prescriptions, administrations médicaments. |
+| **Base** | `afya_nursing` |
+| **Entités** | `NursingCareRecord` (lien `prescriptionLineId`), `VitalSignReading`, `VitalSignAlert`, `PrescriptionNotification`, `MedicationAdministration` |
+| **API** | `GET/POST /api/v1/nursing/care-records`, `GET/POST /api/v1/nursing/vital-signs`, `GET /api/v1/nursing/alerts`, `GET/POST /api/v1/admissions/{id}/medication-administrations` |
+| **Acteurs** | Infirmier |
+
+### 2.9 report-service + audit-service (MD-09)
+
+| Élément | Détail |
+|---------|--------|
+| **Ports** | report: 8089, audit: 8090 |
+| **Responsabilité** | Rapports PDF/Excel, statistiques pré-agrégées admissions/médicales, journal d'activité. |
+| **Bases** | `afya_report`, `afya_audit` |
+| **Entités** | `GeneratedReport`, `AdmissionStats` (MD-09 StatistiqueAdmission), `MedicalStats` (MD-09 StatistiqueMedical), `AuditEvent` |
+| **API** | `GET /api/v1/reports/activity`, `GET /api/v1/reports/operational-stats`, `GET /api/v1/reports/generated` |
+| **Acteurs** | Admin |
+
+## 3. Composants transversaux
+
+| Composant | Rôle |
+|-----------|------|
+| `afya-bff` (port 8080) | Agrégation API pour le SPA React, KPI dashboard, rapports combinés |
+| `infra/gateway` (port 8090) | TLS, rate-limit, routage `/api` vers BFF |
+| `frontend/` | SPA React (Vite + TypeScript) |
+| `afya-shared` | Corrélation ID, résilience HTTP (circuit breaker + retry), audit publisher, JWT |
+
+## 4. Règles transverses
+
+- **Pas de JOIN cross-service** en SQL : références par identifiants (`patientId`, `admissionId`, …)
+- **Sécurité** : JWT émis par `auth-service` ; chaque service valide le token et les rôles via `afya-shared`
+- **Audit** : chaque service publie un événement vers `audit-service` (HTTP asynchrone)
+- **Résilience** : `RestClients` (afya-shared) — retry + circuit breaker sur tous les appels inter-services
+- **Rendez-vous** : **hors périmètre** Afya Platform
+
+## 5. Couverture mémoire (post-améliorations)
+
+| Microservice mémoire | Service Afya | Couverture |
+|----------------------|--------------|------------|
+| MD-01 Auth | `auth-service` | **~95 %** (LoginJournalEntry ✅, IssuedToken ✅) |
+| MD-02 User | `user-service` | **~90 %** (UserAssignment daté ✅) |
+| MD-03 Hospital | `hospital-service` | **~85 %** |
+| MD-04 Patient | `patient-service` | **~85 %** |
+| MD-05 Admission | `admission-service` | **~95 %** (admissionNumber ✅, AdmissionType ✅) |
+| MD-06 Medical | `medical-service` | **~85 %** |
+| MD-07 Lab | `lab-service` | **100 %** ✅ |
+| MD-08 Nursing | `nursing-service` | **~90 %** (prescriptionLineId ✅) |
+| MD-09 Report | `report-service` + `audit-service` | **~85 %** (AdmissionStats ✅, MedicalStats ✅) |
+| **Total** | **9 services** | **~90 %** |
+
+---
+
+*Document mis à jour avec le dépôt Afya — plateforme HGR Jason Sendwe.*

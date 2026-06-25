@@ -1,4 +1,4 @@
-package com.afya.platform.admission.support;
+package com.afya.platform.admission.careentry.support;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

@@ -22,7 +22,7 @@ import {
 import { ScrollTableRegion } from '../components/ScrollTableRegion';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
-import { PageHeader } from '../components/ui/PageHeader';
+import { AdminPageHeader } from '../components/admin/AdminPageHeader';
 import { ReportingTabs, resolveReportingTab } from '../components/ui/ReportingTabs';
 import { LIST_FETCH_PAGE_SIZE } from '../utils/listFetch';
 import {
@@ -1019,7 +1019,7 @@ export function ReportingPage() {
 
   return (
     <>
-      <PageHeader title="Reporting" />
+      <AdminPageHeader title="Reporting" subtitle="occupation, volumes, audit et exports" />
 
       <ReportingTabs />
 

@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -40,8 +41,31 @@ public class Admission {
     @Column(name = "admission_reason", length = 255)
     private String admissionReason;
 
+    /**
+     * Numéro d'admission lisible — MD-05 (numAdmission du mémoire).
+     * Généré sous la forme {@code ADM-AAAA-NNNNN} par {@code AdmissionService}.
+     */
+    @Column(name = "admission_number", unique = true, length = 20)
+    private String admissionNumber;
+
+    /**
+     * Type d'admission — MD-05.
+     * {@link AdmissionType#NORMALE} ou {@link AdmissionType#URGENCE}.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "admission_type", nullable = false, length = 10)
+    private AdmissionType admissionType = AdmissionType.NORMALE;
+
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
+
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
+    @PreUpdate
+    void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
 
     public Long getId() {
         return id;
@@ -101,5 +125,25 @@ public class Admission {
 
     public void setAdmissionReason(String admissionReason) {
         this.admissionReason = admissionReason;
+    }
+
+    public String getAdmissionNumber() {
+        return admissionNumber;
+    }
+
+    public void setAdmissionNumber(String admissionNumber) {
+        this.admissionNumber = admissionNumber;
+    }
+
+    public AdmissionType getAdmissionType() {
+        return admissionType;
+    }
+
+    public void setAdmissionType(AdmissionType admissionType) {
+        this.admissionType = admissionType;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 }

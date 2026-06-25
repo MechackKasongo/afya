@@ -166,6 +166,24 @@ textarea {
   grid-template-columns: 272px 1fr;
 }
 
+.app-layout--admin .sidebar {
+  border-right: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.app-layout--admin .nav-brand__tagline {
+  color: color-mix(in srgb, var(--accent) 75%, #fff);
+}
+
+.side-nav__section-label {
+  margin: 0.15rem 0 0.35rem;
+  padding: 0.35rem 0.85rem 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+
 .sidebar {
   position: sticky;
   top: 0;
@@ -1508,6 +1526,16 @@ table.data-table tr.data-table-row--clickable:focus-visible td {
   border-radius: 50%;
   background: var(--success, var(--accent));
   flex-shrink: 0;
+}
+
+.user-chip--role {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
 }
 
 .data-table .table-action-link {

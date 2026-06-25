@@ -17,7 +17,7 @@ public class StayStatsController {
         this.stayRepository = stayRepository;
     }
 
-    @GetMapping("/volumes")
+    @GetMapping("/stay-volumes")
     public PlatformVolumesResponse volumes() {
         return new PlatformVolumesResponse(stayRepository.countByStatus(StayStatus.EN_COURS));
     }

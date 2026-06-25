@@ -20,6 +20,14 @@ public class NursingCareRecord {
     @Column(name = "medical_record_id", nullable = false)
     private Long medicalRecordId;
 
+    /**
+     * Identifiant de la ligne de prescription à l'origine de ce soin — MD-08.
+     * Nullable : un soin infirmier peut être enregistré sans prescription associée
+     * (ex. soin de confort, hygiène, surveillance).
+     */
+    @Column(name = "prescription_line_id")
+    private Long prescriptionLineId;
+
     @Column(nullable = false, length = 80)
     private String careType;
 
@@ -44,6 +52,13 @@ public class NursingCareRecord {
         this.medicalRecordId = medicalRecordId;
     }
 
+    public Long getPrescriptionLineId() {
+        return prescriptionLineId;
+    }
+
+    public void setPrescriptionLineId(Long prescriptionLineId) {
+        this.prescriptionLineId = prescriptionLineId;
+    }
     public String getCareType() {
         return careType;
     }

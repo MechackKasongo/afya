@@ -32,16 +32,13 @@ public class InternalServiceKeyAuthenticationFilter extends OncePerRequestFilter
             filterChain.doFilter(request, response);
             return;
         }
-        if (SecurityContextHolder.getContext().getAuthentication() == null
-                || !SecurityContextHolder.getContext().getAuthentication().isAuthenticated()) {
-            String header = request.getHeader(INTERNAL_HEADER);
-            if (serviceKey.equals(header)) {
-                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        "internal-service",
-                        null,
-                        List.of(new SimpleGrantedAuthority("ROLE_SYSTEM")));
-                SecurityContextHolder.getContext().setAuthentication(auth);
-            }
+        String header = request.getHeader(INTERNAL_HEADER);
+        if (serviceKey.equals(header)) {
+            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                    "internal-service",
+                    null,
+                    List.of(new SimpleGrantedAuthority("ROLE_SYSTEM")));
+            SecurityContextHolder.getContext().setAuthentication(auth);
         }
         filterChain.doFilter(request, response);
     }

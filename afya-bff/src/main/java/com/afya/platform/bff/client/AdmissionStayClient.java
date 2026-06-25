@@ -29,7 +29,7 @@ public class AdmissionStayClient {
 
     public StayVolumesResponse volumes(String authorizationHeader) {
         return restClient.get()
-                .uri("/api/v1/stats/volumes")
+                .uri("/api/v1/stats/stay-volumes")
                 .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
                 .retrieve()
                 .body(StayVolumesResponse.class);

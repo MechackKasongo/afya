@@ -72,7 +72,8 @@ class ConsultationBffMappingIT {
     void consultationEventsReturnsTimelineWhenAuthenticated() throws Exception {
         when(medicalClient.consultationEvents(anyLong(), anyString()))
                 .thenReturn(List.of(new ConsultationEventResponse(
-                        1L, 1L, 6L, "OBSERVATION", "Stable", null, null, Instant.parse("2026-05-26T10:00:00Z"))));
+                        1L, 1L, 6L, "OBSERVATION", "Stable", null, null, null,
+                        Instant.parse("2026-05-26T10:00:00Z"))));
 
         mockMvc.perform(get("/api/v1/consultations/1/events")
                         .header("Authorization", "Bearer " + adminToken()))

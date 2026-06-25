@@ -133,7 +133,7 @@ services:
     volumes:
       - ./infra/gateway/certs:/etc/nginx/certs:ro,Z
     environment:
-      BFF_UPSTREAM: http://host.docker.internal:8080
+      BFF_UPSTREAM: ${BFF_UPSTREAM:-http://host.docker.internal:8080}
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

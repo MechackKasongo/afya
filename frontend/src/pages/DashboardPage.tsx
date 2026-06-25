@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import type {
-  MetricResponse,
   PageAdmissionResponse,
   PageConsultationResponse,
   PageHospitalServiceResponse,
@@ -18,7 +17,6 @@ type DashboardKpis = {
   patients: number | null;
   admissions: number | null;
   urgences: number | null;
-  occupancyPercent: number | null;
   consultations: number | null;
   hospitalServices: number | null;
 };
@@ -27,7 +25,6 @@ const emptyKpis: DashboardKpis = {
   patients: null,
   admissions: null,
   urgences: null,
-  occupancyPercent: null,
   consultations: null,
   hospitalServices: null,
 };
@@ -112,14 +109,6 @@ function IconSmBuilding() {
   );
 }
 
-function IconSmKey() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12.65 10A5.99 5.99 0 007 6c-3.31 0-6 2.69-6 6s2.69 6 6 6a5.99 5.99 0 005.65-4H17v2h4v-2h2v-4H12.65zM7 15c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" />
-    </svg>
-  );
-}
-
 type QuickVariant = 'accent' | 'success' | 'warning' | 'deep' | 'danger';
 
 function QuickTile({
@@ -159,15 +148,14 @@ function formatKpiValue(n: number | null, loading: boolean): string {
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const isAdmin = hasRole(user, 'ROLE_ADMIN');
   const isReception = hasRole(user, 'ROLE_RECEPTION');
   const isMedecin = hasRole(user, 'ROLE_MEDECIN');
   const isInfirmier = hasRole(user, 'ROLE_INFIRMIER');
 
-  const canPatients = isAdmin || isReception || isMedecin || isInfirmier;
+  const canPatients = isReception || isMedecin || isInfirmier;
   const canAdmissions = canPatients;
-  const canUrgences = isAdmin || isMedecin || isInfirmier;
-  const canConsultations = isAdmin || isMedecin || isInfirmier;
+  const canUrgences = isMedecin || isInfirmier;
+  const canConsultations = isMedecin || isInfirmier;
 
   const [kpis, setKpis] = useState<DashboardKpis>(emptyKpis);
   const [kpiLoading, setKpiLoading] = useState(true);
@@ -228,7 +216,7 @@ export function DashboardPage() {
         );
       }
 
-      if (platformFeatures.consultations && canConsultations && !isAdmin) {
+      if (platformFeatures.consultations && canConsultations) {
         tasks.push(
           api
             .get<PageConsultationResponse>('/api/v1/consultations?page=0&size=1')
@@ -241,7 +229,7 @@ export function DashboardPage() {
         );
       }
 
-      if (isReception && !isAdmin) {
+      if (isReception) {
         tasks.push(
           api
             .get<PageHospitalServiceResponse>('/api/v1/hospital-services?page=0&size=1')
@@ -250,22 +238,6 @@ export function DashboardPage() {
             })
             .catch(() => {
               next.hospitalServices = null;
-            }),
-        );
-      }
-
-      if (platformFeatures.statsDashboard && isAdmin) {
-        tasks.push(
-          api
-            .get<MetricResponse>('/api/v1/stats/occupancy')
-            .then((r) => {
-              const v = r.data.value;
-              if (v && typeof v === 'object' && v !== null && 'overallRatePercent' in v) {
-                next.occupancyPercent = Number((v as { overallRatePercent: number }).overallRatePercent);
-              }
-            })
-            .catch(() => {
-              next.occupancyPercent = null;
             }),
         );
       }
@@ -281,7 +253,7 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [canPatients, canAdmissions, canUrgences, canConsultations, isAdmin, isReception]);
+  }, [canPatients, canAdmissions, canUrgences, canConsultations, isReception]);
 
   const datetimeLabel = useMemo(
     () =>
@@ -297,16 +269,6 @@ export function DashboardPage() {
   );
 
   const slot4 = useMemo(() => {
-    if (isAdmin) {
-      return {
-        label: 'Occupation lits',
-        value: kpiLoading ? '…' : kpis.occupancyPercent === null ? '—' : `${Math.round(kpis.occupancyPercent)}%`,
-        hint: 'Taux global',
-        to: '/reporting' as const,
-        variant: 'deep' as const,
-        icon: <IconChart />,
-      };
-    }
     if (isReception) {
       return {
         label: 'Services hospitaliers',
@@ -325,7 +287,7 @@ export function DashboardPage() {
       variant: 'deep' as const,
       icon: <IconChart />,
     };
-  }, [isAdmin, isReception, kpis, kpiLoading]);
+  }, [isReception, kpis, kpiLoading]);
 
   return (
     <>
@@ -377,7 +339,7 @@ export function DashboardPage() {
 
       <h2 className="dashboard-section-title">Accès rapides</h2>
       <div className="dashboard-quick-grid">
-        {(isAdmin || isReception) && (
+        {isReception && (
           <QuickTile
             to="/patients"
             title="Patients"
@@ -386,7 +348,7 @@ export function DashboardPage() {
             icon={<IconSmUsers />}
           />
         )}
-        {(isAdmin || isReception || isMedecin || isInfirmier) && (
+        {(isReception || isMedecin || isInfirmier) && (
           <QuickTile
             to="/admissions"
             title="Admissions & séjour"
@@ -395,7 +357,7 @@ export function DashboardPage() {
             icon={<IconSmBed />}
           />
         )}
-        {(isAdmin || isMedecin || isInfirmier) && (
+        {(isMedecin || isInfirmier) && (
           <QuickTile
             to="/urgences"
             title="Urgences"
@@ -404,7 +366,7 @@ export function DashboardPage() {
             icon={<IconSmAlert />}
           />
         )}
-        {(isAdmin || isMedecin || isInfirmier) && (
+        {(isMedecin || isInfirmier) && (
           <QuickTile
             to="/consultations"
             title="Consultations"
@@ -413,7 +375,7 @@ export function DashboardPage() {
             icon={<IconSmChart />}
           />
         )}
-        {(isAdmin || isMedecin || isInfirmier) && (
+        {(isMedecin || isInfirmier) && (
           <QuickTile
             to="/medical-records"
             title="Dossiers médicaux"
@@ -422,7 +384,7 @@ export function DashboardPage() {
             icon={<IconSmFolder />}
           />
         )}
-        {(isAdmin || isReception) && (
+        {isReception && (
           <QuickTile
             to="/hospital-services"
             title="Services hôpitaux"
@@ -430,24 +392,6 @@ export function DashboardPage() {
             variant="success"
             icon={<IconSmBuilding />}
           />
-        )}
-        {isAdmin && (
-          <>
-            <QuickTile
-              to="/users"
-              title="Utilisateurs"
-              description="Comptes, rôles et statuts"
-              variant="danger"
-              icon={<IconSmKey />}
-            />
-            <QuickTile
-              to="/reporting"
-              title="Reporting"
-              description="KPI, audit et exports d&apos;activité / occupation"
-              variant="deep"
-              icon={<IconSmChart />}
-            />
-          </>
         )}
       </div>
     </>

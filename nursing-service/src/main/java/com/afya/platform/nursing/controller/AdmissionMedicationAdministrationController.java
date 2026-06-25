@@ -16,40 +16,37 @@ import java.util.List;
 @RequestMapping("/api/v1/admissions/{admissionId}/prescription-lines/{lineId}/administrations")
 public class AdmissionMedicationAdministrationController {
 
-    private final AdmissionMedicationAdministrationService administrationService;
+        private final AdmissionMedicationAdministrationService administrationService;
 
-    public AdmissionMedicationAdministrationController(
-            AdmissionMedicationAdministrationService administrationService
-    ) {
-        this.administrationService = administrationService;
-    }
+        public AdmissionMedicationAdministrationController(
+                        AdmissionMedicationAdministrationService administrationService) {
+                this.administrationService = administrationService;
+        }
 
-    @GetMapping
-    public List<AdmissionMedicationAdministrationResponse> list(
-            @PathVariable Long admissionId,
-            @PathVariable Long lineId,
-            HttpServletRequest httpRequest
-    ) {
-        return administrationService.listByAdmissionLine(
-                admissionId,
-                lineId,
-                AuthorizationHeaderSupport.requireBearer(httpRequest));
-    }
+        @GetMapping
+        public List<AdmissionMedicationAdministrationResponse> list(
+                        @PathVariable Long admissionId,
+                        @PathVariable Long lineId,
+                        HttpServletRequest httpRequest) {
+                return administrationService.listByAdmissionLine(
+                                admissionId,
+                                lineId,
+                                AuthorizationHeaderSupport.requireBearer(httpRequest));
+        }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public AdmissionMedicationAdministrationResponse create(
-            @PathVariable Long admissionId,
-            @PathVariable Long lineId,
-            Authentication auth,
-            HttpServletRequest httpRequest,
-            @Valid @RequestBody AdmissionMedicationAdministrationCreateRequest request
-    ) {
-        return administrationService.record(
-                admissionId,
-                lineId,
-                request,
-                auth.getName(),
-                AuthorizationHeaderSupport.requireBearer(httpRequest));
-    }
+        @PostMapping
+        @ResponseStatus(HttpStatus.CREATED)
+        public AdmissionMedicationAdministrationResponse create(
+                        @PathVariable Long admissionId,
+                        @PathVariable Long lineId,
+                        Authentication auth,
+                        HttpServletRequest httpRequest,
+                        @Valid @RequestBody AdmissionMedicationAdministrationCreateRequest request) {
+                return administrationService.record(
+                                admissionId,
+                                lineId,
+                                request,
+                                auth.getName(),
+                                AuthorizationHeaderSupport.requireBearer(httpRequest));
+        }
 }

@@ -2,16 +2,18 @@ import type { ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import type { MeResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
-import { hasRole } from '../auth/roles';
+import { hasRole, isAdminPortalUser } from '../auth/roles';
 import { platformFeatures } from '../config/features';
 
-/** Ligne sous le titre : services affectés ou périmètre selon le rôle. */
 function assignedServicesSubtitle(user: MeResponse): string {
+  if (isAdminPortalUser(user)) {
+    return 'Administration système';
+  }
   const names = user.hospitalServiceNames ?? [];
   if (names.length > 0) {
     return names.join(', ');
   }
-  if (hasRole(user, 'ROLE_ADMIN') || hasRole(user, 'ROLE_RECEPTION')) {
+  if (hasRole(user, 'ROLE_RECEPTION')) {
     return 'Tous les services';
   }
   if (hasRole(user, 'ROLE_MEDECIN') || hasRole(user, 'ROLE_INFIRMIER')) {
@@ -129,115 +131,139 @@ function IconBrand() {
   );
 }
 
-export function Layout() {
-  const { user, logout } = useAuth();
-  const isAdmin = hasRole(user, 'ROLE_ADMIN');
+function AdminNav() {
+  return (
+    <>
+      <p className="side-nav__section-label">Administration</p>
+      <NavLink to="/" end>
+        <NavIcon>
+          <IconDashboard />
+        </NavIcon>
+        Tableau de bord
+      </NavLink>
+      <NavLink to="/hospital-services">
+        <NavIcon>
+          <IconBuilding />
+        </NavIcon>
+        Organisation
+      </NavLink>
+      {platformFeatures.usersAdmin && (
+        <NavLink to="/users">
+          <NavIcon>
+            <IconUsersAdmin />
+          </NavIcon>
+          Utilisateurs
+        </NavLink>
+      )}
+      <NavLink to="/reporting">
+        <NavIcon>
+          <IconReporting />
+        </NavIcon>
+        Reporting
+      </NavLink>
+      {platformFeatures.labModule && platformFeatures.labExamTypesAdmin && (
+        <NavLink to="/lab/exam-types">
+          <NavIcon>
+            <IconLab />
+          </NavIcon>
+          Types d&apos;examens
+        </NavLink>
+      )}
+    </>
+  );
+}
+
+function ClinicalNav() {
+  const { user } = useAuth();
   const isReception = hasRole(user, 'ROLE_RECEPTION');
   const isMedecin = hasRole(user, 'ROLE_MEDECIN');
   const isInfirmier = hasRole(user, 'ROLE_INFIRMIER');
 
   return (
-    <div className="app-layout">
+    <>
+      <NavLink to="/" end>
+        <NavIcon>
+          <IconDashboard />
+        </NavIcon>
+        Tableau de bord
+      </NavLink>
+      {isReception && (
+        <NavLink to="/patients">
+          <NavIcon>
+            <IconPatients />
+          </NavIcon>
+          Patients
+        </NavLink>
+      )}
+      {(isReception || isMedecin || isInfirmier) && (
+        <NavLink to="/admissions">
+          <NavIcon>
+            <IconBed />
+          </NavIcon>
+          Admissions
+        </NavLink>
+      )}
+      {(isMedecin || isInfirmier) && (
+        <NavLink to="/urgences">
+          <NavIcon>
+            <IconUrgence />
+          </NavIcon>
+          Urgences
+        </NavLink>
+      )}
+      {platformFeatures.consultations && (isMedecin || isInfirmier) && (
+        <NavLink to="/consultations">
+          <NavIcon>
+            <IconConsultation />
+          </NavIcon>
+          Consultations
+        </NavLink>
+      )}
+      {platformFeatures.labModule && (isMedecin || isInfirmier) && (
+        <NavLink to="/lab/requests">
+          <NavIcon>
+            <IconLab />
+          </NavIcon>
+          Laboratoire
+        </NavLink>
+      )}
+      {(isMedecin || isInfirmier) && (
+        <NavLink to="/medical-records">
+          <NavIcon>
+            <IconFolder />
+          </NavIcon>
+          Dossiers médicaux
+        </NavLink>
+      )}
+      {isReception && (
+        <div className="side-nav-admin">
+          <NavLink to="/hospital-services">
+            <NavIcon>
+              <IconBuilding />
+            </NavIcon>
+            Services hôpitaux
+          </NavLink>
+        </div>
+      )}
+    </>
+  );
+}
+
+export function Layout() {
+  const { user, logout } = useAuth();
+  const adminPortal = isAdminPortalUser(user);
+
+  return (
+    <div className={`app-layout${adminPortal ? ' app-layout--admin' : ''}`}>
       <aside className="sidebar">
         <NavLink to="/" className="nav-brand">
           <IconBrand />
           <span>
             Afya Santé
-            <span className="nav-brand__tagline">Plateforme clinique</span>
+            <span className="nav-brand__tagline">{adminPortal ? 'Administration' : 'Plateforme clinique'}</span>
           </span>
         </NavLink>
-        <nav className="side-nav side-nav--main">
-          <NavLink to="/" end>
-            <NavIcon>
-              <IconDashboard />
-            </NavIcon>
-            Tableau de bord
-          </NavLink>
-          {(isAdmin || isReception) && (
-            <NavLink to="/patients">
-              <NavIcon>
-                <IconPatients />
-              </NavIcon>
-              Patients
-            </NavLink>
-          )}
-          {(isAdmin || isReception || isMedecin || isInfirmier) && (
-            <NavLink to="/admissions">
-              <NavIcon>
-                <IconBed />
-              </NavIcon>
-              Admissions
-            </NavLink>
-          )}
-          {(isAdmin || isMedecin || isInfirmier) && (
-            <NavLink to="/urgences">
-              <NavIcon>
-                <IconUrgence />
-              </NavIcon>
-              Urgences
-            </NavLink>
-          )}
-          {platformFeatures.consultations && (isAdmin || isMedecin || isInfirmier) && (
-            <NavLink to="/consultations">
-              <NavIcon>
-                <IconConsultation />
-              </NavIcon>
-              Consultations
-            </NavLink>
-          )}
-          {platformFeatures.labModule && (isAdmin || isMedecin || isInfirmier) && (
-            <NavLink to="/lab/requests">
-              <NavIcon>
-                <IconLab />
-              </NavIcon>
-              Laboratoire
-            </NavLink>
-          )}
-          {(isAdmin || isMedecin || isInfirmier) && (
-            <NavLink to="/medical-records">
-              <NavIcon>
-                <IconFolder />
-              </NavIcon>
-              Dossiers médicaux
-            </NavLink>
-          )}
-          {(isAdmin || isReception) && (
-            <div className="side-nav-admin">
-              <NavLink to="/hospital-services">
-                <NavIcon>
-                  <IconBuilding />
-                </NavIcon>
-                {isAdmin ? 'Organisation' : 'Services hôpitaux'}
-              </NavLink>
-              {isAdmin && (
-                <>
-                  {platformFeatures.usersAdmin && (
-                    <NavLink to="/users">
-                      <NavIcon>
-                        <IconUsersAdmin />
-                      </NavIcon>
-                      Utilisateurs
-                    </NavLink>
-                  )}
-                  <NavLink to="/reporting">
-                    <NavIcon>
-                      <IconReporting />
-                    </NavIcon>
-                    Reporting
-                  </NavLink>
-                  {platformFeatures.labModule && platformFeatures.labExamTypesAdmin && (
-                    <NavLink to="/lab/exam-types">
-                      <NavIcon>
-                        <IconLab />
-                      </NavIcon>
-                      Types d&apos;examens
-                    </NavLink>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-        </nav>
+        <nav className="side-nav side-nav--main">{adminPortal ? <AdminNav /> : <ClinicalNav />}</nav>
         <nav className="side-nav side-nav--footer" aria-label="Paramètres">
           <NavLink to="/settings">
             <NavIcon>
@@ -251,7 +277,7 @@ export function Layout() {
       <section className="main-area">
         <header className="top-bar">
           <div className="top-bar-brand">
-            <div className="top-bar-title">Plateforme clinique</div>
+            <div className="top-bar-title">{adminPortal ? 'Administration plateforme' : 'Plateforme clinique'}</div>
             {user && (
               <div className="top-bar-service-line" title={assignedServicesSubtitle(user)}>
                 {assignedServicesSubtitle(user)}
@@ -261,6 +287,7 @@ export function Layout() {
           <div className="top-bar-actions">
             {user && (
               <>
+                {adminPortal ? <span className="user-chip user-chip--role">Administrateur</span> : null}
                 <span className="user-chip">
                   <span className="user-chip__dot" aria-hidden />
                   {user.fullName}

@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { getApiErrorMessage } from '../api/error';
 import type { ExamCategory, ExamTypeCreateRequest, ExamTypeResponse } from '../api/types';
 import { DataTableColumnHeader } from '../components/DataTableColumnHeader';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
-import { PageHeader } from '../components/ui/PageHeader';
+import { AdminPageHeader } from '../components/admin/AdminPageHeader';
 import { ScrollTableRegion, TableResultFooter } from '../components/ScrollTableRegion';
 import { Toast } from '../components/ui/Toast';
 import {
@@ -125,17 +124,14 @@ export function LabExamTypesPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader
+      <AdminPageHeader
         title="Types d'examens"
-        subtitle="Catalogue laboratoire — consultation et demandes d'examens"
+        subtitle="catalogue laboratoire (référentiel administratif)"
       >
-        <Link to="/lab/requests" className="btn btn-ghost">
-          Demandes labo
-        </Link>
         <button type="button" className="btn btn-primary" onClick={openCreateDrawer}>
           Nouveau type
         </button>
-      </PageHeader>
+      </AdminPageHeader>
 
       {message && <Toast message={message} onDismiss={() => setMessage(null)} />}
       {error && <p className="form-error">{error}</p>}

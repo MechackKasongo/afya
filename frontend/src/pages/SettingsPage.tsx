@@ -1,21 +1,31 @@
 import { Link } from 'react-router-dom';
 import { FontPreferenceSelect } from '../components/FontPreferenceSelect';
+import { AdminPageHeader } from '../components/admin/AdminPageHeader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { ThemePreferenceSelect } from '../components/ThemePreferenceSelect';
 import { THEME_OPTIONS } from '../ui/themePreference';
+import { useAuth } from '../auth/AuthContext';
+import { isAdminPortalUser } from '../auth/roles';
 
 export function SettingsPage() {
+  const { user } = useAuth();
+  const adminPortal = isAdminPortalUser(user);
+
   return (
     <>
-      <PageHeader
-        title="Paramètres"
-        subtitle={
-          <>
-            <Link to="/">Retour au tableau de bord</Link>
-            {' — thème et typographie de l’interface.'}
-          </>
-        }
-      />
+      {adminPortal ? (
+        <AdminPageHeader title="Paramètres" subtitle="thème et typographie de l'interface admin" />
+      ) : (
+        <PageHeader
+          title="Paramètres"
+          subtitle={
+            <>
+              <Link to="/">Retour au tableau de bord</Link>
+              {' — thème et typographie de l’interface.'}
+            </>
+          }
+        />
+      )}
 
       <section className="card settings-card">
         <h2 style={{ marginTop: 0 }}>Apparence</h2>
