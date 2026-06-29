@@ -53,6 +53,9 @@ public class LabClient {
 
     public Page<ExamRequestResponse> listRequests(
             ExamRequestStatus status,
+            Long doctorId,
+            Long patientId,
+            ExamUrgency urgency,
             Integer page,
             Integer size,
             String authorizationHeader
@@ -61,11 +64,31 @@ public class LabClient {
                 restClient,
                 uriBuilder -> uriBuilder.path("/api/v1/lab/exam-requests")
                         .queryParamIfPresent("status", Optional.ofNullable(status))
+                        .queryParamIfPresent("doctorId", Optional.ofNullable(doctorId))
+                        .queryParamIfPresent("patientId", Optional.ofNullable(patientId))
+                        .queryParamIfPresent("urgency", Optional.ofNullable(urgency))
                         .queryParamIfPresent("page", Optional.ofNullable(page))
                         .queryParamIfPresent("size", Optional.ofNullable(size))
                         .build(),
                 ExamRequestResponse.class,
                 headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)));
+    }
+
+    public ExamRequestResponse postponeRequest(Long id, PostponeRequest request, String authorizationHeader) {
+        return restClient.post()
+                .uri("/api/v1/lab/exam-requests/{id}/postpone", id)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .body(request)
+                .retrieve()
+                .body(ExamRequestResponse.class);
+    }
+
+    public ExamRequestResponse reactivateRequest(Long id, String authorizationHeader) {
+        return restClient.post()
+                .uri("/api/v1/lab/exam-requests/{id}/reactivate", id)
+                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
+                .retrieve()
+                .body(ExamRequestResponse.class);
     }
 
     public ExamRequestResponse getRequest(Long id, String authorizationHeader) {

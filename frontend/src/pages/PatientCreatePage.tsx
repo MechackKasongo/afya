@@ -160,7 +160,7 @@ export function PatientCreatePage() {
         </div>
         <div>
           <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Création...' : 'Créer le patient'}
+            {submitting ? 'Création…' : 'Créer le patient'}
           </button>
         </div>
       </form>

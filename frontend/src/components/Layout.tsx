@@ -2,8 +2,9 @@ import type { ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import type { MeResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
-import { hasRole, isAdminPortalUser } from '../auth/roles';
+import { hasRole, isAdminPortalUser, isEmergencyStaffUser, isLabPortalUser } from '../auth/roles';
 import { platformFeatures } from '../config/features';
+import { useLabDoctorStats } from '../hooks/useLabDoctorStats';
 
 function assignedServicesSubtitle(user: MeResponse): string {
   if (isAdminPortalUser(user)) {
@@ -15,6 +16,9 @@ function assignedServicesSubtitle(user: MeResponse): string {
   }
   if (hasRole(user, 'ROLE_RECEPTION')) {
     return 'Tous les services';
+  }
+  if (isLabPortalUser(user)) {
+    return 'Laboratoire';
   }
   if (hasRole(user, 'ROLE_MEDECIN') || hasRole(user, 'ROLE_INFIRMIER')) {
     return 'Aucun service affecté';
@@ -173,11 +177,39 @@ function AdminNav() {
   );
 }
 
+function LabNav() {
+  return (
+    <>
+      <NavLink to="/" end>
+        <NavIcon>
+          <IconDashboard />
+        </NavIcon>
+        Tableau de bord
+      </NavLink>
+      {platformFeatures.labModule && (
+        <NavLink to="/lab/requests">
+          <NavIcon>
+            <IconLab />
+          </NavIcon>
+          Laboratoire
+        </NavLink>
+      )}
+    </>
+  );
+}
+
 function ClinicalNav() {
   const { user } = useAuth();
   const isReception = hasRole(user, 'ROLE_RECEPTION');
   const isMedecin = hasRole(user, 'ROLE_MEDECIN');
   const isInfirmier = hasRole(user, 'ROLE_INFIRMIER');
+  const isLaborantin = isLabPortalUser(user);
+  const isEmergencyStaff = isEmergencyStaffUser(user);
+  const { stats: doctorLabStats } = useLabDoctorStats(
+    user?.id,
+    isMedecin && platformFeatures.labModule,
+  );
+  const labResultsBadge = (doctorLabStats.resultsAvailable ?? 0) > 0 ? doctorLabStats.resultsAvailable : null;
 
   return (
     <>
@@ -203,7 +235,7 @@ function ClinicalNav() {
           Admissions
         </NavLink>
       )}
-      {(isMedecin || isInfirmier) && (
+      {(isMedecin || isInfirmier) && isEmergencyStaff && (
         <NavLink to="/urgences">
           <NavIcon>
             <IconUrgence />
@@ -219,12 +251,17 @@ function ClinicalNav() {
           Consultations
         </NavLink>
       )}
-      {platformFeatures.labModule && (isMedecin || isInfirmier) && (
-        <NavLink to="/lab/requests">
+      {platformFeatures.labModule && (isMedecin || isLaborantin) && (
+        <NavLink to="/lab/requests" className="side-nav__link-with-badge">
           <NavIcon>
             <IconLab />
           </NavIcon>
           Laboratoire
+          {labResultsBadge != null && (
+            <span className="side-nav__badge" title="Résultats à consulter">
+              {labResultsBadge}
+            </span>
+          )}
         </NavLink>
       )}
       {(isMedecin || isInfirmier) && (
@@ -252,6 +289,7 @@ function ClinicalNav() {
 export function Layout() {
   const { user, logout } = useAuth();
   const adminPortal = isAdminPortalUser(user);
+  const labPortal = isLabPortalUser(user);
 
   return (
     <div className={`app-layout${adminPortal ? ' app-layout--admin' : ''}`}>
@@ -260,10 +298,14 @@ export function Layout() {
           <IconBrand />
           <span>
             Afya Santé
-            <span className="nav-brand__tagline">{adminPortal ? 'Administration' : 'Plateforme clinique'}</span>
+            <span className="nav-brand__tagline">
+              {adminPortal ? 'Administration' : labPortal ? 'Laboratoire' : 'Plateforme clinique'}
+            </span>
           </span>
         </NavLink>
-        <nav className="side-nav side-nav--main">{adminPortal ? <AdminNav /> : <ClinicalNav />}</nav>
+        <nav className="side-nav side-nav--main">
+          {adminPortal ? <AdminNav /> : labPortal ? <LabNav /> : <ClinicalNav />}
+        </nav>
         <nav className="side-nav side-nav--footer" aria-label="Paramètres">
           <NavLink to="/settings">
             <NavIcon>
@@ -277,7 +319,9 @@ export function Layout() {
       <section className="main-area">
         <header className="top-bar">
           <div className="top-bar-brand">
-            <div className="top-bar-title">{adminPortal ? 'Administration plateforme' : 'Plateforme clinique'}</div>
+            <div className="top-bar-title">
+              {adminPortal ? 'Administration plateforme' : labPortal ? 'Laboratoire' : 'Plateforme clinique'}
+            </div>
             {user && (
               <div className="top-bar-service-line" title={assignedServicesSubtitle(user)}>
                 {assignedServicesSubtitle(user)}
@@ -288,6 +332,7 @@ export function Layout() {
             {user && (
               <>
                 {adminPortal ? <span className="user-chip user-chip--role">Administrateur</span> : null}
+                {labPortal ? <span className="user-chip user-chip--role">Laborantin</span> : null}
                 <span className="user-chip">
                   <span className="user-chip__dot" aria-hidden />
                   {user.fullName}

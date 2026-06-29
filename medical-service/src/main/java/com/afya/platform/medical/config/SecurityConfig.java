@@ -28,11 +28,14 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/api/v1/internal/**").hasRole("SYSTEM")
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/patients/*/medical-record/allergies",
                                 "/api/v1/patients/*/medical-record/antecedents")
+                        .hasAnyRole("ADMIN", "MEDECIN", "INFIRMIER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/consultations/*/observations")
                         .hasAnyRole("ADMIN", "MEDECIN", "INFIRMIER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/patients/*/prescriptions",
                                 "/api/v1/admissions/*/prescription-lines",
@@ -41,7 +44,6 @@ public class SecurityConfig {
                                 "/api/v1/patients/*/documents",
                                 "/api/v1/patients/*/documents/upload",
                                 "/api/v1/consultations",
-                                "/api/v1/consultations/*/observations",
                                 "/api/v1/consultations/*/diagnostics",
                                 "/api/v1/consultations/*/orders/exams")
                         .hasAnyRole("ADMIN", "MEDECIN")

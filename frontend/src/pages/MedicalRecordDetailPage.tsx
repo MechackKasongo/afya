@@ -7,14 +7,25 @@ import { PatientAdmissionEpisodes } from '../components/PatientAdmissionEpisodes
 import { MedicalRecordTabs } from '../components/ui/MedicalRecordTabs';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Toast } from '../components/ui/Toast';
+import { LoadingBlock } from '../components/ui/LoadingBlock';
 import type {
+  AntecedentType,
   ClinicalDocumentResponse,
   ClinicalMedicalRecordResponse,
   ClinicalNoteRequest,
-  MedicalRecordAllergiesUpdateRequest,
-  MedicalRecordAntecedentsUpdateRequest,
+  MedicalAntecedentCreateRequest,
+  MedicalAntecedentResponse,
   PatientResponse,
 } from '../api/types';
+
+const ANTECEDENT_TYPE_LABELS: Record<AntecedentType, string> = {
+  MEDICAL: 'Médical',
+  CHIRURGICAL: 'Chirurgical',
+  FAMILIAL: 'Familial',
+  ALLERGIE: 'Allergie',
+};
+
+const NON_ALLERGY_TYPES: AntecedentType[] = ['MEDICAL', 'CHIRURGICAL', 'FAMILIAL'];
 import { platformFeatures } from '../config/features';
 
 function formatDateTime(iso: string): string {
@@ -25,6 +36,12 @@ function formatDateTime(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function formatEventDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function globalCountsLabel(record: ClinicalMedicalRecordResponse): string {
@@ -51,9 +68,24 @@ export function MedicalRecordDetailPage() {
 
   const [record, setRecord] = useState<ClinicalMedicalRecordResponse | null>(null);
   const [patientProfile, setPatientProfile] = useState<PatientResponse | null>(null);
-  const [allergiesText, setAllergiesText] = useState('');
-  const [antecedentsText, setAntecedentsText] = useState('');
+  const [antecedents, setAntecedents] = useState<MedicalAntecedentResponse[]>([]);
+  const [newAllergyDesc, setNewAllergyDesc] = useState('');
+  const [newAntType, setNewAntType] = useState<AntecedentType>('MEDICAL');
+  const [newAntDesc, setNewAntDesc] = useState('');
+  const [expandedAntecedentIds, setExpandedAntecedentIds] = useState<Set<number>>(new Set());
   const [patientName, setPatientName] = useState('');
+
+  function toggleAntecedentExpanded(id: number) {
+    setExpandedAntecedentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
   const [globalOpen, setGlobalOpen] = useState(recordTab === 'global');
   const [noteText, setNoteText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -79,14 +111,14 @@ export function MedicalRecordDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const [recordRes, patientRes] = await Promise.all([
+      const [recordRes, patientRes, antecedentsRes] = await Promise.all([
         api.get<ClinicalMedicalRecordResponse>(`/api/v1/patients/${parsedPatientId}/medical-record`),
         api.get<PatientResponse>(`/api/v1/patients/${parsedPatientId}`),
+        api.get<MedicalAntecedentResponse[]>(`/api/v1/patients/${parsedPatientId}/medical-antecedents`),
       ]);
       setRecord(recordRes.data);
       setPatientProfile(patientRes.data);
-      setAllergiesText(recordRes.data.allergies ?? '');
-      setAntecedentsText(recordRes.data.antecedents ?? '');
+      setAntecedents(antecedentsRes.data);
       setPatientName(
         recordRes.data.patientName ||
           `${patientRes.data.firstName} ${patientRes.data.lastName}`.trim() ||
@@ -99,50 +131,53 @@ export function MedicalRecordDetailPage() {
     }
   }
 
-  async function onSaveAllergies(e: React.FormEvent) {
-    e.preventDefault();
+  async function addAntecedent(payload: MedicalAntecedentCreateRequest, successMessage: string) {
     setPending(true);
     setError(null);
     setMessage(null);
     try {
-      const payload: MedicalRecordAllergiesUpdateRequest = {
-        allergies: allergiesText.trim() || null,
-      };
-      const { data } = await api.patch<ClinicalMedicalRecordResponse>(
-        `/api/v1/patients/${parsedPatientId}/medical-record/allergies`,
+      await api.post<MedicalAntecedentResponse>(
+        `/api/v1/patients/${parsedPatientId}/medical-antecedents`,
         payload,
       );
-      setRecord(data);
-      setAllergiesText(data.allergies ?? '');
-      setMessage('Allergies enregistrées.');
+      const { data } = await api.get<MedicalAntecedentResponse[]>(
+        `/api/v1/patients/${parsedPatientId}/medical-antecedents`,
+      );
+      setAntecedents(data);
+      setMessage(successMessage);
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Impossible d’enregistrer les allergies.'));
+      setError(getApiErrorMessage(err, "Impossible d'ajouter l'entrée."));
     } finally {
       setPending(false);
     }
   }
 
-  async function onSaveAntecedents(e: React.FormEvent) {
+  async function onAddAllergy(e: React.FormEvent) {
     e.preventDefault();
-    setPending(true);
-    setError(null);
-    setMessage(null);
-    try {
-      const payload: MedicalRecordAntecedentsUpdateRequest = {
-        antecedents: antecedentsText.trim() || null,
-      };
-      const { data } = await api.patch<ClinicalMedicalRecordResponse>(
-        `/api/v1/patients/${parsedPatientId}/medical-record/antecedents`,
-        payload,
-      );
-      setRecord(data);
-      setAntecedentsText(data.antecedents ?? '');
-      setMessage('Antécédents enregistrés.');
-    } catch (err) {
-      setError(getApiErrorMessage(err, 'Impossible d’enregistrer les antécédents.'));
-    } finally {
-      setPending(false);
+    const description = newAllergyDesc.trim();
+    if (!description) {
+      setError('Décrivez l’allergie à ajouter.');
+      return;
     }
+    await addAntecedent(
+      { type: 'ALLERGIE', description, eventDate: null },
+      'Allergie ajoutée.',
+    );
+    setNewAllergyDesc('');
+  }
+
+  async function onAddAntecedent(e: React.FormEvent) {
+    e.preventDefault();
+    const description = newAntDesc.trim();
+    if (!description) {
+      setError('Décrivez l’antécédent à ajouter.');
+      return;
+    }
+    await addAntecedent(
+      { type: newAntType, description, eventDate: null },
+      'Antécédent ajouté.',
+    );
+    setNewAntDesc('');
   }
 
   async function uploadDocument(e: React.FormEvent) {
@@ -218,6 +253,9 @@ export function MedicalRecordDetailPage() {
     }
   }
 
+  const allergyEntries = antecedents.filter((a) => a.type === 'ALLERGIE');
+  const antecedentEntries = antecedents.filter((a) => a.type !== 'ALLERGIE');
+
   return (
     <>
       <PageHeader title={`Dossier clinique — ${patientName || `Patient ${patientId}`}`} />
@@ -231,7 +269,7 @@ export function MedicalRecordDetailPage() {
 
       <Toast message={message} onDismiss={() => setMessage(null)} />
       {error && <div className="error-banner">{error}</div>}
-      {loading && <p className="loading-block">Chargement du dossier…</p>}
+      {loading && <LoadingBlock label="Chargement du dossier…" />}
 
       {!loading && record && (
         <>
@@ -284,44 +322,107 @@ export function MedicalRecordDetailPage() {
               <h2 className="clinical-section__title" style={{ marginTop: 0 }}>
                 Allergies et intolérances
               </h2>
-              <form onSubmit={onSaveAllergies} style={{ display: 'grid', gap: '0.75rem' }}>
+              {allergyEntries.length > 0 ? (
+                <ul className="antecedent-list">
+                  {allergyEntries.map((item) => (
+                    <li
+                      key={item.id}
+                      className={`antecedent-list__item antecedent-list__item--clickable${
+                        expandedAntecedentIds.has(item.id) ? ' antecedent-list__item--expanded' : ''
+                      }`}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={expandedAntecedentIds.has(item.id)}
+                      onClick={() => toggleAntecedentExpanded(item.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggleAntecedentExpanded(item.id);
+                        }
+                      }}
+                    >
+                      <span className="antecedent-list__desc">{item.description}</span>
+                      <span className="antecedent-list__date">{formatEventDate(item.createdAt)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="hint" style={{ marginTop: 0 }}>Aucune allergie enregistrée.</p>
+              )}
+              <form onSubmit={onAddAllergy} className="antecedent-add-form">
                 <div className="field" style={{ marginBottom: 0 }}>
-                  <label htmlFor="allergies-text">Allergies connues</label>
-                  <textarea
-                    id="allergies-text"
-                    rows={5}
-                    value={allergiesText}
-                    onChange={(e) => setAllergiesText(e.target.value)}
+                  <label htmlFor="new-allergy-desc">Ajouter une allergie</label>
+                  <input
+                    id="new-allergy-desc"
+                    value={newAllergyDesc}
+                    onChange={(e) => setNewAllergyDesc(e.target.value)}
                     placeholder="Ex. pénicilline, arachides, latex…"
                   />
                 </div>
-                <div>
-                  <button type="submit" className="btn btn-primary" disabled={pending}>
-                    {pending ? 'Enregistrement…' : 'Enregistrer les allergies'}
-                  </button>
-                </div>
+                <button type="submit" className="btn btn-primary" disabled={pending}>
+                  {pending ? 'Ajout…' : 'Ajouter'}
+                </button>
               </form>
             </section>
             <section className="card medical-record-resume-cards__item">
               <h2 className="clinical-section__title" style={{ marginTop: 0 }}>
                 Antécédents médicaux
               </h2>
-              <form onSubmit={onSaveAntecedents} style={{ display: 'grid', gap: '0.75rem' }}>
+              {antecedentEntries.length > 0 ? (
+                <ul className="antecedent-list">
+                  {antecedentEntries.map((item) => (
+                    <li
+                      key={item.id}
+                      className={`antecedent-list__item antecedent-list__item--clickable${
+                        expandedAntecedentIds.has(item.id) ? ' antecedent-list__item--expanded' : ''
+                      }`}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={expandedAntecedentIds.has(item.id)}
+                      onClick={() => toggleAntecedentExpanded(item.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggleAntecedentExpanded(item.id);
+                        }
+                      }}
+                    >
+                      <span className="antecedent-list__type">{ANTECEDENT_TYPE_LABELS[item.type]}</span>
+                      <span className="antecedent-list__desc">{item.description}</span>
+                      <span className="antecedent-list__date">{formatEventDate(item.createdAt)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="hint" style={{ marginTop: 0 }}>Aucun antécédent enregistré.</p>
+              )}
+              <form onSubmit={onAddAntecedent} className="antecedent-add-form">
                 <div className="field" style={{ marginBottom: 0 }}>
-                  <label htmlFor="antecedents-text">Antécédents</label>
-                  <textarea
-                    id="antecedents-text"
-                    rows={5}
-                    value={antecedentsText}
-                    onChange={(e) => setAntecedentsText(e.target.value)}
-                    placeholder="Antécédents personnels, familiaux, chirurgicaux, traitements habituels…"
+                  <label htmlFor="new-ant-type">Type</label>
+                  <select
+                    id="new-ant-type"
+                    value={newAntType}
+                    onChange={(e) => setNewAntType(e.target.value as AntecedentType)}
+                  >
+                    {NON_ALLERGY_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {ANTECEDENT_TYPE_LABELS[t]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label htmlFor="new-ant-desc">Description</label>
+                  <input
+                    id="new-ant-desc"
+                    value={newAntDesc}
+                    onChange={(e) => setNewAntDesc(e.target.value)}
+                    placeholder="Ex. hypertension, appendicectomie…"
                   />
                 </div>
-                <div>
-                  <button type="submit" className="btn btn-primary" disabled={pending}>
-                    {pending ? 'Enregistrement…' : 'Enregistrer les antécédents'}
-                  </button>
-                </div>
+                <button type="submit" className="btn btn-primary" disabled={pending}>
+                  {pending ? 'Ajout…' : 'Ajouter'}
+                </button>
               </form>
             </section>
           </div>

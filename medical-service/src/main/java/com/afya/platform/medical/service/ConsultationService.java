@@ -184,6 +184,43 @@ public class ConsultationService {
         return toEventResponse(saved);
     }
 
+    /**
+     * M1 — « transmettre les résultats » : appelé en interne par le lab-service lorsqu'un compte rendu
+     * est publié. Ajoute un événement RESULT_AVAILABLE à la consultation à l'origine de la demande
+     * (rattachée via examRequestId), de façon idempotente. Sans EXAM_ORDER correspondant : sans effet.
+     */
+    @Transactional
+    public void markExamResultAvailable(Long examRequestId) {
+        if (examRequestId == null) {
+            return;
+        }
+        if (consultationEventRepository.existsByExamRequestIdAndEventType(
+                examRequestId, ConsultationEventType.RESULT_AVAILABLE)) {
+            return;
+        }
+        ConsultationEvent order = consultationEventRepository
+                .findFirstByExamRequestIdAndEventType(examRequestId, ConsultationEventType.EXAM_ORDER)
+                .orElse(null);
+        if (order == null) {
+            return;
+        }
+        ConsultationEvent event = new ConsultationEvent();
+        event.setConsultation(order.getConsultation());
+        event.setPatientId(order.getPatientId());
+        event.setEventType(ConsultationEventType.RESULT_AVAILABLE);
+        event.setContent("Résultats de laboratoire disponibles pour la demande n° " + examRequestId);
+        event.setExamRequestId(examRequestId);
+        ConsultationEvent saved = consultationEventRepository.save(event);
+        auditEventPublisher.publish(
+                "CONSULTATION_EXAM_RESULT_AVAILABLE",
+                "CONSULTATION_EVENT",
+                AuditMetadata.resourceId(saved.getId()),
+                "lab-service",
+                AuditMetadata.json(
+                        "patientId", order.getPatientId(),
+                        "examRequestId", examRequestId));
+    }
+
     private ConsultationEventResponse addEvent(
             Long consultationId,
             ConsultationEventType type,

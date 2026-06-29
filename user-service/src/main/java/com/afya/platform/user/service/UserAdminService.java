@@ -19,8 +19,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.data.jpa.domain.Specification;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,25 +28,20 @@ import java.util.stream.Collectors;
 @Service
 public class UserAdminService {
 
-    private static final Logger log = LoggerFactory.getLogger(UserAdminService.class);
-
     private final AppUserRepository appUserRepository;
     private final RoleRepository roleRepository;
     private final AuthServiceClient authServiceClient;
-    private final CredentialsLogService credentialsLogService;
     private final AuditEventPublisher auditEventPublisher;
 
     public UserAdminService(
             AppUserRepository appUserRepository,
             RoleRepository roleRepository,
             AuthServiceClient authServiceClient,
-            CredentialsLogService credentialsLogService,
             AuditEventPublisher auditEventPublisher
     ) {
         this.appUserRepository = appUserRepository;
         this.roleRepository = roleRepository;
         this.authServiceClient = authServiceClient;
-        this.credentialsLogService = credentialsLogService;
         this.auditEventPublisher = auditEventPublisher;
     }
 
@@ -111,14 +104,6 @@ public class UserAdminService {
         user.setActive(true);
         AppUser saved = appUserRepository.save(user);
         authServiceClient.createCredential(saved.getId(), saved.getUsername(), plainPassword);
-        try {
-            credentialsLogService.append(saved.getUsername(), plainPassword, saved.getFullName());
-        } catch (RuntimeException ex) {
-            log.warn(
-                    "Compte {} créé mais journal des mots de passe non écrit : {}",
-                    saved.getUsername(),
-                    ex.getMessage());
-        }
         auditEventPublisher.publish(
                 "USER_CREATED",
                 "USER",
@@ -153,13 +138,6 @@ public class UserAdminService {
             authServiceClient.updatePassword(user.getId(), newPlainPassword);
         }
         AppUser saved = appUserRepository.save(user);
-        if (newPlainPassword != null) {
-            try {
-                credentialsLogService.append(saved.getUsername(), newPlainPassword, saved.getFullName());
-            } catch (RuntimeException ex) {
-                log.warn("Mot de passe mis à jour mais journal non écrit : {}", ex.getMessage());
-            }
-        }
         auditEventPublisher.publish(
                 "USER_UPDATED",
                 "USER",
@@ -198,27 +176,6 @@ public class UserAdminService {
                 AuditMetadata.resourceId(id),
                 AuditActorResolver.currentUsername(),
                 null);
-    }
-
-    public UserCredentialsResponse credentialsForUser(Long id) {
-        AppUser user = findUser(id);
-        return credentialsLogService
-                .findLatestForUsername(user.getUsername())
-                .map(line -> new UserCredentialsResponse(
-                        user.getUsername(), line.password(), true, line.loggedAt()))
-                .orElse(new UserCredentialsResponse(user.getUsername(), null, false, null));
-    }
-
-    public CredentialsLogPreviewResponse credentialsPreview() {
-        return credentialsLogService.preview();
-    }
-
-    public byte[] credentialsFile() {
-        return credentialsLogService.readAllBytes();
-    }
-
-    public void deleteCredentialsFile() {
-        credentialsLogService.delete();
     }
 
     public InternalAuthProfileResponse internalAuthProfileByUsername(String username) {

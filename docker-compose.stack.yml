@@ -313,6 +313,7 @@ services:
     environment:
       <<: *spring-env
       ADMISSION_SERVICE_BASE_URL: http://admission:8084
+      MEDICAL_SERVICE_BASE_URL: http://medical:8085
     depends_on:
       nursing-db:
         condition: service_healthy

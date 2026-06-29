@@ -319,7 +319,7 @@ export function AdmissionClinicalFormPage() {
           </div>
           <div>
             <button type="submit" className="btn btn-primary" disabled={saving || clinicalFormLocked}>
-              {saving ? 'Enregistrement...' : 'Enregistrer le formulaire'}
+              {saving ? 'Enregistrement…' : 'Enregistrer le formulaire'}
             </button>
           </div>
         </form>

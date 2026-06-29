@@ -771,7 +771,7 @@ export function CatalogOrganizationPage() {
                       <tbody>
                         {selectedServices.length === 0 ? (
                           <tr>
-                            <td colSpan={isAdmin ? 6 : 5} style={{ color: 'var(--muted)' }}>
+                            <td colSpan={isAdmin ? 6 : 5} className="empty-cell">
                               Aucun service dans ce département.
                               {isAdmin && selectedDept.active
                                 ? ' Utilisez « + Service » pour en ajouter un.'

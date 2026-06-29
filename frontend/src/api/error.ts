@@ -11,6 +11,9 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
     if (typeof data?.message === 'string' && data.message.trim()) return data.message;
     if (typeof data?.error === 'string' && data.error.trim()) return data.error;
     const status = error.response?.status;
+    if (status === 400) {
+      return data?.message?.trim() || 'Requête invalide : vérifiez les champs saisis.';
+    }
     if (status === 401) {
       return 'Accès refusé (401). Reconnectez-vous ou redémarrez le BFF (port 8080) après une mise à jour du code.';
     }
@@ -19,6 +22,9 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
     }
     if (status === 409) {
       return data?.message?.trim() || 'Conflit : cette valeur est déjà utilisée.';
+    }
+    if (status === 429) {
+      return data?.message?.trim() || 'Trop de tentatives. Veuillez patienter avant de réessayer.';
     }
     if (status === 502 || status === 503) {
       return 'Service indisponible (gateway ou BFF). Vérifiez que afya-bff et hospital-service sont démarrés.';

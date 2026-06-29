@@ -309,7 +309,7 @@ export function AdmissionVitalSignsPage() {
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
             <button type="submit" className="btn btn-primary" disabled={submitting || stayClosed}>
-              {submitting ? 'Enregistrement...' : 'Enregistrer'}
+              {submitting ? 'Enregistrement…' : 'Enregistrer'}
             </button>
           </div>
         </form>
@@ -394,8 +394,8 @@ export function AdmissionVitalSignsPage() {
               <tbody>
                 {sortedItems.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ color: 'var(--muted)' }}>
-                      Aucun releve pour cette admission.
+                    <td colSpan={8} className="empty-cell">
+                      Aucun relevé pour cette admission.
                     </td>
                   </tr>
                 ) : (

@@ -193,7 +193,7 @@ function OccupationReportingPanel({
             <tbody>
               {occupancy.byService.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="muted-text">
+                  <td colSpan={6} className="empty-cell">
                     Aucun lit provisionné pour un service actif.
                   </td>
                 </tr>
@@ -922,7 +922,7 @@ function AuditJournal({
               <tbody>
                 {displayEvents.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="muted-text">
+                    <td colSpan={6} className="empty-cell">
                       Aucun événement pour ces critères.
                     </td>
                   </tr>

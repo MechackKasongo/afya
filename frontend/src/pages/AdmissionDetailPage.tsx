@@ -5,6 +5,7 @@ import { getApiErrorMessage } from '../api/error';
 import { useAuth } from '../auth/AuthContext';
 import { hasRole } from '../auth/roles';
 import { Toast } from '../components/ui/Toast';
+import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { platformFeatures } from '../config/features';
 import type {
   AdmissionResponse,
@@ -162,7 +163,7 @@ export function AdmissionDetailPage() {
     try {
       await api.put<AdmissionResponse>(`/api/v1/admissions/${admissionId}/discharge`, payload);
       setDischargeNote('');
-      setActionMessage('Sortie enregistree avec succes.');
+      setActionMessage('Sortie enregistrée avec succès.');
       await loadData();
     } catch (err) {
       setError(getApiErrorMessage(err, "Impossible d'enregistrer la sortie."));
@@ -190,7 +191,7 @@ export function AdmissionDetailPage() {
     <>
       <Toast message={actionMessage} onDismiss={() => setActionMessage(null)} />
       {error && <div className="error-banner">{error}</div>}
-      {loading && <p style={{ color: 'var(--muted)' }}>Chargement…</p>}
+      {loading && <LoadingBlock label="Chargement du séjour…" />}
 
       {!loading && admission && (
         <>
@@ -273,7 +274,7 @@ export function AdmissionDetailPage() {
               <div className="admission-stay-actions">
                 {canManageAdmissions ? (
                 <div className="card admission-stay-actions__panel" style={{ margin: 0 }}>
-                  <h4 style={{ marginTop: 0, marginBottom: '0.75rem' }}>Transferer</h4>
+                  <h4 style={{ marginTop: 0, marginBottom: '0.75rem' }}>Transférer</h4>
                   <form
                     onSubmit={onTransferSubmit}
                     className="admission-stay-actions__form"
@@ -348,7 +349,7 @@ export function AdmissionDetailPage() {
                         className="btn btn-primary"
                         disabled={savingAction || !stayOpenForAdministrativeActions}
                       >
-                        {savingAction ? 'Traitement...' : 'Transferer'}
+                        {savingAction ? 'Traitement…' : 'Transférer'}
                       </button>
                     </div>
                   </form>
@@ -373,7 +374,7 @@ export function AdmissionDetailPage() {
                       onClick={() => void onDischarge()}
                       disabled={savingAction || !stayOpenForAdministrativeActions}
                     >
-                      {savingAction ? 'Traitement...' : 'Enregistrer sortie'}
+                      {savingAction ? 'Traitement…' : 'Enregistrer sortie'}
                     </button>
                   </div>
                 ) : null}

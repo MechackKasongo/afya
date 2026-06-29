@@ -231,7 +231,7 @@ export function AdmissionPrescriptionsPage() {
               <tbody>
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={4} style={{ color: 'var(--muted)' }}>
+                    <td colSpan={4} className="empty-cell">
                       Aucune prescription pour cette admission.
                     </td>
                   </tr>

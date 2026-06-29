@@ -5,6 +5,8 @@ import { getApiErrorMessage } from '../api/error';
 import type { PagePatientResponse } from '../api/types';
 import { DataTableColumnHeader } from '../components/DataTableColumnHeader';
 import { ScrollTableRegion, TableResultFooter } from '../components/ScrollTableRegion';
+import { LoadingBlock } from '../components/ui/LoadingBlock';
+import { PageHeader } from '../components/ui/PageHeader';
 import { LIST_FETCH_PAGE_SIZE } from '../utils/listFetch';
 import {
   compareNumbers,
@@ -78,7 +80,9 @@ export function MedicalRecordsPage() {
   }, [page, sortBy, sortDir]);
 
   return (
-    <>
+    <div className="page-stack">
+      <PageHeader title="Dossiers médicaux" subtitle="Vue consolidée du patient : allergies, antécédents, notes et séjours" />
+
       {error && <div className="error-banner">{error}</div>}
       <div className="card" style={{ marginBottom: '1rem' }}>
         <form onSubmit={onSearchSubmit} className="shared-search-form">
@@ -95,7 +99,7 @@ export function MedicalRecordsPage() {
         </form>
       </div>
 
-      {loading && <p style={{ color: 'var(--muted)' }}>Chargement…</p>}
+      {loading && <LoadingBlock label="Chargement des dossiers médicaux…" />}
       {!loading && page && (
         <div className="card table-wrap">
           <ScrollTableRegion>
@@ -136,7 +140,7 @@ export function MedicalRecordsPage() {
               <tbody>
                 {sortedPatients.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ color: 'var(--muted)' }}>Aucun patient trouvé.</td>
+                    <td colSpan={5} className="empty-cell">Aucun patient trouvé.</td>
                   </tr>
                 ) : (
                   sortedPatients.map((patient) => (
@@ -204,6 +208,6 @@ export function MedicalRecordsPage() {
           />
         </div>
       )}
-    </>
+    </div>
   );
 }

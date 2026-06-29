@@ -1,9 +1,0 @@
-package com.afya.platform.user.dto;
-
-public record UserCredentialsResponse(
-        String username,
-        String password,
-        boolean foundInLog,
-        String loggedAt
-) {
-}

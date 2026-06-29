@@ -4,10 +4,7 @@ import com.afya.platform.user.dto.*;
 import com.afya.platform.user.service.UserAdminService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -75,52 +72,5 @@ public class UserController {
     @GetMapping("/{id}")
     public UserResponse get(@PathVariable Long id) {
         return userAdminService.getById(id);
-    }
-
-    @GetMapping("/{id}/credentials")
-    public UserCredentialsResponse credentialsForUser(@PathVariable Long id) {
-        return userAdminService.credentialsForUser(id);
-    }
-
-    @GetMapping("/credentials-log/preview")
-    public CredentialsLogPreviewResponse credentialsPreview() {
-        return userAdminService.credentialsPreview();
-    }
-
-    @GetMapping(value = "/credentials-log", produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<byte[]> credentialsFile() {
-        byte[] body = userAdminService.credentialsFile();
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"comptes-utilisateurs-afya.txt\"")
-                .body(body);
-    }
-
-    @GetMapping(value = "/credentials-log.csv", produces = "text/csv")
-    public ResponseEntity<byte[]> credentialsCsv() {
-        byte[] raw = userAdminService.credentialsFile();
-        String csv = "timestamp;username;fullName;password\n"
-                + new String(raw).lines()
-                        .map(line -> {
-                            String[] parts = line.split("\\|");
-                            if (parts.length < 4) {
-                                return line;
-                            }
-                            return String.join(
-                                    ";",
-                                    parts[0].trim(),
-                                    parts[1].trim(),
-                                    parts[2].trim(),
-                                    parts[3].trim());
-                        })
-                        .collect(java.util.stream.Collectors.joining("\n"));
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"comptes-utilisateurs-afya.csv\"")
-                .body(csv.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-    }
-
-    @DeleteMapping("/credentials-log")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteCredentialsLog() {
-        userAdminService.deleteCredentialsFile();
     }
 }

@@ -114,44 +114,4 @@ public class UserClient {
                 .retrieve()
                 .body(UserResponse.class);
     }
-
-    public UserCredentialsResponse credentialsForUser(Long id, String authorizationHeader) {
-        return restClient.get()
-                .uri("/api/v1/users/{id}/credentials", id)
-                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
-                .retrieve()
-                .body(UserCredentialsResponse.class);
-    }
-
-    public CredentialsLogPreviewResponse credentialsPreview(String authorizationHeader) {
-        return restClient.get()
-                .uri("/api/v1/users/credentials-log/preview")
-                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
-                .retrieve()
-                .body(CredentialsLogPreviewResponse.class);
-    }
-
-    public byte[] credentialsFile(String authorizationHeader) {
-        return restClient.get()
-                .uri("/api/v1/users/credentials-log")
-                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
-                .retrieve()
-                .body(byte[].class);
-    }
-
-    public byte[] credentialsCsv(String authorizationHeader) {
-        return restClient.get()
-                .uri("/api/v1/users/credentials-log.csv")
-                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
-                .retrieve()
-                .body(byte[].class);
-    }
-
-    public void deleteCredentialsLog(String authorizationHeader) {
-        restClient.delete()
-                .uri("/api/v1/users/credentials-log")
-                .headers(headers -> headers.addAll(AuthorizationSupport.bearerHeaders(authorizationHeader)))
-                .retrieve()
-                .toBodilessEntity();
-    }
 }

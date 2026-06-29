@@ -10,8 +10,12 @@ import type {
   PageUrgenceResponse,
 } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
-import { hasRole } from '../auth/roles';
+import { hasRole, isEmergencyStaffUser, isLabPortalUser } from '../auth/roles';
 import { platformFeatures } from '../config/features';
+import { LabQueueKpiRow } from '../components/LabQueueKpiRow';
+import { LabDoctorKpiRow } from '../components/LabDoctorKpiRow';
+import { useLabQueueStats } from '../hooks/useLabQueueStats';
+import { useLabDoctorStats } from '../hooks/useLabDoctorStats';
 
 type DashboardKpis = {
   patients: number | null;
@@ -148,25 +152,48 @@ function formatKpiValue(n: number | null, loading: boolean): string {
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const isLaborantin = isLabPortalUser(user);
   const isReception = hasRole(user, 'ROLE_RECEPTION');
   const isMedecin = hasRole(user, 'ROLE_MEDECIN');
   const isInfirmier = hasRole(user, 'ROLE_INFIRMIER');
 
-  const canPatients = isReception || isMedecin || isInfirmier;
-  const canAdmissions = canPatients;
-  const canUrgences = isMedecin || isInfirmier;
-  const canConsultations = isMedecin || isInfirmier;
-
-  const [kpis, setKpis] = useState<DashboardKpis>(emptyKpis);
-  const [kpiLoading, setKpiLoading] = useState(true);
-  const [now, setNow] = useState(() => new Date());
+  const { stats: labQueueStats, loading: labQueueStatsLoading } = useLabQueueStats(
+    isLaborantin && platformFeatures.labModule,
+  );
+  const { stats: doctorLabStats, loading: doctorLabStatsLoading } = useLabDoctorStats(
+    user?.id,
+    isMedecin && platformFeatures.labModule,
+  );
 
   const displayName = user?.fullName?.trim() || user?.username?.trim() || 'Utilisateur';
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(id);
   }, []);
+
+  const datetimeLabel = useMemo(
+    () =>
+      now.toLocaleString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    [now],
+  );
+
+  const isEmergencyStaff = isEmergencyStaffUser(user);
+  const canPatients = isReception || isMedecin || isInfirmier;
+  const canAdmissions = canPatients;
+  const canUrgences = (isMedecin || isInfirmier) && isEmergencyStaff;
+  const canConsultations = isMedecin || isInfirmier;
+
+  const [kpis, setKpis] = useState<DashboardKpis>(emptyKpis);
+  const [kpiLoading, setKpiLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,19 +282,6 @@ export function DashboardPage() {
     };
   }, [canPatients, canAdmissions, canUrgences, canConsultations, isReception]);
 
-  const datetimeLabel = useMemo(
-    () =>
-      now.toLocaleString('fr-FR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-    [now],
-  );
-
   const slot4 = useMemo(() => {
     if (isReception) {
       return {
@@ -289,6 +303,62 @@ export function DashboardPage() {
     };
   }, [isReception, kpis, kpiLoading]);
 
+  if (isLaborantin) {
+    return (
+      <>
+        <header className="dashboard-header">
+          <div>
+            <h1>Bon retour, {displayName} !</h1>
+            <p className="hint" style={{ marginTop: '0.35rem' }}>
+              File laboratoire — traitez les demandes urgentes en priorité.
+            </p>
+          </div>
+          <div className="dashboard-datetime">{datetimeLabel}</div>
+        </header>
+
+        {platformFeatures.labModule && (
+          <>
+            <LabQueueKpiRow stats={labQueueStats} loading={labQueueStatsLoading} activeStatus="PENDING" />
+            <p className="lab-workflow-banner">
+              <strong>En attente :</strong> enregistrer le prélèvement ·{' '}
+              <strong>Prélèvement effectué :</strong> saisir et publier les résultats ·{' '}
+              <strong>Résultats disponibles :</strong> consultation du compte rendu.
+            </p>
+          </>
+        )}
+
+        <h2 className="dashboard-section-title">Accès rapides</h2>
+        <div className="dashboard-quick-grid">
+          {platformFeatures.labModule && (
+            <>
+              <QuickTile
+                to="/lab/requests?status=PENDING"
+                title="File en attente"
+                description="Demandes à traiter — prélèvement à enregistrer"
+                variant="warning"
+                icon={<IconSmAlert />}
+              />
+              <QuickTile
+                to="/lab/requests?status=PENDING&urgent=1"
+                title="Urgences labo"
+                description="Demandes marquées urgentes par le médecin"
+                variant="deep"
+                icon={<IconSmChart />}
+              />
+              <QuickTile
+                to="/lab/requests?status=SPECIMEN_COLLECTED"
+                title="Résultats à saisir"
+                description="Prélèvements effectués — saisie des paramètres"
+                variant="accent"
+                icon={<IconSmChart />}
+              />
+            </>
+          )}
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <header className="dashboard-header">
@@ -299,12 +369,21 @@ export function DashboardPage() {
       </header>
 
       <div className="dashboard-kpi-row">
-        <Link to="/patients" className="dashboard-kpi-card dashboard-kpi-card--accent">
-          <IconUsers />
-          <span className="dashboard-kpi-card__label">Patients</span>
-          <span className="dashboard-kpi-card__value">{formatKpiValue(kpis.patients, kpiLoading)}</span>
-          <span className="dashboard-kpi-card__hint">Enregistrements totaux</span>
-        </Link>
+        {isReception ? (
+          <Link to="/patients" className="dashboard-kpi-card dashboard-kpi-card--accent">
+            <IconUsers />
+            <span className="dashboard-kpi-card__label">Patients</span>
+            <span className="dashboard-kpi-card__value">{formatKpiValue(kpis.patients, kpiLoading)}</span>
+            <span className="dashboard-kpi-card__hint">Enregistrements totaux</span>
+          </Link>
+        ) : (
+          <div className="dashboard-kpi-card dashboard-kpi-card--accent dashboard-kpi-card--static">
+            <IconUsers />
+            <span className="dashboard-kpi-card__label">Patients</span>
+            <span className="dashboard-kpi-card__value">{formatKpiValue(kpis.patients, kpiLoading)}</span>
+            <span className="dashboard-kpi-card__hint">Accès via un séjour ou un dossier</span>
+          </div>
+        )}
 
         <Link to="/admissions" className="dashboard-kpi-card dashboard-kpi-card--success">
           <IconBed />
@@ -313,20 +392,13 @@ export function DashboardPage() {
           <span className="dashboard-kpi-card__hint">Toutes périodes confondues</span>
         </Link>
 
-        {canUrgences ? (
+        {canUrgences && (
           <Link to="/urgences" className="dashboard-kpi-card dashboard-kpi-card--warning">
             <IconAlert />
             <span className="dashboard-kpi-card__label">Passages urgences</span>
             <span className="dashboard-kpi-card__value">{formatKpiValue(kpis.urgences, kpiLoading)}</span>
             <span className="dashboard-kpi-card__hint">Volume des passages</span>
           </Link>
-        ) : (
-          <div className="dashboard-kpi-card dashboard-kpi-card--warning dashboard-kpi-card--static">
-            <IconAlert />
-            <span className="dashboard-kpi-card__label">Passages urgences</span>
-            <span className="dashboard-kpi-card__value">—</span>
-            <span className="dashboard-kpi-card__hint">Indicateur réservé au pôle soins (médecins / infirmiers)</span>
-          </div>
         )}
 
         <Link to={slot4.to} className={`dashboard-kpi-card dashboard-kpi-card--${slot4.variant}`}>
@@ -336,6 +408,20 @@ export function DashboardPage() {
           <span className="dashboard-kpi-card__hint">{slot4.hint}</span>
         </Link>
       </div>
+
+      {isMedecin && platformFeatures.labModule && (
+        <>
+          <h2 className="dashboard-section-title">Laboratoire — mes demandes</h2>
+          <LabDoctorKpiRow stats={doctorLabStats} loading={doctorLabStatsLoading} mineActive />
+          {(doctorLabStats.resultsAvailable ?? 0) > 0 && (
+            <p className="lab-workflow-banner lab-workflow-banner--notify">
+              <strong>Notification :</strong> {doctorLabStats.resultsAvailable} résultat
+              {(doctorLabStats.resultsAvailable ?? 0) > 1 ? 's' : ''} disponible
+              {(doctorLabStats.resultsAvailable ?? 0) > 1 ? 's' : ''} à consulter.
+            </p>
+          )}
+        </>
+      )}
 
       <h2 className="dashboard-section-title">Accès rapides</h2>
       <div className="dashboard-quick-grid">
@@ -351,13 +437,17 @@ export function DashboardPage() {
         {(isReception || isMedecin || isInfirmier) && (
           <QuickTile
             to="/admissions"
-            title="Admissions & séjour"
-            description="Liste des admissions avec filtres patient et statut"
+            title={isInfirmier && !isMedecin ? 'Soins & séjours' : 'Admissions & séjour'}
+            description={
+              isInfirmier && !isMedecin
+                ? 'Ouvrir un séjour pour saisir constantes, soins et administrations'
+                : 'Liste des admissions avec filtres patient et statut'
+            }
             variant="success"
             icon={<IconSmBed />}
           />
         )}
-        {(isMedecin || isInfirmier) && (
+        {(isMedecin || isInfirmier) && isEmergencyStaff && (
           <QuickTile
             to="/urgences"
             title="Urgences"
@@ -383,6 +473,28 @@ export function DashboardPage() {
             variant="accent"
             icon={<IconSmFolder />}
           />
+        )}
+        {isMedecin && platformFeatures.labModule && (
+          <>
+            <QuickTile
+              to="/lab/requests?mine=1&status=RESULTS_AVAILABLE"
+              title="Résultats labo à consulter"
+              description={
+                (doctorLabStats.resultsAvailable ?? 0) > 0
+                  ? `${doctorLabStats.resultsAvailable} compte${(doctorLabStats.resultsAvailable ?? 0) > 1 ? 's' : ''}-rendu disponible${(doctorLabStats.resultsAvailable ?? 0) > 1 ? 's' : ''}`
+                  : 'Aucun nouveau résultat pour vos demandes'
+              }
+              variant="success"
+              icon={<IconSmChart />}
+            />
+            <QuickTile
+              to="/lab/requests"
+              title="Nouvelle demande d'examen"
+              description="Prescrire un examen de laboratoire pour un patient"
+              variant="deep"
+              icon={<IconSmAlert />}
+            />
+          </>
         )}
         {isReception && (
           <QuickTile

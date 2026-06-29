@@ -16,6 +16,8 @@ import type {
 import { useAuth } from '../auth/AuthContext';
 import { hasRole } from '../auth/roles';
 import { DataTableColumnHeader } from '../components/DataTableColumnHeader';
+import { Drawer } from '../components/ui/Drawer';
+import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { PageHeader } from '../components/ui/PageHeader';
 import { ScrollTableRegion, TableResultFooter } from '../components/ScrollTableRegion';
@@ -38,7 +40,7 @@ type AdmissionSortKey = 'id' | 'patient' | 'serviceName' | 'admissionDateTime' |
 
 const statusLabels: Record<AdmissionStatus, string> = {
   EN_COURS: 'En cours',
-  TRANSFERE: 'Transfere',
+  TRANSFERE: 'Transféré',
   SORTI: 'Sorti',
   DECEDE: 'Sorti',
 };
@@ -290,7 +292,7 @@ export function AdmissionsPage() {
   async function onCreateAdmissionSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedPatient) {
-      setCreateError('Selectionnez un patient.');
+      setCreateError('Sélectionnez un patient.');
       return;
     }
     if (!createServiceName.trim()) {
@@ -314,7 +316,7 @@ export function AdmissionsPage() {
       resetCreateForm();
       setReloadKey((k) => k + 1);
     } catch (err) {
-      setCreateError(getApiErrorMessage(err, "Impossible de creer l'admission."));
+      setCreateError(getApiErrorMessage(err, "Impossible de créer l'admission."));
     } finally {
       setSubmittingCreate(false);
     }
@@ -358,7 +360,16 @@ export function AdmissionsPage() {
       {error && <div className="error-banner">{error}</div>}
       {loading && <LoadingBlock label="Chargement des admissions…" />}
 
-      {!loading && page && (
+      {!loading && page && displayedAdmissions.length === 0 && (
+        <div className="card table-wrap">
+          <EmptyState
+            title="Aucune admission trouvée"
+            description="Modifiez les critères de recherche ou créez une nouvelle admission."
+          />
+        </div>
+      )}
+
+      {!loading && page && displayedAdmissions.length > 0 && (
         <div className="card table-wrap">
           <ScrollTableRegion>
             <table className="data-table">
@@ -418,50 +429,42 @@ export function AdmissionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {displayedAdmissions.length === 0 ? (
-                  <tr>
-                    <td colSpan={11} style={{ color: 'var(--muted)' }}>
-                      Aucune admission trouvee.
+                {displayedAdmissions.map((item) => (
+                  <tr key={item.id}>
+                    <td className="data-table-col--id">{item.id}</td>
+                    <td>{patientNamesById[item.patientId] ?? item.patientId}</td>
+                    <td>{item.serviceName}</td>
+                    <td>{[item.room, item.bed].filter(Boolean).join(' / ') || '-'}</td>
+                    <td>{item.reason}</td>
+                    <td>{new Date(item.admissionDateTime).toLocaleString('fr-FR')}</td>
+                    <td>{item.dischargeDateTime ? new Date(item.dischargeDateTime).toLocaleString('fr-FR') : '-'}</td>
+                    <td>{statusLabels[item.status]}</td>
+                    <td>
+                      {(() => {
+                        const careStatus = resolvePatientCareStatus(
+                          item.patientId,
+                          patientsById[item.patientId],
+                          patientCareIndex,
+                        );
+                        return (
+                          <span className={patientCareStatusBadgeClass(careStatus)} title="État actuel du patient">
+                            {patientCareStatusLabel(careStatus)}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td>
+                      <Link to={`/admissions/${item.id}`}>Fiche</Link>
+                    </td>
+                    <td>
+                      {canAccessMedicalRecord ? (
+                        <Link to={`/medical-records/${item.patientId}`}>Dossier</Link>
+                      ) : (
+                        '—'
+                      )}
                     </td>
                   </tr>
-                ) : (
-                  displayedAdmissions.map((item) => (
-                    <tr key={item.id}>
-                      <td className="data-table-col--id">{item.id}</td>
-                      <td>{patientNamesById[item.patientId] ?? item.patientId}</td>
-                      <td>{item.serviceName}</td>
-                      <td>{[item.room, item.bed].filter(Boolean).join(' / ') || '-'}</td>
-                      <td>{item.reason}</td>
-                      <td>{new Date(item.admissionDateTime).toLocaleString('fr-FR')}</td>
-                      <td>{item.dischargeDateTime ? new Date(item.dischargeDateTime).toLocaleString('fr-FR') : '-'}</td>
-                      <td>{statusLabels[item.status]}</td>
-                      <td>
-                        {(() => {
-                          const careStatus = resolvePatientCareStatus(
-                            item.patientId,
-                            patientsById[item.patientId],
-                            patientCareIndex,
-                          );
-                          return (
-                            <span className={patientCareStatusBadgeClass(careStatus)} title="État actuel du patient">
-                              {patientCareStatusLabel(careStatus)}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td>
-                        <Link to={`/admissions/${item.id}`}>Fiche</Link>
-                      </td>
-                      <td>
-                        {canAccessMedicalRecord ? (
-                          <Link to={`/medical-records/${item.patientId}`}>Dossier</Link>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </ScrollTableRegion>
@@ -473,164 +476,134 @@ export function AdmissionsPage() {
         </div>
       )}
 
-      {showCreateDrawer && (
-        <>
-          <div
-            role="presentation"
-            onClick={() => setShowCreateDrawer(false)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'color-mix(in srgb, var(--accent) 14%, transparent)',
-              zIndex: 39,
-            }}
-          />
-          <aside
-            style={{
-              position: 'fixed',
-              top: 0,
-              right: 0,
-              height: '100vh',
-              width: 'min(50vw, 760px)',
-              minWidth: '360px',
-              background: 'var(--surface)',
-              borderLeft: '1px solid var(--border)',
-              zIndex: 40,
-              overflowY: 'auto',
-              padding: '1rem',
-              boxShadow: '0 10px 40px rgba(2, 6, 23, 0.25)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <strong>Creer une admission</strong>
-              <button type="button" className="btn btn-ghost" onClick={() => setShowCreateDrawer(false)}>
-                Fermer
-              </button>
-            </div>
-            {createError && <div className="error-banner">{createError}</div>}
-            <form onSubmit={onCreateAdmissionSubmit} className="card" style={{ display: 'grid', gap: '0.75rem' }}>
-              <div className="field" style={{ marginBottom: 0 }}>
-                <label htmlFor="drawer-admission-patient-search">Patient *</label>
-                <input
-                  id="drawer-admission-patient-search"
-                  value={createPatientQuery}
-                  onChange={(e) => {
-                    setCreatePatientQuery(e.target.value);
-                    setSelectedPatient(null);
-                    setCreateError(null);
-                  }}
-                  placeholder="Rechercher par nom ou dossier (min 2 caracteres)"
-                  required
-                />
-                {selectedPatient ? (
-                  <small style={{ color: 'var(--muted)' }}>
-                    Sélection : {selectedPatient.firstName} {selectedPatient.lastName} — {selectedPatient.dossierNumber}
-                  </small>
-                ) : createPatientLoading ? (
-                  <small style={{ color: 'var(--muted)' }}>Recherche en cours...</small>
-                ) : null}
-                {!selectedPatient && createPatientOptions.length > 0 && (
-                  <div style={{ marginTop: '0.4rem', border: '1px solid var(--border)', borderRadius: '0.5rem', maxHeight: 220, overflowY: 'auto' }}>
-                    {createPatientOptions.map((patient) => (
-                      <button
-                        key={patient.id}
-                        type="button"
-                        className="btn btn-ghost"
-                        style={{ width: '100%', justifyContent: 'flex-start', borderRadius: 0 }}
-                        onClick={() => {
-                          setSelectedPatient(patient);
-                          setCreatePatientQuery(
-                            `${patient.firstName} ${patient.lastName} (${patient.dossierNumber})`
-                          );
-                          setCreatePatientOptions([]);
-                          setCreateError(null);
-                        }}
-                      >
-                        {patient.firstName} {patient.lastName} — {patient.dossierNumber}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="field" style={{ marginBottom: 0 }}>
-                <label htmlFor="drawer-admission-service-name">Service *</label>
-                <select
-                  id="drawer-admission-service-name"
-                  value={createServiceName}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setCreateServiceName(v);
-                    void fetchBedSuggestion(v);
-                  }}
-                  required
-                >
-                  <option value="">Selectionner un service</option>
-                  {services.map((s) => (
-                    <option key={s.id} value={s.name}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {createBedSuggestionMessage && (
-                <div
-                  role="status"
-                  style={{
-                    padding: '0.5rem 0.65rem',
-                    borderRadius: '0.45rem',
-                    border: '1px solid rgba(214, 158, 46, 0.55)',
-                    background: 'rgba(214, 158, 46, 0.12)',
-                    color: 'var(--text)',
-                    fontSize: '0.88rem',
-                    lineHeight: 1.35,
-                  }}
-                >
-                  {createBedSuggestionMessage}
-                </div>
-              )}
-              <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-                <div className="field" style={{ marginBottom: 0 }}>
-                  <label htmlFor="drawer-admission-room">Chambre</label>
-                  <input id="drawer-admission-room" value={createRoom} onChange={(e) => setCreateRoom(e.target.value)} placeholder="Ex. A1" />
-                </div>
-                <div className="field" style={{ marginBottom: 0 }}>
-                  <label htmlFor="drawer-admission-bed">Lit</label>
-                  <input id="drawer-admission-bed" value={createBed} onChange={(e) => setCreateBed(e.target.value)} placeholder="Ex. 01" />
-                </div>
-              </div>
-              <small style={{ color: 'var(--muted)', marginTop: '-0.35rem' }}>
-                Chambre (ex. A1) et lit (ex. 01) sont proposés selon les lits libres du catalog ; modifiables.
-                Si vous voyez encore 232 / A, utilisez Organisation → Recréer lits libres.
+      <Drawer
+        open={showCreateDrawer}
+        onClose={() => {
+          setShowCreateDrawer(false);
+          resetCreateForm();
+        }}
+        title="Créer une admission"
+        footer={
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button type="submit" form="admission-create-form" className="btn btn-primary" disabled={submittingCreate}>
+              {submittingCreate ? 'Création…' : "Créer l'admission"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setShowCreateDrawer(false);
+                resetCreateForm();
+              }}
+            >
+              Annuler
+            </button>
+          </div>
+        }
+      >
+        {createError && <div className="error-banner">{createError}</div>}
+        <form id="admission-create-form" onSubmit={onCreateAdmissionSubmit} className="card card--flat" style={{ display: 'grid', gap: '0.75rem' }}>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="drawer-admission-patient-search">Patient *</label>
+            <input
+              id="drawer-admission-patient-search"
+              value={createPatientQuery}
+              onChange={(e) => {
+                setCreatePatientQuery(e.target.value);
+                setSelectedPatient(null);
+                setCreateError(null);
+              }}
+              placeholder="Rechercher par nom ou dossier (min 2 caractères)"
+              required
+            />
+            {selectedPatient ? (
+              <small style={{ color: 'var(--muted)' }}>
+                Sélection : {selectedPatient.firstName} {selectedPatient.lastName} — {selectedPatient.dossierNumber}
               </small>
-              <div className="field" style={{ marginBottom: 0 }}>
-                <label htmlFor="drawer-admission-reason">Motif</label>
-                <textarea
-                  id="drawer-admission-reason"
-                  rows={4}
-                  value={createReason}
-                  onChange={(e) => setCreateReason(e.target.value)}
-                  placeholder="Motif d'hospitalisation"
-                />
+            ) : createPatientLoading ? (
+              <small style={{ color: 'var(--muted)' }}>Recherche en cours…</small>
+            ) : null}
+            {!selectedPatient && createPatientOptions.length > 0 && (
+              <div style={{ marginTop: '0.4rem', border: '1px solid var(--border)', borderRadius: '0.5rem', maxHeight: 220, overflowY: 'auto' }}>
+                {createPatientOptions.map((patient) => (
+                  <button
+                    key={patient.id}
+                    type="button"
+                    className="btn btn-ghost"
+                    style={{ width: '100%', justifyContent: 'flex-start', borderRadius: 0 }}
+                    onClick={() => {
+                      setSelectedPatient(patient);
+                      setCreatePatientQuery(
+                        `${patient.firstName} ${patient.lastName} (${patient.dossierNumber})`
+                      );
+                      setCreatePatientOptions([]);
+                      setCreateError(null);
+                    }}
+                  >
+                    {patient.firstName} {patient.lastName} — {patient.dossierNumber}
+                  </button>
+                ))}
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="submit" className="btn btn-primary" disabled={submittingCreate}>
-                  {submittingCreate ? 'Creation...' : "Creer l'admission"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    setShowCreateDrawer(false);
-                    resetCreateForm();
-                  }}
-                >
-                  Annuler
-                </button>
-              </div>
-            </form>
-          </aside>
-        </>
-      )}
+            )}
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="drawer-admission-service-name">Service *</label>
+            <select
+              id="drawer-admission-service-name"
+              value={createServiceName}
+              onChange={(e) => {
+                const v = e.target.value;
+                setCreateServiceName(v);
+                void fetchBedSuggestion(v);
+              }}
+              required
+            >
+              <option value="">Sélectionner un service</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.name}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {createBedSuggestionMessage && (
+            <div
+              role="status"
+              style={{
+                padding: '0.5rem 0.65rem',
+                borderRadius: '0.45rem',
+                border: '1px solid rgba(214, 158, 46, 0.55)',
+                background: 'rgba(214, 158, 46, 0.12)',
+                color: 'var(--text)',
+                fontSize: '0.88rem',
+                lineHeight: 1.35,
+              }}
+            >
+              {createBedSuggestionMessage}
+            </div>
+          )}
+          <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label htmlFor="drawer-admission-room">Chambre</label>
+              <input id="drawer-admission-room" value={createRoom} onChange={(e) => setCreateRoom(e.target.value)} placeholder="Ex. A1" />
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label htmlFor="drawer-admission-bed">Lit</label>
+              <input id="drawer-admission-bed" value={createBed} onChange={(e) => setCreateBed(e.target.value)} placeholder="Ex. 01" />
+            </div>
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="drawer-admission-reason">Motif</label>
+            <textarea
+              id="drawer-admission-reason"
+              rows={4}
+              value={createReason}
+              onChange={(e) => setCreateReason(e.target.value)}
+              placeholder="Motif d'hospitalisation"
+            />
+          </div>
+        </form>
+      </Drawer>
     </>
   );
 }

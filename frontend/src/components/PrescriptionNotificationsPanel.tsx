@@ -131,7 +131,7 @@ export function PrescriptionNotificationsPanel({
             <tbody>
               {displayedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ color: 'var(--muted)' }}>
+                  <td colSpan={5} className="empty-cell">
                     Aucune notification prescription.
                   </td>
                 </tr>

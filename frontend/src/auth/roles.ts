@@ -1,8 +1,19 @@
 import type { MeResponse } from '../api/types';
 
-export type AppRole = 'ROLE_ADMIN' | 'ROLE_MEDECIN' | 'ROLE_INFIRMIER' | 'ROLE_RECEPTION';
+export type AppRole =
+  | 'ROLE_ADMIN'
+  | 'ROLE_MEDECIN'
+  | 'ROLE_INFIRMIER'
+  | 'ROLE_RECEPTION'
+  | 'ROLE_LABORANTIN';
 
-const APP_ROLES: AppRole[] = ['ROLE_ADMIN', 'ROLE_MEDECIN', 'ROLE_INFIRMIER', 'ROLE_RECEPTION'];
+const APP_ROLES: AppRole[] = [
+  'ROLE_ADMIN',
+  'ROLE_MEDECIN',
+  'ROLE_INFIRMIER',
+  'ROLE_RECEPTION',
+  'ROLE_LABORANTIN',
+];
 
 function toAppRole(raw: string): AppRole | null {
   const normalized = raw.startsWith('ROLE_') ? raw : `ROLE_${raw}`;
@@ -35,6 +46,9 @@ export function hasAnyRole(user: MeResponse | null, roles: AppRole[]): boolean {
 /** Rôles opérationnels (accueil, soins) — exclus du portail admin. */
 export const CLINICAL_STAFF_ROLES: AppRole[] = ['ROLE_RECEPTION', 'ROLE_MEDECIN', 'ROLE_INFIRMIER'];
 
+/** Accès au module laboratoire : médecin (prescription/suivi) et laborantin (traitement). */
+export const LAB_STAFF_ROLES: AppRole[] = ['ROLE_MEDECIN', 'ROLE_LABORANTIN'];
+
 /** Compte administrateur plateforme : interface dédiée, sans parcours clinique. */
 export function isAdminPortalUser(user: MeResponse | null): boolean {
   return hasRole(user, 'ROLE_ADMIN');
@@ -42,4 +56,18 @@ export function isAdminPortalUser(user: MeResponse | null): boolean {
 
 export function isClinicalStaffUser(user: MeResponse | null): boolean {
   return hasAnyRole(user, CLINICAL_STAFF_ROLES);
+}
+
+/** Portail laboratoire : prélèvements et résultats (MD-07). */
+export function isLabPortalUser(user: MeResponse | null): boolean {
+  return hasRole(user, 'ROLE_LABORANTIN');
+}
+
+/**
+ * Personnel rattaché au service des urgences.
+ * Les urgences ne sont affichées qu'aux soignants affectés à un service « Urgences ».
+ */
+export function isEmergencyStaffUser(user: MeResponse | null): boolean {
+  if (!user) return false;
+  return (user.hospitalServiceNames ?? []).some((name) => name.toLowerCase().includes('urgence'));
 }

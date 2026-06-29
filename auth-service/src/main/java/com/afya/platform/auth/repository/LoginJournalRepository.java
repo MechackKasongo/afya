@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.Collection;
 
 /**
  * Accès au journal des connexions — MD-01 (JournalConnexion).
@@ -22,4 +23,8 @@ public interface LoginJournalRepository extends JpaRepository<LoginJournalEntry,
     Page<LoginJournalEntry> findByOccurredAtAfterOrderByOccurredAtDesc(Instant since, Pageable pageable);
 
     long countByUsernameAndOutcomeAndOccurredAtAfter(String username, LoginOutcome outcome, Instant since);
+
+    /** Compte les tentatives infructueuses récentes pour un username (protection anti-force brute). */
+    long countByUsernameIgnoreCaseAndOutcomeInAndOccurredAtAfter(
+            String username, Collection<LoginOutcome> outcomes, Instant since);
 }

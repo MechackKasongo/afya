@@ -46,6 +46,9 @@ public class ExamRequest {
     @Column(length = 1000)
     private String comment;
 
+    @Column(name = "postpone_reason", length = 1000)
+    private String postponeReason;
+
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -106,6 +109,14 @@ public class ExamRequest {
 
     public void setComment(String comment) {
         this.comment = comment;
+    }
+
+    public String getPostponeReason() {
+        return postponeReason;
+    }
+
+    public void setPostponeReason(String postponeReason) {
+        this.postponeReason = postponeReason;
     }
 
     public Instant getCreatedAt() {

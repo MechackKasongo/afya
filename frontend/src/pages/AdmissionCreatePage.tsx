@@ -175,7 +175,7 @@ export function AdmissionCreatePage() {
 
         <div>
           <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Creation...' : "Creer l'admission"}
+            {submitting ? 'Création…' : "Créer l'admission"}
           </button>
         </div>
       </form>

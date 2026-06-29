@@ -173,7 +173,7 @@ export function MedicationAdministrationsPage() {
           </div>
           <div>
             <button type="submit" className="btn btn-primary" disabled={submitting || stayClosed}>
-              {submitting ? 'Enregistrement...' : 'Ajouter'}
+              {submitting ? 'Enregistrement…' : 'Ajouter'}
             </button>
           </div>
         </form>
@@ -196,8 +196,8 @@ export function MedicationAdministrationsPage() {
               <tbody>
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={3} style={{ color: 'var(--muted)' }}>
-                      Aucune administration enregistree.
+                    <td colSpan={3} className="empty-cell">
+                      Aucune administration enregistrée.
                     </td>
                   </tr>
                 ) : (

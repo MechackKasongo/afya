@@ -6,8 +6,10 @@ import com.afya.platform.lab.dto.ExamResultRequest;
 import com.afya.platform.lab.dto.ExamResultResponse;
 import com.afya.platform.lab.dto.ExamTypeRequest;
 import com.afya.platform.lab.dto.ExamTypeResponse;
+import com.afya.platform.lab.dto.PostponeRequest;
 import com.afya.platform.lab.dto.SpecimenCollectionRequest;
 import com.afya.platform.lab.model.ExamRequestStatus;
+import com.afya.platform.lab.model.ExamUrgency;
 import com.afya.platform.lab.service.LabService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -51,8 +53,11 @@ public class LabController {
     @GetMapping("/exam-requests")
     public Page<ExamRequestResponse> listRequests(
             @RequestParam(required = false) ExamRequestStatus status,
+            @RequestParam(required = false) Long doctorId,
+            @RequestParam(required = false) Long patientId,
+            @RequestParam(required = false) ExamUrgency urgency,
             @PageableDefault(size = 20) Pageable pageable) {
-        return labService.listRequests(status, pageable);
+        return labService.listRequests(status, doctorId, patientId, urgency, pageable);
     }
 
     @GetMapping("/exam-requests/{id}")
@@ -77,5 +82,17 @@ public class LabController {
     @GetMapping("/exam-requests/{id}/result")
     public ExamResultResponse getResult(@PathVariable Long id) {
         return labService.getResult(id);
+    }
+
+    @PostMapping("/exam-requests/{id}/postpone")
+    public ExamRequestResponse postponeRequest(
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) PostponeRequest request) {
+        return labService.postponeRequest(id, request != null ? request.reason() : null);
+    }
+
+    @PostMapping("/exam-requests/{id}/reactivate")
+    public ExamRequestResponse reactivateRequest(@PathVariable Long id) {
+        return labService.reactivateRequest(id);
     }
 }

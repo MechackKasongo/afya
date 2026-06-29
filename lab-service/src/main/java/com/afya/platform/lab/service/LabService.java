@@ -14,22 +14,27 @@ import com.afya.platform.lab.model.ExamRequestLine;
 import com.afya.platform.lab.model.ExamRequestStatus;
 import com.afya.platform.lab.model.ExamResult;
 import com.afya.platform.lab.model.ExamType;
+import com.afya.platform.lab.model.ExamUrgency;
 import com.afya.platform.lab.model.ResultParameter;
 import com.afya.platform.lab.model.SpecimenCollection;
 import com.afya.platform.lab.repository.ExamRequestRepository;
 import com.afya.platform.lab.repository.ExamResultRepository;
 import com.afya.platform.lab.repository.ExamTypeRepository;
 import com.afya.platform.lab.repository.SpecimenCollectionRepository;
+import com.afya.platform.lab.integration.MedicalNotificationClient;
 import com.afya.platform.shared.audit.AuditActorResolver;
 import com.afya.platform.shared.audit.AuditEventPublisher;
 import com.afya.platform.shared.exception.BadRequestException;
 import com.afya.platform.shared.exception.ConflictException;
 import com.afya.platform.shared.exception.NotFoundException;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -40,18 +45,21 @@ public class LabService {
     private final SpecimenCollectionRepository specimenCollectionRepository;
     private final ExamResultRepository examResultRepository;
     private final AuditEventPublisher auditEventPublisher;
+    private final MedicalNotificationClient medicalNotificationClient;
 
     public LabService(
             ExamTypeRepository examTypeRepository,
             ExamRequestRepository examRequestRepository,
             SpecimenCollectionRepository specimenCollectionRepository,
             ExamResultRepository examResultRepository,
-            AuditEventPublisher auditEventPublisher) {
+            AuditEventPublisher auditEventPublisher,
+            MedicalNotificationClient medicalNotificationClient) {
         this.examTypeRepository = examTypeRepository;
         this.examRequestRepository = examRequestRepository;
         this.specimenCollectionRepository = specimenCollectionRepository;
         this.examResultRepository = examResultRepository;
         this.auditEventPublisher = auditEventPublisher;
+        this.medicalNotificationClient = medicalNotificationClient;
     }
 
     @Transactional(readOnly = true)
@@ -101,11 +109,34 @@ public class LabService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ExamRequestResponse> listRequests(ExamRequestStatus status, Pageable pageable) {
-        Page<ExamRequest> page = status == null
-                ? examRequestRepository.findAll(pageable)
-                : examRequestRepository.findByStatus(status, pageable);
-        return page.map(this::toRequestResponse);
+    public Page<ExamRequestResponse> listRequests(
+            ExamRequestStatus status,
+            Long doctorId,
+            Long patientId,
+            ExamUrgency urgency,
+            Pageable pageable) {
+        Specification<ExamRequest> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (doctorId != null) {
+                predicates.add(cb.equal(root.get("doctorId"), doctorId));
+            }
+            if (patientId != null) {
+                predicates.add(cb.equal(root.get("patientId"), patientId));
+            }
+            if (urgency != null) {
+                predicates.add(cb.equal(root.get("urgency"), urgency));
+            }
+            return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(Predicate[]::new));
+        };
+        return examRequestRepository.findAll(spec, pageable).map(this::toRequestResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public long countRequestsForDoctor(Long doctorId, ExamRequestStatus status) {
+        return examRequestRepository.countByDoctorIdAndStatus(doctorId, status);
     }
 
     @Transactional(readOnly = true)
@@ -156,7 +187,46 @@ public class LabService {
         ExamResult saved = examResultRepository.save(result);
         examRequest.setStatus(ExamRequestStatus.RESULTS_AVAILABLE);
         publish("EXAM_RESULT_RECORDED", "ExamRequest", requestId);
+        // M1 — transmettre les résultats : signale au service médical que le compte rendu est disponible
+        // (best-effort : ne doit jamais faire échouer la saisie du résultat si le service médical est indisponible).
+        medicalNotificationClient.notifyExamResultAvailable(requestId);
         return toResultResponse(saved);
+    }
+
+    /**
+     * M2 — Report d'une demande (laborantin) : possible tant que les résultats ne sont pas publiés.
+     * Conserve la trace du prélèvement éventuel pour pouvoir reprendre au bon stade.
+     */
+    @Transactional
+    public ExamRequestResponse postponeRequest(Long requestId, String reason) {
+        ExamRequest examRequest = findRequest(requestId);
+        if (examRequest.getStatus() != ExamRequestStatus.PENDING
+                && examRequest.getStatus() != ExamRequestStatus.SPECIMEN_COLLECTED) {
+            throw new BadRequestException("Report impossible pour le statut : " + examRequest.getStatus());
+        }
+        examRequest.setStatus(ExamRequestStatus.POSTPONED);
+        examRequest.setPostponeReason(blankToNull(reason));
+        publish("EXAM_REQUEST_POSTPONED", "ExamRequest", requestId);
+        return toRequestResponse(examRequest);
+    }
+
+    /**
+     * M2 — Réactivation d'une demande reportée : reprend au stade « prélèvement effectué » si un
+     * prélèvement existe déjà, sinon repart de « en attente ».
+     */
+    @Transactional
+    public ExamRequestResponse reactivateRequest(Long requestId) {
+        ExamRequest examRequest = findRequest(requestId);
+        if (examRequest.getStatus() != ExamRequestStatus.POSTPONED) {
+            throw new BadRequestException("Réactivation impossible pour le statut : " + examRequest.getStatus());
+        }
+        boolean specimenCollected = specimenCollectionRepository.findByRequestId(requestId).isPresent();
+        examRequest.setStatus(specimenCollected
+                ? ExamRequestStatus.SPECIMEN_COLLECTED
+                : ExamRequestStatus.PENDING);
+        examRequest.setPostponeReason(null);
+        publish("EXAM_REQUEST_REACTIVATED", "ExamRequest", requestId);
+        return toRequestResponse(examRequest);
     }
 
     @Transactional(readOnly = true)
@@ -199,6 +269,7 @@ public class LabService {
                 request.getUrgency(),
                 request.getStatus(),
                 request.getComment(),
+                request.getPostponeReason(),
                 types
         );
     }

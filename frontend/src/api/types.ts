@@ -85,6 +85,23 @@ export interface MedicalRecordAntecedentsUpdateRequest {
   antecedents: string | null;
 }
 
+export type AntecedentType = 'MEDICAL' | 'CHIRURGICAL' | 'FAMILIAL' | 'ALLERGIE';
+
+export interface MedicalAntecedentResponse {
+  id: number;
+  patientId: number;
+  type: AntecedentType;
+  description: string;
+  eventDate: string | null;
+  createdAt: string;
+}
+
+export interface MedicalAntecedentCreateRequest {
+  type: AntecedentType;
+  description: string;
+  eventDate?: string | null;
+}
+
 export interface PagePatientResponse {
   content: PatientResponse[];
   totalElements: number;
@@ -397,21 +414,6 @@ export interface RecordCreateRequest {
 
 export interface TextUpdateRequest {
   content: string;
-}
-
-export interface CredentialsLogPreviewResponse {
-  content: string;
-  empty: boolean;
-  truncated: boolean;
-  totalBytes: number;
-  lineCount: number;
-}
-
-export interface UserCredentialsResponse {
-  username: string;
-  password: string | null;
-  foundInLog: boolean;
-  loggedAt: string | null;
 }
 
 export interface UserResponse {
@@ -751,6 +753,7 @@ export interface ExamRequestResponse {
   urgency: ExamUrgency;
   status: ExamRequestStatus;
   comment: string | null;
+  postponeReason: string | null;
   examTypes: ExamTypeSummary[];
 }
 

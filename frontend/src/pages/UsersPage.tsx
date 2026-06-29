@@ -8,7 +8,6 @@ import type {
   PasswordPreviewResponse,
   RoleOptionResponse,
   UserCreateRequest,
-  UserCredentialsResponse,
   UserResponse,
   UserUpdateRequest,
 } from '../api/types';
@@ -94,9 +93,7 @@ export function UsersPage() {
   const [passwordVariation, setPasswordVariation] = useState(0);
   const [pwdSuggestLoading, setPwdSuggestLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserResponse | null>(null);
-  const [selectedCredentials, setSelectedCredentials] = useState<UserCredentialsResponse | null>(null);
   const [freshPassword, setFreshPassword] = useState<string | null>(null);
-  const [credentialsLoading, setCredentialsLoading] = useState(false);
   const [editFullName, setEditFullName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editRole, setEditRole] = useState('ROLE_RECEPTION');
@@ -115,7 +112,6 @@ export function UsersPage() {
   const [detailEditing, setDetailEditing] = useState(false);
   /** Évite qu’un double-clic sur « Modifier » déclenche « Enregistrer » (même emplacement). */
   const [detailSubmitReady, setDetailSubmitReady] = useState(false);
-  const [credentialsError, setCredentialsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -131,27 +127,6 @@ export function UsersPage() {
         setHospitalServicesCatalog([]);
       }
     })();
-  }, []);
-
-  const loadUserCredentials = useCallback(async (userId: number) => {
-    setCredentialsLoading(true);
-    setCredentialsError(null);
-    try {
-      const { data } = await api.get<UserCredentialsResponse>(`/api/v1/users/${userId}/credentials`);
-      setSelectedCredentials(data);
-      return data;
-    } catch (err: unknown) {
-      setSelectedCredentials(null);
-      setCredentialsError(
-        getApiErrorMessage(
-          err,
-          'Impossible de charger le mot de passe depuis le journal. Vérifiez que le BFF est à jour (redémarrage après mise à jour).',
-        ),
-      );
-      return null;
-    } finally {
-      setCredentialsLoading(false);
-    }
   }, []);
 
   const fetchEditPasswordSuggestion = useCallback(
@@ -185,22 +160,10 @@ export function UsersPage() {
   }, [appliedFilters, sortBy, sortDir]);
 
   useEffect(() => {
-    if (!selectedUser || detailEditing || freshPassword) {
-      if (!selectedUser) {
-        setSelectedCredentials(null);
-        setFreshPassword(null);
-        setCredentialsError(null);
-      }
-      return;
+    if (!selectedUser) {
+      setFreshPassword(null);
     }
-    let cancelled = false;
-    void loadUserCredentials(selectedUser.id).then(() => {
-      if (cancelled) return;
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedUser?.id, detailEditing, freshPassword, loadUserCredentials]);
+  }, [selectedUser]);
 
   useEffect(() => {
     if (!detailEditing) {
@@ -229,8 +192,7 @@ export function UsersPage() {
 
   const hasActiveFilters = hasUserFilters(appliedFilters);
   const isSelf = selectedUser != null && currentUser?.username === selectedUser.username;
-  const displayedPassword =
-    freshPassword ?? selectedCredentials?.password ?? null;
+  const displayedPassword = freshPassword;
   const showFilterRow = openFilterCol !== null;
 
   const filterHint = useMemo(() => {
@@ -445,7 +407,6 @@ export function UsersPage() {
     setDetailError(null);
     setDetailEditing(false);
     setDetailSubmitReady(false);
-    setCredentialsError(null);
   }
 
   function startDetailEdit() {
@@ -520,15 +481,8 @@ export function UsersPage() {
       setEditPasswordPreview(null);
       setDetailEditing(false);
       await loadUsers();
-      if (pwdChanged) {
-        setFreshPassword(pwdChanged);
-      } else {
-        setFreshPassword(null);
-      }
-      const creds = await loadUserCredentials(data.id);
-      if (creds?.foundInLog && creds.password) {
-        setFreshPassword(null);
-      }
+      // Le mot de passe n'est jamais conservé : on l'affiche une seule fois, ici, juste après réinitialisation.
+      setFreshPassword(pwdChanged ? pwdChanged : null);
     } catch (err) {
       setDetailError(getApiErrorMessage(err, "Impossible de mettre à jour l'utilisateur."));
     } finally {
@@ -986,11 +940,7 @@ export function UsersPage() {
                 </div>
                 <div className="field" style={{ marginBottom: '0.75rem' }}>
                   <label>Mot de passe</label>
-                  {credentialsLoading && !displayedPassword ? (
-                    <p className="muted-text" style={{ margin: 0 }}>
-                      Chargement…
-                    </p>
-                  ) : displayedPassword ? (
+                  {displayedPassword ? (
                     <div className="user-detail-drawer__password">
                       <code className="credentials-password-block">{displayedPassword}</code>
                       <button
@@ -1000,16 +950,13 @@ export function UsersPage() {
                       >
                         Copier
                       </button>
-                      {selectedCredentials?.loggedAt ? (
-                        <span className="field-hint">Enregistré le {selectedCredentials.loggedAt}</span>
-                      ) : freshPassword ? (
-                        <span className="field-hint">Mot de passe affiché à la création du compte.</span>
-                      ) : null}
+                      <span className="field-hint">
+                        Affiché une seule fois. Communiquez-le à l&apos;utilisateur : il ne sera plus jamais récupérable.
+                      </span>
                     </div>
                   ) : (
                     <p className="muted-text" style={{ margin: 0 }}>
-                      {credentialsError ??
-                        'Non disponible (compte créé avant le journal, mot de passe modifié, ou journal inaccessible).'}
+                      Non conservé pour des raisons de sécurité. Utilisez « Modifier » pour définir un nouveau mot de passe.
                     </p>
                   )}
                 </div>
@@ -1145,7 +1092,7 @@ export function UsersPage() {
                         autoComplete="new-password"
                       />
                       <span className="field-hint">
-                        Si renseigné, le mot de passe sera enregistré dans le journal après validation.
+                        Si renseigné, il sera défini après validation et affiché une seule fois (non conservé).
                       </span>
                     </div>
                   </div>
@@ -1324,7 +1271,7 @@ export function UsersPage() {
                       </button>
                     </div>
                     <span className="field-hint">
-                      Communiqué une seule fois à l&apos;utilisateur ; recopié dans le journal à la création.
+                      Communiqué une seule fois à l&apos;utilisateur ; il ne sera pas conservé par le système.
                     </span>
                   </div>
                 ) : (

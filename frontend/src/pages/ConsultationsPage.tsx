@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { getApiErrorMessage } from '../api/error';
 import { useAuth } from '../auth/AuthContext';
+import { hasRole } from '../auth/roles';
 import type {
   AdmissionResponse,
   ConsultationCreateRequest,
@@ -19,6 +20,8 @@ import {
   type TableSortDir,
 } from '../components/DataTableColumnHeader';
 import { ScrollTableRegion, TableResultFooter } from '../components/ScrollTableRegion';
+import { LoadingBlock } from '../components/ui/LoadingBlock';
+import { PageHeader } from '../components/ui/PageHeader';
 import { LIST_FETCH_PAGE_SIZE } from '../utils/listFetch';
 import {
   compareNumbers,
@@ -75,6 +78,8 @@ function hasActiveFilters(filters: ColumnFilters): boolean {
 
 export function ConsultationsPage() {
   const { user } = useAuth();
+  /** Créer une consultation : médecin / admin uniquement (backend medical-service). */
+  const canCreateConsultation = hasRole(user, 'ROLE_ADMIN') || hasRole(user, 'ROLE_MEDECIN');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlPatientId = searchParams.get('patientId')?.trim() ?? '';
@@ -370,7 +375,10 @@ export function ConsultationsPage() {
   const showFilterRow = openFilterCol !== null;
 
   return (
-    <>
+    <div className="page-stack">
+      <PageHeader title="Consultations" subtitle="Actes médicaux : observations, diagnostics et demandes d'examens" />
+
+      {canCreateConsultation && (
       <div className="card" style={{ marginBottom: '1rem' }}>
         <h3 style={{ marginTop: 0 }}>Nouvelle consultation</h3>
         <form onSubmit={onCreateSubmit} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -392,7 +400,7 @@ export function ConsultationsPage() {
                 Sélection : {selectedPatient.firstName} {selectedPatient.lastName} — {selectedPatient.dossierNumber}
               </small>
             ) : patientLoading ? (
-              <small style={{ color: 'var(--muted)' }}>Recherche en cours...</small>
+              <small style={{ color: 'var(--muted)' }}>Recherche en cours…</small>
             ) : null}
             {!selectedPatient && patientOptions.length > 0 && (
               <div style={{ marginTop: '0.4rem', border: '1px solid var(--border)', borderRadius: '0.5rem', maxHeight: 220, overflowY: 'auto' }}>
@@ -420,7 +428,7 @@ export function ConsultationsPage() {
             {!selectedPatient ? (
               <input id="consult-service" readOnly disabled placeholder="—" />
             ) : admissionLoading ? (
-              <input id="consult-service" readOnly disabled value="Chargement..." />
+              <input id="consult-service" readOnly disabled value="Chargement…" />
             ) : noActiveStay ? (
               <>
                 <input id="consult-service" readOnly disabled value="Non admis" />
@@ -478,10 +486,11 @@ export function ConsultationsPage() {
             className="btn btn-primary"
             disabled={submitting || !selectedPatient || admissionLoading || noActiveStay || !admissionId}
           >
-            {submitting ? 'Création...' : 'Créer'}
+            {submitting ? 'Création…' : 'Créer'}
           </button>
         </form>
       </div>
+      )}
 
       {error && <div className="error-banner">{error}</div>}
       {filterHint ? (
@@ -493,7 +502,7 @@ export function ConsultationsPage() {
           </button>
         </DataTableFilterHint>
       ) : null}
-      {loading && <p style={{ color: 'var(--muted)' }}>Chargement…</p>}
+      {loading && <LoadingBlock label="Chargement des consultations…" />}
 
       {!loading && page && (
         <div className="card table-wrap">
@@ -611,7 +620,7 @@ export function ConsultationsPage() {
               <tbody>
                 {displayedRows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ color: 'var(--muted)' }}>
+                    <td colSpan={6} className="empty-cell">
                       {hasActiveFilters(appliedFilters) ? 'Aucune consultation pour ces filtres.' : 'Aucune consultation.'}
                     </td>
                   </tr>
@@ -647,6 +656,6 @@ export function ConsultationsPage() {
           />
         </div>
       )}
-    </>
+    </div>
   );
 }

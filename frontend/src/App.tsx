@@ -3,6 +3,7 @@ import { AuthProvider } from './auth/AuthContext';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { RoleRoute } from './components/RoleRoute';
+import { EmergencyServiceRoute } from './components/EmergencyServiceRoute';
 import { AdmissionsPage } from './pages/AdmissionsPage';
 import { AdmissionCreatePage } from './pages/AdmissionCreatePage';
 import { AdmissionStayLayout } from './components/AdmissionStayLayout';
@@ -35,6 +36,7 @@ import { platformFeatures } from './config/features';
 
 const CLINICAL_STAFF = ['ROLE_RECEPTION', 'ROLE_MEDECIN', 'ROLE_INFIRMIER'] as const;
 const CLINICAL_CARE = ['ROLE_MEDECIN', 'ROLE_INFIRMIER'] as const;
+const LAB_STAFF = ['ROLE_MEDECIN', 'ROLE_LABORANTIN'] as const;
 
 export default function App() {
   return (
@@ -99,34 +101,10 @@ export default function App() {
                   />
                 </Route>
                 <Route element={<RoleRoute allowed={[...CLINICAL_CARE]} />}>
-                  <Route
-                    path="/lab/requests"
-                    element={
-                      platformFeatures.labModule ? (
-                        <LabRequestsPage />
-                      ) : (
-                        <PlatformUnavailablePage
-                          title="Laboratoire"
-                          description="Le module laboratoire n'est pas encore disponible."
-                        />
-                      )
-                    }
-                  />
-                  <Route
-                    path="/lab/requests/:id"
-                    element={
-                      platformFeatures.labModule ? (
-                        <LabRequestDetailPage />
-                      ) : (
-                        <PlatformUnavailablePage
-                          title="Demande d'examen"
-                          description="Le détail laboratoire n'est pas encore disponible."
-                        />
-                      )
-                    }
-                  />
-                  <Route path="/urgences" element={<UrgencesPage />} />
-                  <Route path="/urgences/:id" element={<UrgenceDetailPage />} />
+                  <Route element={<EmergencyServiceRoute />}>
+                    <Route path="/urgences" element={<UrgencesPage />} />
+                    <Route path="/urgences/:id" element={<UrgenceDetailPage />} />
+                  </Route>
                   <Route
                     path="/consultations"
                     element={
@@ -156,6 +134,35 @@ export default function App() {
                   <Route path="/medical-records" element={<MedicalRecordsPage />} />
                   <Route path="/medical-records/:patientId" element={<MedicalRecordDetailPage />} />
                 </Route>
+              </Route>
+
+              <Route element={<RoleRoute allowed={[...LAB_STAFF]} />}>
+                <Route
+                  path="/lab/requests"
+                  element={
+                    platformFeatures.labModule ? (
+                      <LabRequestsPage />
+                    ) : (
+                      <PlatformUnavailablePage
+                        title="Laboratoire"
+                        description="Le module laboratoire n'est pas encore disponible."
+                      />
+                    )
+                  }
+                />
+                <Route
+                  path="/lab/requests/:id"
+                  element={
+                    platformFeatures.labModule ? (
+                      <LabRequestDetailPage />
+                    ) : (
+                      <PlatformUnavailablePage
+                        title="Demande d'examen"
+                        description="Le détail laboratoire n'est pas encore disponible."
+                      />
+                    )
+                  }
+                />
               </Route>
 
               <Route element={<RoleRoute allowed={['ROLE_ADMIN', 'ROLE_RECEPTION']} />}>

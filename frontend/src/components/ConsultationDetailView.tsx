@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { getApiErrorMessage } from '../api/error';
 import { useAuth } from '../auth/AuthContext';
+import { hasRole } from '../auth/roles';
 import type {
   ClinicalPrescriptionCreateRequest,
   ClinicalPrescriptionResponse,
@@ -36,6 +37,7 @@ import { ScrollTableRegion, TableResultFooter } from './ScrollTableRegion';
 import { PrescriptionNotificationsPanel } from './PrescriptionNotificationsPanel';
 import { Drawer } from './ui/Drawer';
 import { Toast } from './ui/Toast';
+import { LoadingBlock } from './ui/LoadingBlock';
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   OBSERVATION: 'Observation',
@@ -43,7 +45,13 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   EXAM_ORDER: 'Demande examen',
 };
 
-const EVENT_TYPE_FILTER_OPTIONS = Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => ({
+/** Libellés d'affichage (inclut les types non créés par le médecin, ex. résultats labo transmis). */
+const EVENT_DISPLAY_LABELS: Record<string, string> = {
+  ...EVENT_TYPE_LABELS,
+  RESULT_AVAILABLE: 'Résultats labo',
+};
+
+const EVENT_TYPE_FILTER_OPTIONS = Object.entries(EVENT_DISPLAY_LABELS).map(([value, label]) => ({
   value,
   label,
 }));
@@ -126,7 +134,7 @@ type TimelineFilters = {
 const emptyTimelineFilters: TimelineFilters = { date: '', type: '' };
 
 function eventTypeLabel(type: string): string {
-  return EVENT_TYPE_LABELS[type] ?? type;
+  return EVENT_DISPLAY_LABELS[type] ?? type;
 }
 
 function matchesTimelineFilters(ev: ConsultationEventResponse, filters: TimelineFilters): boolean {
@@ -165,6 +173,13 @@ export function ConsultationDetailView({
   admissionContextId,
 }: ConsultationDetailViewProps) {
   const { user } = useAuth();
+  /** Diagnostics, demandes d'examen et prescriptions : médecin / admin uniquement (backend medical-service). */
+  const canEdit = hasRole(user, 'ROLE_ADMIN') || hasRole(user, 'ROLE_MEDECIN');
+  /** Observations : médecin / admin et infirmier (backend medical-service). */
+  const canObserve = canEdit || hasRole(user, 'ROLE_INFIRMIER');
+  const eventOptions = canEdit
+    ? EVENT_ENTRY_OPTIONS
+    : EVENT_ENTRY_OPTIONS.filter((opt) => opt.value === 'OBSERVATION');
   const [consultation, setConsultation] = useState<ConsultationResponse | null>(null);
   const [timeline, setTimeline] = useState<ConsultationEventResponse[]>([]);
   const [eventKind, setEventKind] = useState<EventEntryKind>('OBSERVATION');
@@ -587,11 +602,12 @@ export function ConsultationDetailView({
           {timelineWarning}
         </p>
       )}
-      {loading && <p className="loading-block">Chargement de la chronologie…</p>}
+      {loading && <LoadingBlock label="Chargement de la chronologie…" />}
 
       {!loading && consultation && (
         <>
           <div className="clinical-layout consultation-detail-body">
+            {canObserve && (
             <div className="clinical-layout__actions">
               <div className="consultation-detail-cards-row">
                 <div className="card consultation-detail-form">
@@ -606,7 +622,7 @@ export function ConsultationDetailView({
                       onChange={(e) => setEventKind(e.target.value as EventEntryKind)}
                       disabled={pending}
                     >
-                      {EVENT_ENTRY_OPTIONS.map((opt) => (
+                      {eventOptions.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>
@@ -747,11 +763,12 @@ export function ConsultationDetailView({
                       disabled={pending}
                       onClick={() => onAddTimelineEvent()}
                     >
-                      {pending ? 'Traitement...' : EVENT_ENTRY_CONFIG[eventKind].submitLabel}
+                      {pending ? 'Traitement…' : EVENT_ENTRY_CONFIG[eventKind].submitLabel}
                     </button>
                   </div>
                 </div>
 
+                {canEdit && (
                 <div className="card consultation-detail-form">
                   <h2 className="clinical-section__title" style={{ marginTop: 0 }}>
                     Prescription
@@ -787,8 +804,10 @@ export function ConsultationDetailView({
                     </div>
                   </form>
                 </div>
+                )}
               </div>
             </div>
+            )}
 
             <div className="consultation-detail-main-column">
             <div className="card table-wrap consultation-detail-timeline">
@@ -889,7 +908,7 @@ export function ConsultationDetailView({
                   <tbody>
                     {displayedTimeline.length === 0 ? (
                       <tr>
-                        <td colSpan={5} style={{ color: 'var(--muted)' }}>
+                        <td colSpan={5} className="empty-cell">
                           {timeline.length === 0
                             ? 'Aucun événement.'
                             : hasActiveTimelineFilters(appliedTimelineFilters)
@@ -1081,11 +1100,14 @@ export function ConsultationDetailView({
                 </p>
               </>
             ) : null}
-            {selectedTimelineEvent.type === 'EXAM_ORDER' && selectedTimelineEvent.examRequestId != null ? (
+            {(selectedTimelineEvent.type === 'EXAM_ORDER' || selectedTimelineEvent.type === 'RESULT_AVAILABLE') &&
+            selectedTimelineEvent.examRequestId != null ? (
               <p className="consultation-timeline-event-detail__meta">
                 <strong>Demande labo</strong>{' '}
                 <Link to={`/lab/requests/${selectedTimelineEvent.examRequestId}`}>
-                  Voir la demande #{selectedTimelineEvent.examRequestId}
+                  {selectedTimelineEvent.type === 'RESULT_AVAILABLE'
+                    ? `Voir les résultats #${selectedTimelineEvent.examRequestId}`
+                    : `Voir la demande #${selectedTimelineEvent.examRequestId}`}
                 </Link>
               </p>
             ) : null}

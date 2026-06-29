@@ -12,6 +12,7 @@ public record ExamRequestResponse(
         ExamUrgency urgency,
         ExamRequestStatus status,
         String comment,
+        String postponeReason,
         List<ExamTypeSummary> examTypes
 ) {
 }

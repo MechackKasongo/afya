@@ -5,6 +5,8 @@ import { api } from '../api/client';
 import { getApiErrorMessage } from '../api/error';
 import type { PagePatientResponse, PageUrgenceResponse, PatientResponse, UrgenceCreateRequest, UrgenceResponse, UrgenceStatus } from '../api/types';
 import { DataTableColumnHeader } from '../components/DataTableColumnHeader';
+import { Drawer } from '../components/ui/Drawer';
+import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { PageHeader } from '../components/ui/PageHeader';
 import { ScrollTableRegion, TableResultFooter } from '../components/ScrollTableRegion';
@@ -271,7 +273,7 @@ export function UrgencesPage() {
   async function onCreateSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedPatient) {
-      setCreateError('Selectionnez un patient.');
+      setCreateError('Sélectionnez un patient.');
       return;
     }
     if (!priority.trim()) {
@@ -350,7 +352,24 @@ export function UrgencesPage() {
       {error && <div className="error-banner">{error}</div>}
       {loading && <LoadingBlock label="Chargement des urgences…" />}
 
-      {!loading && page && (
+      {!loading && page && displayedUrgences.length === 0 && (
+        <div className="card table-wrap">
+          <EmptyState
+            title={
+              appliedSearch.trim()
+                ? 'Aucune urgence ne correspond à la recherche.'
+                : 'Aucune urgence à afficher pour le moment.'
+            }
+            description={
+              appliedSearch.trim()
+                ? 'Modifiez les critères de recherche.'
+                : 'Les nouveaux passages aux urgences apparaîtront ici.'
+            }
+          />
+        </div>
+      )}
+
+      {!loading && page && displayedUrgences.length > 0 && (
         <div className="card table-wrap">
           <ScrollTableRegion>
             <table className="data-table urgences-table">
@@ -397,62 +416,52 @@ export function UrgencesPage() {
                 </tr>
               </thead>
               <tbody>
-                {displayedUrgences.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} style={{ color: 'var(--muted)' }}>
-                      {appliedSearch.trim()
-                        ? 'Aucune urgence ne correspond à la recherche.'
-                        : 'Aucune urgence à afficher pour le moment.'}
+                {displayedUrgences.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="data-table-row--clickable"
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`Ouvrir le passage urgence ${item.id}`}
+                    onClick={() => navigate(`/urgences/${item.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/urgences/${item.id}`);
+                      }
+                    }}
+                  >
+                    <td className="data-table-col--id">{item.id}</td>
+                    <td>{patientDisplayName(patientsById[item.patientId], item.patientId)}</td>
+                    <td>
+                      <span className={priorityBadgeClass(item.priority)}>{priorityLabel(item.priority)}</span>
+                    </td>
+                    <td>
+                      {item.triageLevel ? (
+                        <span className={triageLevelBadgeClass(item.triageLevel)}>
+                          {triageLevelLabel(item.triageLevel)}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td>
+                      <div className="urgence-text-cell">{item.orientation || '-'}</div>
+                    </td>
+                    <td>
+                      <div className="urgence-list-status">
+                        <span
+                          className={`urgence-status-badge urgence-status-badge--${item.status.toLowerCase()}`}
+                        >
+                          {statusLabels[item.status]}
+                        </span>
+                        {isPatientDeceased(patientsById[item.patientId]) ? (
+                          <span className="patient-status-badge patient-status-badge--deceased">Décès</span>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  displayedUrgences.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="data-table-row--clickable"
-                      role="link"
-                      tabIndex={0}
-                      aria-label={`Ouvrir le passage urgence ${item.id}`}
-                      onClick={() => navigate(`/urgences/${item.id}`)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          navigate(`/urgences/${item.id}`);
-                        }
-                      }}
-                    >
-                      <td className="data-table-col--id">{item.id}</td>
-                      <td>{patientDisplayName(patientsById[item.patientId], item.patientId)}</td>
-                      <td>
-                        <span className={priorityBadgeClass(item.priority)}>{priorityLabel(item.priority)}</span>
-                      </td>
-                      <td>
-                        {item.triageLevel ? (
-                          <span className={triageLevelBadgeClass(item.triageLevel)}>
-                            {triageLevelLabel(item.triageLevel)}
-                          </span>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      <td>
-                        <div className="urgence-text-cell">{item.orientation || '-'}</div>
-                      </td>
-                      <td>
-                        <div className="urgence-list-status">
-                          <span
-                            className={`urgence-status-badge urgence-status-badge--${item.status.toLowerCase()}`}
-                          >
-                            {statusLabels[item.status]}
-                          </span>
-                          {isPatientDeceased(patientsById[item.patientId]) ? (
-                            <span className="patient-status-badge patient-status-badge--deceased">Décès</span>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </ScrollTableRegion>
@@ -464,121 +473,95 @@ export function UrgencesPage() {
         </div>
       )}
 
-      {showCreateDrawer && (
-        <>
-          <div
-            role="presentation"
-            onClick={() => setShowCreateDrawer(false)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'color-mix(in srgb, var(--accent) 14%, transparent)',
-              zIndex: 39,
-            }}
-          />
-          <aside
-            style={{
-              position: 'fixed',
-              top: 0,
-              right: 0,
-              height: '100vh',
-              width: 'min(50vw, 760px)',
-              minWidth: '360px',
-              background: 'var(--surface)',
-              borderLeft: '1px solid var(--border)',
-              zIndex: 40,
-              overflowY: 'auto',
-              padding: '1rem',
-              boxShadow: '0 10px 40px rgba(2, 6, 23, 0.25)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <strong>Creer une urgence</strong>
-              <button type="button" className="btn btn-ghost" onClick={() => setShowCreateDrawer(false)}>
-                Fermer
-              </button>
-            </div>
-            {createError && <div className="error-banner">{createError}</div>}
-            <form onSubmit={onCreateSubmit} className="card" style={{ display: 'grid', gap: '0.75rem' }}>
-              <div className="field" style={{ marginBottom: 0 }}>
-                <label htmlFor="drawer-urg-patient-search">Patient *</label>
-                <input
-                  id="drawer-urg-patient-search"
-                  value={createPatientQuery}
-                  onChange={(e) => {
-                    setCreatePatientQuery(e.target.value);
-                    setSelectedPatient(null);
-                    setCreateError(null);
-                  }}
-                  placeholder="Rechercher par nom ou dossier (min 2 caracteres)"
-                  required
-                />
-                {selectedPatient ? (
-                  <small style={{ color: 'var(--muted)' }}>
-                    Sélection : {selectedPatient.firstName} {selectedPatient.lastName} — {selectedPatient.dossierNumber}
-                  </small>
-                ) : createPatientLoading ? (
-                  <small style={{ color: 'var(--muted)' }}>Recherche en cours...</small>
-                ) : null}
-                {!selectedPatient && createPatientOptions.length > 0 && (
-                  <div style={{ marginTop: '0.4rem', border: '1px solid var(--border)', borderRadius: '0.5rem', maxHeight: 220, overflowY: 'auto' }}>
-                    {createPatientOptions.map((patient) => (
-                      <button
-                        key={patient.id}
-                        type="button"
-                        className="btn btn-ghost"
-                        style={{ width: '100%', justifyContent: 'flex-start', borderRadius: 0 }}
-                        onClick={() => {
-                          setSelectedPatient(patient);
-                          setCreatePatientQuery(`${patient.firstName} ${patient.lastName} (${patient.dossierNumber})`);
-                          setCreatePatientOptions([]);
-                          setCreateError(null);
-                        }}
-                      >
-                        {patient.firstName} {patient.lastName} — {patient.dossierNumber}
-                      </button>
-                    ))}
-                  </div>
-                )}
+      <Drawer
+        open={showCreateDrawer}
+        onClose={() => {
+          setShowCreateDrawer(false);
+          resetCreateForm();
+        }}
+        title="Créer une urgence"
+        footer={
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button type="submit" form="urgence-create-form" className="btn btn-primary" disabled={submitting}>
+              {submitting ? 'Création…' : 'Créer'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setShowCreateDrawer(false);
+                resetCreateForm();
+              }}
+            >
+              Annuler
+            </button>
+          </div>
+        }
+      >
+        {createError && <div className="error-banner">{createError}</div>}
+        <form id="urgence-create-form" onSubmit={onCreateSubmit} className="card card--flat" style={{ display: 'grid', gap: '0.75rem' }}>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="drawer-urg-patient-search">Patient *</label>
+            <input
+              id="drawer-urg-patient-search"
+              value={createPatientQuery}
+              onChange={(e) => {
+                setCreatePatientQuery(e.target.value);
+                setSelectedPatient(null);
+                setCreateError(null);
+              }}
+              placeholder="Rechercher par nom ou dossier (min 2 caractères)"
+              required
+            />
+            {selectedPatient ? (
+              <small style={{ color: 'var(--muted)' }}>
+                Sélection : {selectedPatient.firstName} {selectedPatient.lastName} — {selectedPatient.dossierNumber}
+              </small>
+            ) : createPatientLoading ? (
+              <small style={{ color: 'var(--muted)' }}>Recherche en cours…</small>
+            ) : null}
+            {!selectedPatient && createPatientOptions.length > 0 && (
+              <div style={{ marginTop: '0.4rem', border: '1px solid var(--border)', borderRadius: '0.5rem', maxHeight: 220, overflowY: 'auto' }}>
+                {createPatientOptions.map((patient) => (
+                  <button
+                    key={patient.id}
+                    type="button"
+                    className="btn btn-ghost"
+                    style={{ width: '100%', justifyContent: 'flex-start', borderRadius: 0 }}
+                    onClick={() => {
+                      setSelectedPatient(patient);
+                      setCreatePatientQuery(`${patient.firstName} ${patient.lastName} (${patient.dossierNumber})`);
+                      setCreatePatientOptions([]);
+                      setCreateError(null);
+                    }}
+                  >
+                    {patient.firstName} {patient.lastName} — {patient.dossierNumber}
+                  </button>
+                ))}
               </div>
-              <div className="field" style={{ marginBottom: 0 }}>
-                <label htmlFor="drawer-urg-priority">Priorité *</label>
-                <select id="drawer-urg-priority" value={priority} onChange={(e) => setPriority(e.target.value)}>
-                  {priorityOptions.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field" style={{ marginBottom: 0 }}>
-                <label htmlFor="drawer-urg-motif">Motif</label>
-                <input
-                  id="drawer-urg-motif"
-                  value={motif}
-                  onChange={(e) => setMotif(e.target.value)}
-                  placeholder="Douleur thoracique, dyspnee..."
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? 'Création...' : 'Créer'}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    setShowCreateDrawer(false);
-                    resetCreateForm();
-                  }}
-                >
-                  Annuler
-                </button>
-              </div>
-            </form>
-          </aside>
-        </>
-      )}
+            )}
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="drawer-urg-priority">Priorité *</label>
+            <select id="drawer-urg-priority" value={priority} onChange={(e) => setPriority(e.target.value)}>
+              {priorityOptions.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="drawer-urg-motif">Motif</label>
+            <input
+              id="drawer-urg-motif"
+              value={motif}
+              onChange={(e) => setMotif(e.target.value)}
+              placeholder="Douleur thoracique, dyspnée…"
+            />
+          </div>
+        </form>
+      </Drawer>
     </>
   );
 }

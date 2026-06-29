@@ -6,10 +6,7 @@ import com.afya.platform.bff.support.AuthorizationSupport;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -102,41 +99,5 @@ public class UserBffController {
     @GetMapping("/{id}")
     public UserResponse get(@PathVariable Long id, HttpServletRequest request) {
         return userClient.getUser(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
-    }
-
-    @GetMapping("/{id}/credentials")
-    public UserCredentialsResponse credentialsForUser(@PathVariable Long id, HttpServletRequest request) {
-        return userClient.credentialsForUser(
-                id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
-    }
-
-    @GetMapping("/credentials-log/preview")
-    public CredentialsLogPreviewResponse credentialsPreview(HttpServletRequest request) {
-        return userClient.credentialsPreview(
-                AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
-    }
-
-    @GetMapping(value = "/credentials-log", produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<byte[]> credentialsFile(HttpServletRequest request) {
-        byte[] body = userClient.credentialsFile(
-                AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"comptes-utilisateurs-afya.txt\"")
-                .body(body);
-    }
-
-    @GetMapping(value = "/credentials-log.csv", produces = "text/csv")
-    public ResponseEntity<byte[]> credentialsCsv(HttpServletRequest request) {
-        byte[] body = userClient.credentialsCsv(
-                AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"comptes-utilisateurs-afya.csv\"")
-                .body(body);
-    }
-
-    @DeleteMapping("/credentials-log")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteCredentialsLog(HttpServletRequest request) {
-        userClient.deleteCredentialsLog(AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 }

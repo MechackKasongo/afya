@@ -101,7 +101,7 @@ Architecture **microservices** : chaque service est **déployable séparément**
 | **Base** | `afya_lab` |
 | **Entités** | `ExamType`, `ExamRequest`, `ExamRequestLine`, `SpecimenCollection`, `ExamResult`, `ResultParameter` |
 | **API** | `GET/POST /api/v1/lab/exam-types`, `GET/POST /api/v1/lab/exam-requests`, `POST /api/v1/lab/exam-requests/{id}/specimen`, `POST /api/v1/lab/exam-requests/{id}/results` |
-| **Acteurs** | Médecin (demande), Laborantin (prélèvement + résultats) |
+| **Acteurs** | Médecin (demande), **Laborantin** (prélèvement + résultats), Admin (catalogue) |
 
 ### 2.8 nursing-service (MD-08)
 

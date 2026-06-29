@@ -17,18 +17,22 @@ import com.afya.platform.auth.repository.RefreshTokenRepository;
 import com.afya.platform.auth.repository.RevokedAccessJtiRepository;
 import com.afya.platform.shared.audit.AuditEventPublisher;
 import com.afya.platform.shared.exception.NotFoundException;
+import com.afya.platform.shared.exception.TooManyRequestsException;
 import com.afya.platform.shared.exception.UnauthorizedException;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,6 +47,18 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuditEventPublisher auditEventPublisher;
 
+    /**
+     * Le verrouillage par credential ({@link CredentialService}) protège déjà les comptes
+     * <em>existants</em> contre la force brute (statut {@code BLOQUE} après N échecs). Ce throttle
+     * complémentaire couvre le seul angle mort : le martèlement de <em>usernames inconnus</em>
+     * (probing/énumération), avec une fenêtre glissante qui se lève automatiquement.
+     */
+    private static final Set<LoginOutcome> COUNTED_LOGIN_FAILURES =
+            Set.of(LoginOutcome.FAILURE_USER_NOT_FOUND);
+
+    private final int maxFailedAttempts;
+    private final Duration lockWindow;
+
     public AuthService(
             UserServiceClient userServiceClient,
             CredentialService credentialService,
@@ -51,7 +67,9 @@ public class AuthService {
             IssuedTokenRepository issuedTokenRepository,
             LoginJournalRepository loginJournalRepository,
             JwtService jwtService,
-            AuditEventPublisher auditEventPublisher
+            AuditEventPublisher auditEventPublisher,
+            @Value("${app.auth.max-failed-login-attempts:5}") int maxFailedAttempts,
+            @Value("${app.auth.lock-window:15m}") Duration lockWindow
     ) {
         this.userServiceClient = userServiceClient;
         this.credentialService = credentialService;
@@ -61,11 +79,14 @@ public class AuthService {
         this.loginJournalRepository = loginJournalRepository;
         this.jwtService = jwtService;
         this.auditEventPublisher = auditEventPublisher;
+        this.maxFailedAttempts = maxFailedAttempts;
+        this.lockWindow = lockWindow;
     }
 
     @Transactional
     public TokenResponse login(String username, String password, String ipAddress) {
         String normalizedUsername = username.strip();
+        enforceBruteForceProtection(normalizedUsername, ipAddress);
         Credential credential = credentialService.findByUsername(normalizedUsername).orElse(null);
 
         if (credential == null) {
@@ -140,6 +161,28 @@ public class AuthService {
     }
 
     // ── Helpers privés ─────────────────────────────────────────────────────────
+
+    /**
+     * Protection anti-force brute : si trop de tentatives infructueuses ont eu lieu pour ce
+     * username dans la fenêtre glissante, on rejette la requête (HTTP 429) sans même vérifier
+     * le mot de passe. Les rejets eux-mêmes ({@code FAILURE_ACCOUNT_LOCKED}) ne sont pas
+     * comptabilisés, de sorte que le verrou se lève automatiquement une fois la fenêtre écoulée.
+     */
+    private void enforceBruteForceProtection(String username, String ipAddress) {
+        if (maxFailedAttempts <= 0) {
+            return;
+        }
+        Instant since = Instant.now().minus(lockWindow);
+        long recentFailures = loginJournalRepository
+                .countByUsernameIgnoreCaseAndOutcomeInAndOccurredAtAfter(username, COUNTED_LOGIN_FAILURES, since);
+        if (recentFailures >= maxFailedAttempts) {
+            journalLogin(username, null, LoginOutcome.FAILURE_ACCOUNT_LOCKED, ipAddress);
+            auditEventPublisher.publish("LOGIN_THROTTLED", "USER", username, username, null);
+            throw new TooManyRequestsException(
+                    "Trop de tentatives de connexion infructueuses. Réessayez dans "
+                            + Math.max(1, lockWindow.toMinutes()) + " minute(s).");
+        }
+    }
 
     private AuthUserProfile findActiveUser(String username) {
         try {

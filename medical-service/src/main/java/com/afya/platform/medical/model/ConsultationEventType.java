@@ -3,5 +3,6 @@ package com.afya.platform.medical.model;
 public enum ConsultationEventType {
     OBSERVATION,
     DIAGNOSTIC,
-    EXAM_ORDER
+    EXAM_ORDER,
+    RESULT_AVAILABLE
 }

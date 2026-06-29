@@ -47,12 +47,18 @@ public class LabBffController {
     @GetMapping("/exam-requests")
     public Page<ExamRequestResponse> listRequests(
             @RequestParam(required = false) ExamRequestStatus status,
+            @RequestParam(required = false) Long doctorId,
+            @RequestParam(required = false) Long patientId,
+            @RequestParam(required = false) ExamUrgency urgency,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             HttpServletRequest request
     ) {
         return labClient.listRequests(
                 status,
+                doctorId,
+                patientId,
+                urgency,
                 page,
                 size,
                 AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
@@ -85,5 +91,22 @@ public class LabBffController {
     @GetMapping("/exam-requests/{id:\\d+}/result")
     public ExamResultResponse getResult(@PathVariable Long id, HttpServletRequest request) {
         return labClient.getResult(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+    }
+
+    @PostMapping("/exam-requests/{id:\\d+}/postpone")
+    public ExamRequestResponse postponeRequest(
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) PostponeRequest body,
+            HttpServletRequest request
+    ) {
+        return labClient.postponeRequest(
+                id,
+                body != null ? body : new PostponeRequest(null),
+                AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
+    }
+
+    @PostMapping("/exam-requests/{id:\\d+}/reactivate")
+    public ExamRequestResponse reactivateRequest(@PathVariable Long id, HttpServletRequest request) {
+        return labClient.reactivateRequest(id, AuthorizationSupport.requireBearer(request.getHeader("Authorization")));
     }
 }
